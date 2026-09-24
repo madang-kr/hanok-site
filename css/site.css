@@ -583,11 +583,11 @@ body.has-preview .fab{bottom:56px}
 .post-vh h2{font-size:26px}
 .post-text p{margin:0 0 1em; font-size:16.5px; line-height:1.85; color:var(--text)}
 .post-text p:last-child{margin-bottom:0}
-.post-imgs{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:10px; margin-top:24px}
-.post-imgs.one{grid-template-columns:1fr; max-width:640px}
-.post-imgs a{display:block; background:#000; overflow:hidden}
-.post-imgs img{display:block; width:100%; height:auto; aspect-ratio:4/3; object-fit:cover; transition:opacity .2s}
-.post-imgs.one img{aspect-ratio:auto}
+/* 사진: 한 줄 최대 3장, 줄마다 높이 같게·너비는 사진 비율대로(js/news.js fitRows) — 예전 4:3 고정은 세로 사진 위아래가 잘렸음(09-24) */
+.post-imgs{margin-top:24px; display:flex; flex-direction:column; gap:8px}
+.post-row{display:flex; gap:8px}
+.post-row a{display:block; flex:1.333 1 0; aspect-ratio:1.333; min-width:0; background:var(--bg-2); overflow:hidden}
+.post-imgs img{display:block; width:100%; height:100%; object-fit:cover; transition:opacity .2s}   /* 비율을 알고 나면 칸과 사진 비율이 같아 실제로는 안 잘림 */
 .post-imgs a:hover img{opacity:.85}
 /* 첨부 — 밑줄·테두리 없이 ↓ 와 이름만(재아 09-20) */
 .post-files{list-style:none; margin:22px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:8px 22px}
@@ -596,6 +596,13 @@ body.has-preview .fab{bottom:56px}
 .post-files a:hover{color:#fff}
 .post-files a:hover:before{color:#fff}
 /* 이전 글 / 다음 글 / 목록 — 글 아래. 다음 글이 위(더 새 글), 이전 글이 아래(더 오래된 글) */
+/* 소식 쪽 번호(09-24) */
+.pager{display:flex; justify-content:center; align-items:center; gap:4px; padding:32px 0 8px}
+.pager a, .pager span{min-width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; padding:0 6px; font-size:15px; color:var(--text); text-decoration:none; border-radius:20px}
+.pager a:hover{background:var(--line)}
+.pager .on{background:var(--ink); color:var(--bg); font-weight:700}   /* 어두운 바탕 — 흰 동그라미에 검은 숫자 */
+.pager .pg-arrow{font-size:20px; color:var(--sub)}
+.pager .off{opacity:.35}
 .post-nav{display:grid; grid-template-columns:1fr; border-top:1px solid var(--line-2); margin-top:8px}
 .post-nav .nx, .post-nav .pv{display:grid; grid-template-columns:64px 1fr; align-items:baseline; gap:14px; padding:18px 0; border-bottom:1px solid var(--line); color:var(--text); text-decoration:none; transition:color .2s}
 .post-nav small{font-size:12.5px; color:var(--sub); letter-spacing:.02em}

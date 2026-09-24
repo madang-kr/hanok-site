@@ -1705,7 +1705,7 @@ label.chk span{width:auto}
 /* 소식 글 사진(14c): 작은 보기 격자 + 순서·삭제 */
 .sa-pimgs{display:flex; flex-wrap:wrap; gap:var(--s8)}
 .sa-pimg{position:relative; width:132px; height:100px; border-radius:var(--r-sm); overflow:hidden; background:var(--surface-2); border:1px solid var(--border)}
-.sa-pimg img{width:100%; height:100%; object-fit:cover; display:block}
+.sa-pimg img{width:100%; height:100%; object-fit:contain; display:block}   /* 미리보기는 사진 전체가 보이게(09-24 재아 '잘린 채로 보임') — 남는 곳은 옅은 바탕 */
 .sa-pimg-x{position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:center; gap:2px; padding:3px; background:rgba(255,255,255,.85)}
 .sa-pimg-x .btn{padding:2px 6px; min-height:0; font-size:var(--fs-label)}
 .sa-pimg.add{display:flex; align-items:center; justify-content:center; border:1px dashed var(--border-strong); background:none; color:var(--text-2); font:inherit; font-size:var(--fs-sub); font-weight:600; cursor:pointer}
