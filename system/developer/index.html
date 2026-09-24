@@ -12,7 +12,7 @@
     · 요청   : 사장님·직원이 '개발자에게' 로 보낸 글 보기·답하기(답하면 '답변 완료' — 가게 화면에 답이 보임)
     · 점검   : 서버·홈페이지·카운터 동기화·로그인·접수·용량·최근 기록을 한눈에(dev_health)
     · 통계   : 홈페이지 방문·예약 창 → 접수·많이 쓴 기능·예약 경로·감사 문자·화면 오류(dev_stats, 24차)
-    · 긴급   : 모든 기기 새로고침 · 홈페이지 예약 끄기/켜기(dev_action) · 전체 백업 내려받기 · 텔레그램 시험 · 용량 점검
+    · 긴급   : 감사 문자 AI 키 넣기·하루 상한(27차 — 사장님 화면엔 없음) · 모든 기기 새로고침 · 홈페이지 예약 끄기/켜기(dev_action) · 전체 백업 내려받기 · 텔레그램 시험 · 용량 점검
     · 점검 위 게이지: DB·파일 무료 한도 — 매일 10시 서버가 같은 기준으로 70·80·90% 넘으면 텔레그램(24차 hanok_usage_check)
   접속 정보는 홈페이지와 같은 js/config.js(anon 키 — 공개용). 로그인 세션은 이 브라우저 localStorage 에만.
 -->
@@ -102,6 +102,8 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 .em h3{margin:0; font-size:16px}
 .em p{margin:4px 0 0; font-size:14px; color:var(--text-2)}
 .links{display:flex; gap:8px; flex-wrap:wrap}
+.aiform{display:flex; gap:8px; margin-top:12px}
+.aiform input{flex:1 1 auto; min-width:0}
 .toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 18px; border-radius:12px; font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); z-index:50; max-width:calc(100vw - 32px)}
 .spin{color:var(--text-3); padding:40px 0; text-align:center}
 /* 용량 게이지(24차) — 70% 넘으면 노랑, 90% 넘으면 빨강. 같은 기준으로 매일 10시 텔레그램 */
@@ -150,7 +152,7 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 const CFG = window.SUPA || {};
 const DEV_ID = "madang-dev", DEV_EMAIL = "madang-dev@jaealee.com";   // 서버 hanok_is_dev() 와 같아야 함
 const SKEY = "madang.dev.session";
-const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, stats:null, statDays:30, busy:false, err:"" };
+const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, stats:null, statDays:30, ai:null, aiForm:"", busy:false, err:"" };
 const $app = document.getElementById("app");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -203,7 +205,7 @@ async function login(ev){
 }
 function logout(){
   if(S.sess) fetch(CFG.url + "/auth/v1/logout", { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token } }).catch(() => {});
-  saveSess(null); S.reqs = null; S.health = null; S.stats = null; render();
+  saveSess(null); S.reqs = null; S.health = null; S.stats = null; S.ai = null; render();
 }
 function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
 
@@ -359,6 +361,50 @@ function tabStats(){
     ${er.n ? `<h2 class="sec">최근 화면 오류</h2><table class="logs">${(er.recent || []).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="d">${esc(l.detail)}<br><span class="muted">${esc((l.ua || "").slice(0, 90))}</span></td></tr>`).join("")}</table>` : ""}`;
 }
 
+/* ---------- 감사 문자 AI 키(27차) ----------
+   키는 서버 금고(Vault)에만. 여기서도 값은 못 봄 — 있는지·언제 바꿨는지·최근 24시간 사용·상한·최근 호출만.
+   넣기·상한 바꾸기는 개발자 계정만(서버가 막음). 사장님 화면에는 키 칸이 없음(재아 09-24) */
+async function loadAi(){
+  try{ S.ai = await api("/rest/v1/rpc/dev_ai_status", { method:"POST", body:{} }); }
+  catch(e){ S.ai = { error:e.message }; }
+  render();
+}
+async function aiSaveKey(){
+  const el = document.getElementById("ai-key"), v = (el && el.value || "").trim();
+  if(v.length < 20){ toast("키를 붙여 넣어 주세요"); return; }
+  try{ const m = await api("/rest/v1/rpc/hanok_set_gemini_key", { method:"POST", body:{ p_key:v } }); el.value = ""; S.aiForm = ""; toast(m); await loadAi(); }
+  catch(e){ toast("바꾸지 못했습니다 — " + e.message); }
+}
+async function aiSaveCap(){
+  const n = parseInt((document.getElementById("ai-cap") || {}).value, 10);
+  if(!(n >= 1 && n <= 2000)){ toast("1~2000 사이 숫자"); return; }
+  try{ const m = await api("/rest/v1/rpc/hanok_set_ai_cap", { method:"POST", body:{ p_cap:n } }); S.aiForm = ""; toast(m); await loadAi(); }
+  catch(e){ toast("바꾸지 못했습니다 — " + e.message); }
+}
+function aiCard(){
+  const a = S.ai;
+  if(!a) return `<div class="card em"><div class="tx"><h3>감사 문자 AI (Gemini)</h3><p class="muted">불러오는 중…</p></div></div>`;
+  if(a.error) return `<div class="card em"><div class="tx"><h3>감사 문자 AI (Gemini)</h3><p>${esc(a.error)}</p></div><button class="btn" onclick="loadAi()">다시</button></div>`;
+  const pct = a.cap ? Math.round((a.used_24h || 0) * 100 / a.cap) : 0;
+  const st = c => c === 200 ? '<span class="tag green">성공</span>' : c === 402 ? '<span class="tag red">잔액 없음</span>' : c === 429 ? '<span class="tag amber">한도</span>' : c === 401 || c === 403 ? '<span class="tag red">키 거부</span>' : `<span class="tag gray">${c}</span>`;
+  const form = S.aiForm === "key"
+    ? `<div class="aiform"><input id="ai-key" type="password" autocomplete="off" placeholder="AI Studio 에서 받은 새 키 붙여 넣기"><button class="btn primary" onclick="aiSaveKey()">넣기</button><button class="btn" onclick="S.aiForm=''; render()">취소</button></div>
+       <p class="muted" style="font-size:12px; margin:6px 0 0">넣는 즉시 서버 금고로 가고 이 화면·브라우저에는 남지 않습니다. 넣은 뒤 AI Studio 에서 옛 키를 지우세요.</p>`
+    : S.aiForm === "cap"
+    ? `<div class="aiform"><input id="ai-cap" type="number" min="1" max="2000" value="${a.cap || 200}"><button class="btn primary" onclick="aiSaveCap()">바꾸기</button><button class="btn" onclick="S.aiForm=''; render()">취소</button></div>
+       <p class="muted" style="font-size:12px; margin:6px 0 0">24시간 동안 이 횟수를 넘으면 서버가 더 안 부릅니다(감사 문자는 기본 양식으로). 도용돼도 손해가 여기서 멈춤.</p>`
+    : "";
+  return `<div class="card"><div class="em" style="margin:0"><div class="tx"><h3>감사 문자 AI (Gemini)</h3>
+      <p>${a.has_key ? `키 있음 · ${a.key_at ? "마지막으로 바꾼 때 " + esc(kst(a.key_at)) : ""}` : '<b style="color:var(--rust)">키 없음</b> — 감사 문자는 기본 양식으로만 만들어집니다'}<br>
+      최근 24시간 ${a.used_24h || 0}번(성공 ${a.ok_24h || 0}) / 하루 상한 ${a.cap || 200}번</p></div>
+      <button class="btn" onclick="S.aiForm='key'; render(); setTimeout(() => { const e = document.getElementById('ai-key'); if(e) e.focus(); }, 30)">${a.has_key ? "키 바꾸기" : "키 넣기"}</button>
+      <button class="btn" onclick="S.aiForm='cap'; render()">상한 바꾸기</button></div>
+    <div class="bar-o" style="margin-top:10px"><div class="bar-i ${pct >= 90 ? "bad" : pct >= 70 ? "warn" : ""}" style="width:${Math.min(100, Math.max(pct, 1))}%"></div></div>
+    ${form}
+    ${(a.recent || []).length ? `<table class="logs" style="margin-top:12px">${a.recent.slice(0, 10).map(r => `<tr><td class="t">${esc(kst(r.at))}</td><td class="a">${st(r.status)}</td><td class="d">${esc(r.model)} <span class="muted">· ${esc((r.who || "").replace("@jaealee.com", ""))}</span></td></tr>`).join("")}</table>` : '<p class="muted" style="font-size:13px; margin:10px 0 0">아직 부른 적 없음</p>'}
+  </div>`;
+}
+
 /* ---------- 긴급 ---------- */
 async function act(name, ask){
   if(ask && !confirm(ask)) return;
@@ -393,6 +439,8 @@ function tabEm(){
       <button class="btn" id="bk" onclick="backup()">백업 내려받기</button></div>
     <div class="card em"><div class="tx"><h3>알림 시험 · 용량 점검</h3><p>텔레그램이 오는지 시험하거나, 매일 10시 용량 점검을 지금 한 번 돌립니다(70% 넘으면 그때 알림).</p></div>
       <button class="btn" onclick="act('telegram_test')">텔레그램 시험</button><button class="btn" onclick="act('usage_check')">용량 점검 지금</button></div>
+    <h2 class="sec">감사 문자 AI</h2>
+    ${aiCard()}
     <h2 class="sec">바로가기</h2>
     <div class="links">
       <a class="btn sm" href="/system/" target="_blank" rel="noopener">가게 시스템</a>
@@ -404,7 +452,7 @@ function tabEm(){
 }
 
 /* ---------- 틀 ---------- */
-function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); }
+function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); }
 function go(t){ S.tab = t; loadTab(); render(); }
 function render(){
   if(!CFG.url){ $app.innerHTML = '<p class="spin">접속 설정(js/config.js)을 못 읽었습니다</p>'; return; }
