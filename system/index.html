@@ -1829,6 +1829,10 @@ button.sa-card:hover{border-color:var(--text-3)}
 .sa-top2{display:flex; align-items:center; flex-wrap:wrap; gap:var(--s8); margin:-8px 0 var(--s12); min-height:38px}
 .sa-top2.pending{padding:var(--s8) var(--s12); background:#FFF4D6; border:1px solid #F0D48A; border-radius:var(--r-sm)}
 .sa-top-t{font-size:14px; font-weight:700; color:#7A5A12}
+/* 적용 대기 중(09-24 재아) — 노랑(고친 것 있음)과 헷갈리지 않게 파랑. 이때 적용은 새 대기를 만들지 않고 이 판을 고침 */
+.sa-top2.waiting{padding:var(--s8) var(--s12); background:#E8F0FB; border:1px solid #B9CFEE; border-radius:var(--r-sm)}
+.sa-top2.waiting .sa-top-t{color:#24518F; font-weight:700}
+.sa-top2.waiting .sa-top-t small{font-weight:600; color:#8A5A00}
 .sa-top2 .sa-acts{margin-left:auto}
 .sa-top2 .btn[disabled]{opacity:.35; cursor:default}
 .sa-top2 .sa-fut button{border:none; background:none; margin-left:4px; padding:0; color:inherit; font-weight:700; cursor:pointer}
@@ -2066,16 +2070,16 @@ button.sa-card:hover{border-color:var(--text-3)}
 .th-card.queued .th-lock svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.6; color:var(--text-3)}
 .th-card.queued.sent{opacity:.55}
 
-/* 기간 머리(09-24 재아): 화살표는 마우스를 올렸을 때만(손가락 기기는 늘 보임), 이번 주·달이 아니면 검은 바탕 — 대시보드와 같은 규칙 */
+/* 기간 머리: 이번 주·달이 아니면 검은 바탕. 화살표는 늘 보임(09-24 재아 '자꾸 생겼다 사라짐').
+   사라지던 까닭: 화살표가 상단바와 같은 .bnav 라 상단바의 '마우스 올릴 때만 보이기'(12-overrides)에 같이 걸렸고,
+   여기서도 마우스 올릴 때만 보이게 해 둠 → 이제 전용 .hr-nb 로 따로(상단바 규칙에 안 걸림) */
 .hr-period.center{padding:var(--s8) var(--s12); border-radius:var(--r-md); transition:background .15s}
-@media (hover:hover){
-  .hr-period .hr-period-nav{opacity:0; transition:opacity .15s}
-  .hr-period:hover .hr-period-nav, .hr-period:focus-within .hr-period-nav{opacity:1}
-}
+.hr-nb{min-width:36px; height:36px; padding:0 8px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); color:var(--text); font-size:18px; font-weight:700; line-height:1; display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
+.hr-nb:hover{border-color:var(--text-3)}
 .hr-period.notnow{background:var(--text); color:#fff}
 .hr-period.notnow .hr-period-t b{color:#fff}
 .hr-period.notnow .hr-period-t small{color:rgba(255,255,255,.7)}
-.hr-period.notnow .bnav{background:transparent; border-color:rgba(255,255,255,.35); color:#fff}
+.hr-period.notnow .hr-nb{background:transparent; border-color:rgba(255,255,255,.35); color:#fff}
 .hr-period.notnow .hr-period-t .btn{background:#fff; color:var(--text); border-color:#fff}
 /* 근무 시간 줄(시작·종료·휴게) 칸 높이를 하나로 — 시각 칸(49)과 숫자 칸(45)이 달랐음(09-24 audit_rows) */
 .hr-spanrow input{height:44px; min-height:44px; box-sizing:border-box; padding-top:0; padding-bottom:0}
@@ -2086,8 +2090,19 @@ button.sa-card:hover{border-color:var(--text-3)}
 .hr-adj-row .seg{margin:0}
 .hr-adj-row input[type=number]{text-align:right}
 .hr-adj-row .sa-x{width:38px; height:38px; border:none; background:transparent; border-radius:50%; color:var(--text-3); font-size:18px; cursor:pointer}
-.hr-pay td.hr-acts{white-space:nowrap} .hr-pay td.hr-acts .btn + .btn{margin-left:4px}
-.hr-pay td.won small.pine{color:var(--pine)}
+/* 조정·계산서 단추는 위아래로 — 옆으로 두니 칸이 모자라 표가 좌우로 밀렸음(09-24 재아) */
+.hr-pay th.hr-acts-h{width:92px}
+.hr-pay td.hr-acts{white-space:normal}
+.hr-pay td.hr-acts .btn{display:flex; width:100%; justify-content:center; margin:0; height:30px; min-height:30px; padding:0 8px; font-size:var(--fs-label)}   /* 두 단추를 쌓아도 줄이 너무 높지 않게 */
+.hr-pay td.hr-acts .btn + .btn{margin-top:4px}
+/* 조정 창 — 금액 칸 앞에 부호(+ 추가 / − 감액), 뒤에 '원'. 맨 끝 빈 줄은 옅게 */
+.hr-adj-amt{display:flex; align-items:center; gap:4px; height:44px; padding:0 10px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); box-sizing:border-box}
+.hr-adj-amt i{font-style:normal; font-weight:700; color:var(--pine); width:12px; text-align:center}
+.hr-adj-amt.minus i{color:var(--rust)}
+.hr-adj-amt input{border:none; background:transparent; height:auto!important; min-height:0!important; padding:0; width:100%; min-width:0; text-align:right; outline:none}
+.hr-adj-amt small{color:var(--text-3)}
+.hr-adj-row.blank .seg{opacity:.55}
+.hr-adj-row span.sa-x{display:inline-block}
 @media (max-width:640px){ .hr-adj-row{grid-template-columns:1fr 1fr 44px} .hr-adj-row .seg{grid-column:1 / -1} }
 .hr-adj-row .sa-x{width:44px; height:44px}   /* 옆 칸(44)과 같게 — audit_rows */
 
@@ -7724,7 +7739,10 @@ function availOfDay(date){
   return availOfDayRaw(date);
 }
 function availOfDayRaw(date){
-  const out = {}, ss = sessionsFor(date); if(!ss.length) return out;
+  const out = {}, ss = sessionsFor(date);
+  /* 공휴일 표시 — 홈페이지 예약 창이 이걸 보고 주말 규칙·빨간 날을 정함. 시각 칸이 아니라서 okAt 에 안 걸림(09-24: 공휴일 원본을 시스템 하나로) */
+  if(typeof isHoliday === "function" && isHoliday(date)) out._d = { hol:1 };
+  if(!ss.length) return out;
   const rooms = roomsAt(date).filter(isRoom);
   const floors = []; roomsAt(date).filter(isTable).forEach(t => { const f = t.floor || ""; if(floors.indexOf(f) < 0) floors.push(f); });
   ss.forEach(se => {
@@ -8508,12 +8526,15 @@ async function saLoad(){
     var vs = await sb("/rest/v1/site_versions?store=eq." + key + "&select=id,apply_at,note,created_at,by&order=apply_at.desc&limit=40");
     var lv = await sb("/rest/v1/site_versions?store=eq." + key + "&apply_at=lte." + encodeURIComponent(new Date().toISOString()) + "&select=id,data,apply_at,note&order=apply_at.desc&limit=1");
     var live = lv[0] || null;
+    /* 적용 대기 판(09-24 재아): 있으면 '수정사항' 의 기준이 그 판이 되고, 적용은 새 대기를 만들지 않고 그 판을 고침 */
+    var pv = await sb("/rest/v1/site_versions?store=eq." + key + "&apply_at=gt." + encodeURIComponent(new Date().toISOString()) + "&select=id,data,apply_at,note,by&order=apply_at.asc&limit=1");
     /* 초안이 없으면 지금 보이는 판(없으면 기본값)에서 시작 */
     var base = dr[0] && dr[0].data && Object.keys(dr[0].data).length ? dr[0].data : (live ? live.data : {});
     var draft = saMerge(defaults, base);
+    saSpPrune(draft);
     SA = { draft: draft, saved: JSON.stringify(draft), savedAt: dr[0] ? dr[0].updated_at : null, savedBy: dr[0] ? dr[0].by : "",
-           live: live, versions: vs, defaults: defaults, loading: false, err: null, tab: (SA && SA.tab) || "online" };
-    SA.liveStr = saStrip(saLiveObj());
+           live: live, pend: pv[0] || null, versions: vs, defaults: defaults, loading: false, err: null, tab: (SA && SA.tab) || "online" };
+    SA.liveStr = saStrip(saBaseObj());
   }catch(e){ SA = { loading:false, err:e.message || String(e), tab:"online" }; }
 }
 /* 사이트의 data/site.js 를 글로 받아 window 흉내 안에서 실행 → SITE_DEFAULT. 전역을 더럽히지 않게 */
@@ -8560,7 +8581,12 @@ function saToggle(path){ saSet(path, !saGet(path)); render(); }
    '초안 저장' 단추를 없앴습니다. 고친 내용은 1.2초 뒤 서버 초안에 저절로 저장(창을 닫아도 남고, 미리보기도 그 초안을 봄).
    '수정사항이 있습니다' = 지금 홈페이지(적용된 판)와 초안이 다를 때. 팝업 공지는 따로 바로 올라가므로 비교에서 뺌 */
 function saLiveObj(){ return saMerge(SA.defaults || {}, SA.live ? SA.live.data : {}); }
-function saStrip(o){ var c = deepClone(o || {}); delete c.notices; return JSON.stringify(c); }
+/* 비교 기준: 적용 대기 판이 있으면 그 판, 없으면 지금 홈페이지 */
+function saBaseObj(){ return SA.pend ? saMerge(SA.defaults || {}, SA.pend.data || {}) : saLiveObj(); }
+/* 비교할 땐 팝업(따로 올라감)과 빈 특별 기간(아무것도 안 적은 칸)을 뺌 — 빈 칸이 쌓여 '수정사항이 있습니다' 가 안 없어졌음(09-24) */
+function saStrip(o){ var c = deepClone(o || {}); delete c.notices; saSpPrune(c); return JSON.stringify(c); }
+function saSpEmpty(sp){ return !sp || (!(sp.title || "").trim() && !sp.from && !sp.to && !(sp.courses || []).length && !(sp.note || "").trim()); }
+function saSpPrune(o){ if(o && o.online && Array.isArray(o.online.special)) o.online.special = o.online.special.filter(function(x){ return !saSpEmpty(x); }); }
 function saPending(){ return !!(SA && SA.draft && SA.liveStr != null && saStrip(SA.draft) !== SA.liveStr); }
 var SA_AUTOSAVE = null;
 function saAutoSave(){ clearTimeout(SA_AUTOSAVE); SA_AUTOSAVE = setTimeout(function(){ if(saDirty()) saSave(true); }, 1200); }
@@ -8575,6 +8601,18 @@ function saFuture(){ return (SA.versions || []).filter(function(v){ return new D
 /* 위 띠: 수정사항이 있으면 노란 상자 + 되돌리기·미리보기·적용, 없으면 상자 없이 미리보기·적용(꺼짐)만 */
 function saTopHtml(){
   var p = saPending(), fut = saFuture();
+  if(SA.pend){
+    var more = fut.filter(function(v){ return v.id !== SA.pend.id; });
+    return '<div id="sa-top" data-p="' + (p ? "1" : "0") + '" class="sa-top2 waiting">' +
+      '<span class="sa-top-t">' + esc(saWhen(SA.pend.apply_at)) + ' 적용 대기 중' + (p ? ' <small>· 고친 것이 있습니다</small>' : '') + '</span>' +
+      more.map(function(v){ return '<span class="tag sm amber sa-fut">' + esc(saWhen(v.apply_at)) + ' 적용 예약<button onclick="saCancelVersion(' + v.id + ')" aria-label="예약 취소" title="예약 취소">×</button></span>'; }).join("") +
+      '<div class="sa-acts">' + (p ? '<button class="btn sm ghost" onclick="saDiscard()">고친 것 되돌리기</button>' : '') +
+        '<button class="btn sm ghost" onclick="saCancelVersion(' + SA.pend.id + ')">대기 취소</button>' +
+        '<button class="btn sm" onclick="saPendTime()">시각 바꾸기</button>' +
+        '<button class="btn sm" onclick="saPreview()">미리보기</button>' +
+        '<button class="btn sm" onclick="saPendNow()">지금 적용</button>' +
+        '<button class="btn sm primary" onclick="saPendSave()"' + (p ? '' : ' disabled') + '>대기 판에 반영</button></div></div>';
+  }
   return '<div id="sa-top" data-p="' + (p ? "1" : "0") + '" class="sa-top2' + (p ? ' pending' : '') + '">' +
     (p ? '<span class="sa-top-t">수정사항이 있습니다</span>' : '') +
     fut.map(function(v){ return '<span class="tag sm amber sa-fut">' + esc(saWhen(v.apply_at)) + ' 적용 예약<button onclick="saCancelVersion(' + v.id + ')" aria-label="예약 취소" title="예약 취소">×</button></span>'; }).join("") +
@@ -8642,6 +8680,38 @@ async function saApplyDo(){
     SA.loading = true; render(); await saLoad(); render();
   }catch(e){ await uiAlert("적용 실패", e.message, "warn"); }
 }
+/* ---------- 적용 대기 판 다루기(09-24 재아) ----------
+   대기 중엔 그 판만 고침: 같은 시각으로 새 판을 넣고 옛 대기 판을 지움(서버 권한이 미래 판 '넣기·지우기' 만이라). 넣기가 먼저라 중간에 실패해도 내용은 안 사라짐 */
+async function saPendReplace(data, atIso, msg){
+  var key = view.storeKey || "hanok", old = SA.pend;
+  await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:data, apply_at:atIso, note:old.note || "", by:(SESSION && SESSION.who) || "" }, prefer:"return=minimal" });
+  if(new Date(old.apply_at).getTime() > Date.now()) await sb("/rest/v1/site_versions?id=eq." + old.id, { method:"DELETE", prefer:"return=minimal" });
+  logEvent("홈페이지 적용 대기 판", msg);
+}
+async function saPendSave(){
+  if(!SA.pend || !saPending()) return;
+  clearTimeout(SA_AUTOSAVE); if(saDirty() && !await saSave(true)) return;
+  try{ await saPendReplace(saDataWith(saBaseObj()), SA.pend.apply_at, "고침"); showToast("적용 대기 판을 고쳤습니다 · " + saWhen(SA.pend.apply_at)); SA.loading = true; render(); await saLoad(); render(); }
+  catch(e){ await uiAlert("반영 실패", e.message, "warn"); }
+}
+async function saPendNow(){
+  if(!SA.pend) return;
+  if(!await uiConfirm("지금 바로 적용할까요?", saPending() ? "고친 것까지 합쳐서 지금 홈페이지에 나갑니다." : "적용 대기 중인 내용이 지금 홈페이지에 나갑니다.", {ok:"지금 적용", cancel:"취소"})) return;
+  clearTimeout(SA_AUTOSAVE); if(saDirty() && !await saSave(true)) return;
+  try{ await saPendReplace(saDataWith(saBaseObj()), new Date().toISOString(), "지금 적용"); showToast("홈페이지에 적용했습니다"); SA.loading = true; render(); await saLoad(); render(); }
+  catch(e){ await uiAlert("적용 실패", e.message, "warn"); }
+}
+async function saPendTime(){
+  if(!SA.pend) return;
+  var cur = new Date(SA.pend.apply_at), d = await uiDate("적용 날짜", pkYmd(cur), {min:todayStr()}); if(!d) return;
+  var t = await uiTime("적용 시각", pad(cur.getHours()) + ":" + pad(cur.getMinutes())); if(!t) return;
+  var at = new Date(d + "T" + t + ":00"); if(at.getTime() < Date.now()){ await uiAlert("지난 시각입니다", "", "warn"); return; }
+  try{
+    var data = saPending() ? saDataWith(saBaseObj()) : (SA.pend.data || {});   /* 고친 게 있으면 같이 */
+    clearTimeout(SA_AUTOSAVE); if(saDirty()) await saSave(true);
+    await saPendReplace(data, at.toISOString(), "시각 " + d + " " + t); showToast("적용 시각을 바꿨습니다 · " + pkShort(d) + " " + t); SA.loading = true; render(); await saLoad(); render();
+  }catch(e){ await uiAlert("바꾸지 못했습니다", e.message, "warn"); }
+}
 /* 예약해 둔(미래) 판 취소 */
 async function saCancelVersion(id){
   var v = (SA.versions || []).filter(function(x){ return x.id === id; })[0]; if(!v) return;
@@ -8651,11 +8721,11 @@ async function saCancelVersion(id){
 }
 /* 초안을 지금 보이는 판으로 되돌림 */
 async function saDiscard(){
-  if(!await uiConfirm("수정사항을 되돌릴까요?", "지금 홈페이지에 보이는 내용으로 돌아갑니다.", {ok:"되돌리기", cancel:"취소"})) return;
+  if(!await uiConfirm(SA.pend ? "고친 것을 되돌릴까요?" : "수정사항을 되돌릴까요?", SA.pend ? "적용 대기 중인 내용으로 돌아갑니다." : "지금 홈페이지에 보이는 내용으로 돌아갑니다.", {ok:"되돌리기", cancel:"취소"})) return;
   var nt = deepClone(SA.draft.notices || []);   /* 팝업은 따로 — 되돌리지 않음 */
-  SA.draft = saLiveObj(); SA.draft.notices = nt; render(); saHeader();
+  SA.draft = saBaseObj(); SA.draft.notices = nt; render(); saHeader();
 }
-function saTab(t){ SA.tab = t; SA.open = null; render(); }
+function saTab(t){ SA.tab = t; SA.open = null; saSpTidy(); render(); }
 /* 배열 항목 추가·삭제·이동 */
 function saArrAdd(path, item){ var a = saGet(path) || []; a.push(item); saSet(path, a); render(); }
 async function saArrDel(path, i, what){ if(what && !await uiConfirm(what + " 삭제", "지울까요?", {ok:"삭제", cancel:"취소"})) return; var a = saGet(path) || []; a.splice(i, 1); saSet(path, a); render(); }
@@ -8708,7 +8778,9 @@ function saCard(key, sumHtml, editHtml){
   if(SA.open === key) return '<div class="sa-card open">' + editHtml + '</div>';
   return '<button type="button" class="sa-card" onclick="SA.open=\'' + key + '\'; render()">' + sumHtml + '<span class="sa-card-go">고치기</span></button>';
 }
-function saCardDone(){ SA.open = null; render(); }
+function saCardDone(){ SA.open = null; saSpTidy(); render(); }
+/* 특별 기간을 아무것도 안 적고 닫으면 지움(09-24 재아: 빈 더미가 남아 '수정사항' 이 계속 떴음) */
+function saSpTidy(){ var a = saGet("online.special"); if(Array.isArray(a) && a.some(saSpEmpty)) saSet("online.special", a.filter(function(x){ return !saSpEmpty(x); })); }
 /* 지난 것 모음 — 접힌 채로(09-24 재아: 화면이 너무 길어지지 않게) */
 function saPast(key, label, items){
   if(!items.length) return "";
@@ -8910,6 +8982,7 @@ async function saNtPublish(msg){
     clearTimeout(SA_AUTOSAVE); if(saDirty()) await saSave(true);
     var o = saLiveObj(); o.notices = deepClone(SA.draft.notices || []);
     await sb("/rest/v1/site_versions", { method:"POST", body:{ store:view.storeKey || "hanok", data:saDiff(SA.defaults || {}, o) || {}, apply_at:new Date().toISOString(), note:"팝업", by:(SESSION && SESSION.who) || "" }, prefer:"return=minimal" });
+    if(SA.pend){ var po = saMerge(SA.defaults || {}, SA.pend.data || {}); po.notices = deepClone(SA.draft.notices || []); await saPendReplace(saDiff(SA.defaults || {}, po) || {}, SA.pend.apply_at, "팝업 같이"); }   /* 안 그러면 대기 판이 적용될 때 팝업이 옛것으로 돌아감 */
     logEvent("홈페이지 팝업", msg || "저장");
     var tab = SA.tab; SA.open = null; SA.loading = true; render(); await saLoad(); SA.tab = tab; render(); showToast(msg || "팝업을 저장했습니다");
   }catch(e){ await uiAlert("저장 실패", e.message, "warn"); }
@@ -8964,13 +9037,8 @@ function saTabHours(){
     saBox("링크",
       saF("info.naverMap", "네이버 지도") + saF("info.kakaoMap", "카카오맵") + saF("info.instagram", "인스타그램") +
       saFile("info.menuPdf", "메뉴판 PDF")) +
-    saBox("공휴일",
-      '<div class="sa-chips">' + hol.map(function(d){ return '<span class="tag">' + esc(pkShort(d)) + ' <small>' + d.slice(0, 4) + '</small><button onclick="saHolDel(\'' + d + '\')" title="빼기" aria-label="빼기">×</button></span>'; }).join("") + (hol.length ? "" : '<span class="muted">없음</span>') + '</div>' +
-      saAdd("saHolAdd()", "공휴일") +
-      '<p class="f-note">예약 창에서 일요일 시간으로 봅니다.</p>');
+    saBox("공휴일", '<p class="f-note" style="margin:0">공휴일은 <b>예약 시스템 설정 → 휴무·공휴일</b> 한 곳에서만 정합니다. 홈페이지 예약 창은 거기 정한 공휴일을 자동으로 따릅니다(주말 룸 인원·달력 빨간 날). 여기서 따로 고칠 필요 없습니다.</p>');
 }
-function saHolAdd(){ uiDate("공휴일 추가", "", {}).then(function(v){ if(!v) return; var a = (saGet("holidays") || []).slice(); if(a.indexOf(v) < 0) a.push(v); a.sort(); saSet("holidays", a); render(); }); }
-function saHolDel(d){ saSet("holidays", (saGet("holidays") || []).filter(function(x){ return x !== d; })); render(); }
 /* 4. 글 */
 function saTabTexts(){
   return saBox("홈 (첫 화면)",
@@ -9125,6 +9193,8 @@ async function saPostDelete(){
     SA.post = null; await saPostsLoad();
   }catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
 }
+/* 공개 ↔ 비공개 — 화면에서만 바꿈. 적용을 눌러야 저장(09-24) */
+function saPostFlip(){ var p = SA.post; if(!p) return; p.status = p.status === "비공개" ? "게시" : "비공개"; render(); }
 async function saPostRestore(id){
   try{
     await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(id), { method:"PATCH", body:{status:"비공개"}, prefer:"return=minimal" });
@@ -9187,14 +9257,12 @@ function saPostEditor(){
         (p._new ? '' : '<button class="btn sm ghost danger" onclick="saPostDelete()">지우기</button>') +
         '<button class="btn sm" onclick="SA.postPreview=true; render()">미리보기</button>' +
         '<span id="sa-post-state" class="muted" style="margin-left:auto; font-size:var(--fs-label)">' + (saPostDirty() ? "고친 내용이 있습니다" : "") + '</span>' +
-        (p.status === "게시" && !p._new
-          ? '<button class="btn sm" onclick="saPostSave(\'비공개\')" title="홈페이지에서 내리기 — 지우지 않고 여기 그대로 둠">비공개로 내리기</button>'
-          : p.status === "비공개" ? '' : '<button class="btn sm" onclick="saPostSave(\'초안\')">임시 저장</button>') +
-        (p.status === "비공개"
-          ? '<button class="btn sm" onclick="saPostSave(\'비공개\')">비공개로 저장</button><button class="btn sm primary" onclick="saPostSave(\'게시\')">다시 게시</button>'
-          : '<button class="btn sm primary" onclick="saPostSave(\'게시\')">' + (p.status === "게시" && !p._new ? "고친 것 게시" : "게시") + '</button>') +
-      '</div>',
-      p.status === "초안" ? '<span class="tag amber sm" style="margin-left:auto">임시 저장 — 홈페이지에 안 보임</span>' : p.status === "비공개" ? '<span class="tag sm" style="margin-left:auto">비공개 — 홈페이지에서 내린 글</span>' : '') +
+        /* 09-24 재아: 비공개/공개는 '전환' 단추로 여기서만 바꾸고(바로 안 나감), [적용] 을 눌러야 서버·홈페이지에 반영 */
+        (p._new || p.status === "초안"
+          ? '<button class="btn sm" onclick="saPostSave(\'초안\')">임시 저장</button><button class="btn sm primary" onclick="saPostSave(\'게시\')">게시</button>'
+          : '<button class="btn sm" onclick="saPostFlip()">' + (p.status === "비공개" ? "공개로 전환" : "비공개로 전환") + '</button>' +
+            '<button class="btn sm primary" onclick="saPostSave(SA.post.status)"' + (saPostDirty() ? '' : ' disabled') + '>적용</button>') +'</div>',
+      p.status === "초안" ? '<span class="tag amber sm" style="margin-left:auto">임시 저장 — 홈페이지에 안 보임</span>' : p.status === "비공개" ? '<span class="tag sm" style="margin-left:auto">비공개 — 홈페이지에 안 보임' + (saPostDirty() ? ' (적용 전)' : '') + '</span>' : (!p._new && saPostDirty() && JSON.parse(SA.postSaved).status === "비공개" ? '<span class="tag sm pine" style="margin-left:auto">공개로 바뀜 (적용 전)</span>' : '')) +
     (SA.postPreview ? saPostPreviewHtml() : '') + (SA.postZoom != null ? saPostZoomHtml() : '');
 }
 /* 사진 크게 보기(관리 화면) */
@@ -9334,7 +9402,7 @@ function hrOver5Calc(month){
   return { over5: over5, avg: Math.round(avg * 10) / 10, biz: biz, under: under, over: over };
 }
 function hrWeekCalc(s, w){
-  var cfg = hrCfg(), _m = w.slice(0, 7); cfg.over5 = hrOver5(_m); t = { hours:0, ot:0, night:0, days:0, absent:0, dutyDays:0, sched:0, weeklyPay:0 };
+  var cfg = hrCfg(), _m = w.slice(0, 7), t; cfg.over5 = hrOver5(_m); t = { hours:0, ot:0, night:0, days:0, absent:0, dutyDays:0, sched:0, weeklyPay:0 };
   hrWeekDays(w).forEach(function(d){
     var duty = hrOnDuty(s, d);
     if(duty){ t.dutyDays++; t.sched += hrSchedAt(s, d).spans.reduce(function(a, sp){ var s0 = toMin(sp.start), e0 = toMin(sp.end); if(e0 <= s0) e0 += 1440; return a + Math.max(0, (e0 - s0 - Number(sp.break || 0)) / 60); }, 0); }
@@ -9523,9 +9591,9 @@ function hrPeriodHead(title, sub, onPrev, onToday, onNext, isNow){
   var pay = HR.view === "pay";
   var big = pay ? ["hrMoveMonth(-12)", "hrMoveMonth(12)", "1년 전", "1년 뒤"] : ["hrMoveWeek(-4)", "hrMoveWeek(4)", "4주 전", "4주 뒤"];
   return '<div class="hr-period center' + (isNow ? '' : ' notnow') + '">' +
-    '<div class="hr-period-nav"><button class="bnav" onclick="' + big[0] + '" title="' + big[2] + '">&laquo;</button><button class="bnav" onclick="' + onPrev + '" aria-label="이전">&lsaquo;</button></div>' +
+    '<div class="hr-period-nav"><button class="hr-nb" onclick="' + big[0] + '" title="' + big[2] + '">&laquo;</button><button class="hr-nb" onclick="' + onPrev + '" aria-label="이전">&lsaquo;</button></div>' +
     '<div class="hr-period-t"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + (isNow ? '' : '<button class="btn sm ghost" onclick="' + onToday + '">' + (pay ? "이번 달" : "이번 주") + '</button>') + '</div>' +
-    '<div class="hr-period-nav"><button class="bnav" onclick="' + onNext + '" aria-label="다음">&rsaquo;</button><button class="bnav" onclick="' + big[1] + '" title="' + big[3] + '">&raquo;</button></div></div>';
+    '<div class="hr-period-nav"><button class="hr-nb" onclick="' + onNext + '" aria-label="다음">&rsaquo;</button><button class="hr-nb" onclick="' + big[1] + '" title="' + big[3] + '">&raquo;</button></div></div>';
 }
 function hrWeekView(){
   var days = hrWeekDays(HR.week), today = todayStr(), cfg = hrCfg();
@@ -9566,11 +9634,11 @@ function hrPayView(){
     var extra = t.offH ? ["정규 외 " + t.offH + "h"] : [];
     return '<tr' + (s.active === false ? ' class="gone"' : '') + '><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.nick && s.name !== s.nick ? s.name + " · " : "") + esc(s.role || "") + (s.active === false ? " · 퇴사" : "") + '</small></button></td>' +
       '<td class="won"><small>' + (s.pay_type === "monthly" ? "월급" : "시급") + '</small>' + hrWon(hrPayAt(s, last)) + '</td><td>' + t.days + '일' + (t.abs ? '<small class="rust">결근 ' + t.abs + '</small>' : '') + '</td><td>' + t.hours + 'h' + (extra.length ? '<small>' + extra.join(" · ") + '</small>' : '') + '</td>' +
-      '<td class="won">' + hrWon(t.gross) + (t.adjSum ? '<small class="' + (t.adjSum < 0 ? 'rust' : 'pine') + '">조정 ' + (t.adjSum > 0 ? "+" : "−") + hrWon(Math.abs(t.adjSum)) + '</small>' : '') + '</td><td class="won">' + (t.dedTotal ? '−' + hrWon(t.dedTotal) + '<small>' + esc(s.tax || "4대보험") + '</small>' : '<small class="muted">공제 없음</small>') + '</td><td class="won"><b>' + hrWon(t.net) + '</b></td>' +
+      '<td class="won">' + hrWon(t.gross) + (t.adjSum ? '<small>조정 ' + (t.adjSum > 0 ? "+" : "−") + hrWon(Math.abs(t.adjSum)) + '</small>' : '') + '</td><td class="won">' + (t.dedTotal ? '−' + hrWon(t.dedTotal) + '<small>' + esc(s.tax || "4대보험") + '</small>' : '<small class="muted">공제 없음</small>') + '</td><td class="won"><b>' + hrWon(t.net) + '</b></td>' +
       '<td class="hr-acts"><button class="btn sm ghost" onclick="hrAdjOpen(\'' + s.id + '\', \'' + m + '\')">조정</button><button class="btn sm" onclick="HR.slip={id:\'' + s.id + '\', month:\'' + m + '\'}; render()">계산서</button></td></tr>';
   };
   var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><td colspan="8">' + esc(g.role) + '</td></tr>' + g.list.map(rowHtml).join(""); }).join("");
-  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay"><thead><tr><th>직원</th><th>시급·월급</th><th>근무</th><th>시간</th><th>총지급</th><th>공제</th><th>실지급</th><th></th></tr></thead><tbody>' + trs +
+  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay"><thead><tr><th>직원</th><th>시급·월급</th><th>근무</th><th>시간</th><th>총지급</th><th>공제</th><th>실지급</th><th class="hr-acts-h"></th></tr></thead><tbody>' + trs +
     '<tr class="tot"><td colspan="4">합계</td><td class="won">' + hrWon(tot.gross) + '</td><td class="won">−' + hrWon(tot.ded) + '</td><td class="won"><b>' + hrWon(tot.net) + '</b></td><td></td></tr></tbody></table></div>' +
     '<p class="f-note">총지급 = 기본급 + 연장·야간 가산(5인 이상) + 주휴수당(시급제, 주 15h 이상 개근) + 배율 가산. 월급제는 월급 고정 + 가산(통상시급 = 월급 ÷ 209), 결근 공제는 직원마다 켬. 공제 = 4대보험(근로자분) 또는 3.3%. 사업주 부담 4대보험(산재 제외) 약 ' + hrWon(tot.employer) + '. 퇴사자는 퇴사한 달까지 회색으로. <b>참고용 계산</b> — 신고·정산은 세무사/노무사 확인 후.</p>';
 }
@@ -9593,7 +9661,7 @@ function hrSlipData(s, m){
   if(t.weeklyPay) L.push({k:"row", a:"주휴수당", b:hrWon(t.weeklyPay), n:t.weekly + "h"});
   if(t.bonusPay) L.push({k:"row", a:"휴일·배율 가산", b:hrWon(t.bonusPay), n:t.bonusH + "h"});
   if(t.absentPay) L.push({k:"row", a:"결근 공제", b:hrWon(t.absentPay), n:t.abs + "일 × 8h"});
-  t.adj.forEach(function(x){ var minus = x.kind === "minus"; L.push({k:"row", a:x.label || (minus ? "감액" : "추가 지급"), b:(minus ? "−" : "+") + hrWon(x.amount), n:minus ? "감액" : "추가 지급"}); });
+  t.adj.forEach(function(x){ var minus = x.kind === "minus"; L.push({k:"row", a:x.label || (minus ? "감액" : "추가"), b:(minus ? "−" : "+") + hrWon(x.amount), n:minus ? "감액" : "추가"}); });
   if(t.probCut) L.push({k:"row", a:"수습 감액", b:"−" + hrWon(t.probCut), n:t.probRate + "% 지급 · " + pkShort(t.probTo) + "까지"});
   L.push({k:"tot", a:"총지급", b:hrWon(t.gross)});
   L.push({k:"sec", a:"공제 · " + (s.tax || "4대보험")});
@@ -9735,19 +9803,27 @@ function hrSetupHtml(){
 function hrEsc(){ if(!HR || !(view.form && view.form.type === "staff")) return false; var k = ["pop","edit","slip","setup","adj"].find(function(x){ return HR[x]; }); if(k){ HR[k] = null; render(); return true; } return false; }
 
 /* ---------- 급여 조정(09-24 재아) — 급여 표의 '조정' → 이 달 이 직원에게 더 주거나 깎을 항목. 계산서에 한 줄씩 나옴 ---------- */
-function hrAdjOpen(id, month){ HR.adj = { id:id, month:month, rows:deepClone(hrAdjList(id, month)) }; if(!HR.adj.rows.length) HR.adj.rows.push({kind:"plus", label:"", amount:0}); render(); }
-function hrAdjSet(i, k, v){ var r = HR.adj && HR.adj.rows[i]; if(!r) return; r[k] = k === "amount" ? Number(v || 0) : v; if(k !== "label") render(); }
+function hrAdjOpen(id, month){ HR.adj = { id:id, month:month, rows:deepClone(hrAdjList(id, month)) }; hrAdjTail(); render(); }
+/* 늘 맨 끝에 빈 줄 하나(09-24 재아: '＋ 항목 추가' 대신) — 금액을 넣은 줄이 끝이면 새 빈 줄을 붙임 */
+function hrAdjTail(){ var r = HR.adj.rows, last = r[r.length - 1]; if(!last || Number(last.amount) > 0) r.push({kind:"plus", label:"", amount:0}); }
+function hrAdjSet(i, k, v){
+  var r = HR.adj && HR.adj.rows[i]; if(!r) return;
+  r[k] = k === "amount" ? Math.max(0, Math.round(Number(String(v).replace(/[^\d]/g, "")) || 0)) : v;
+  if(k === "amount"){ hrAdjTail(); render(); setTimeout(function(){ var el = document.querySelector('.hr-adj-row[data-i="' + (HR.adj.rows.length - 1) + '"] input[type=text]'); if(el && Number(r.amount) > 0 && i === HR.adj.rows.length - 2) el.focus(); }, 30); }
+  else if(k === "kind") render();
+}
 function hrAdjHtml(){
   var a = HR.adj, s = HR.staff.find(function(x){ return x.id === a.id; }) || {}, mx = new Date(a.month + "-01T00:00:00");
   var rows = a.rows.map(function(r, i){
-    return '<div class="hr-adj-row"><div class="seg"><button class="' + (r.kind !== "minus" ? "on" : "") + '" onclick="hrAdjSet(' + i + ', \'kind\', \'plus\')">추가 지급</button><button class="' + (r.kind === "minus" ? "on rust" : "") + '" onclick="hrAdjSet(' + i + ', \'kind\', \'minus\')">감액</button></div>' +
-      '<input type="text" value="' + esc(r.label || "") + '" placeholder="' + (r.kind === "minus" ? "예: 파손 변상" : "예: 명절 보너스") + '" oninput="hrAdjSet(' + i + ', \'label\', this.value)">' +
-      '<input type="number" min="0" max="99999999" value="' + (r.amount || "") + '" placeholder="금액" aria-label="금액(원)" onchange="hrAdjSet(' + i + ', \'amount\', this.value)">' +
-      '<button class="sa-x" onclick="HR.adj.rows.splice(' + i + ',1); render()" aria-label="항목 삭제">×</button></div>';
+    var minus = r.kind === "minus", empty = !(Number(r.amount) > 0) && !(r.label || "").trim(), lastEmpty = empty && i === a.rows.length - 1;
+    return '<div class="hr-adj-row' + (lastEmpty ? ' blank' : '') + '" data-i="' + i + '"><div class="seg"><button class="' + (!minus ? "on" : "") + '" onclick="hrAdjSet(' + i + ', \'kind\', \'plus\')">추가</button><button class="' + (minus ? "on rust" : "") + '" onclick="hrAdjSet(' + i + ', \'kind\', \'minus\')">감액</button></div>' +
+      '<input type="text" value="' + esc(r.label || "") + '" placeholder="' + (minus ? "예: 파손 변상" : "예: 명절 보너스") + '" oninput="hrAdjSet(' + i + ', \'label\', this.value)" onkeydown="if(event.key===\'Enter\'){ event.preventDefault(); var n = this.parentNode.querySelector(\'.hr-adj-amt input\'); if(n) n.focus(); }">' +
+      '<label class="hr-adj-amt' + (minus ? ' minus' : '') + '"><i>' + (minus ? '−' : '+') + '</i><input type="text" inputmode="numeric" value="' + (Number(r.amount) > 0 ? Number(r.amount).toLocaleString("ko-KR") : "") + '" placeholder="금액" aria-label="금액(원)" onchange="hrAdjSet(' + i + ', \'amount\', this.value)" onkeydown="if(event.key===\'Enter\'){ event.preventDefault(); this.blur(); }"><small>원</small></label>' +
+      (lastEmpty ? '<span class="sa-x" aria-hidden="true"></span>' : '<button class="sa-x" onclick="HR.adj.rows.splice(' + i + ',1); hrAdjTail(); render()" aria-label="항목 삭제">×</button>') + '</div>';
   }).join("");
   return '<div class="overlay" onclick="HR.adj=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead("급여 조정 · " + esc(hrLabel(s)) + " · " + (mx.getMonth() + 1) + "월") +
-    rows + '<button type="button" class="sa-add" onclick="HR.adj.rows.push({kind:\'plus\', label:\'\', amount:0}); render()">＋ 항목 추가</button>' +
+    rows + '<p class="f-note">금액을 넣고 Enter(또는 칸 밖을 누르면) 아래에 새 줄이 생깁니다. 비워 둔 줄은 저장되지 않습니다.</p>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="HR.adj=null; render()">취소</button><button class="btn primary" data-enter onclick="hrAdjSave()">저장</button></div></div></div>';
 }
 async function hrAdjSave(){

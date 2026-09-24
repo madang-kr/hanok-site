@@ -73,7 +73,14 @@
       return seat === "room" ? room : seat === "table" ? table : (room || table);
     };
     const availCache = {};
-    const dayData = async date => { if(!(date in availCache)){ const rows = await get(`/rest/v1/public_avail?store=eq.${SUPA.store}&date=eq.${date}&select=data`); availCache[date] = rows[0] ? rows[0].data : null; } return availCache[date]; };
+    /* 공휴일은 예약 시스템이 원본 — 남은 자리 표의 _d.hol 로 받아 HOLIDAYS 를 맞춤(홈페이지 관리의 공휴일 목록은 없앰, 09-24).
+       시스템이 올린 날만 고침. 표가 아직 없는 먼 날은 data/site.js 기본 목록 그대로 */
+    const markHol = (date, data) => {
+      if(!data) return;
+      const H = window.HOLIDAYS || (window.HOLIDAYS = []), i = H.indexOf(date), hol = !!(data._d && data._d.hol);
+      if(hol && i < 0) H.push(date); else if(!hol && i >= 0) H.splice(i, 1);
+    };
+    const dayData = async date => { if(!(date in availCache)){ const rows = await get(`/rest/v1/public_avail?store=eq.${SUPA.store}&date=eq.${date}&select=data`); availCache[date] = rows[0] ? rows[0].data : null; markHol(date, availCache[date]); } return availCache[date]; };
     RES_API.slots = async (date, people, seat) => {
       const d = await dayData(date); if(!d) return [];
       return leadCut(date, Object.keys(d).sort().filter(t => okAt(d[t], people, seat)));
@@ -81,7 +88,7 @@
     RES_API.seatOk = async (date, time, people, seat) => { const d = await dayData(date); return !!(d && okAt(d[time], people, seat)); };
     RES_API.month = async (ym, people, seat) => {
       const rows = await get(`/rest/v1/public_avail?store=eq.${SUPA.store}&date=like.${ym}%25&select=date,data`);
-      const out = {}; rows.forEach(r => { availCache[r.date] = r.data; out[r.date] = leadCut(r.date, Object.keys(r.data||{}).filter(t => okAt(r.data[t], people, seat))).length; });
+      const out = {}; rows.forEach(r => { availCache[r.date] = r.data; markHol(r.date, r.data); out[r.date] = leadCut(r.date, Object.keys(r.data||{}).filter(t => okAt(r.data[t], people, seat))).length; });
       /* 표에 없는 날(태블릿이 아직 안 올린 날)은 0 = 고를 수 없음 */
       const first = new Date(ym + "-01T00:00:00"), last = new Date(first.getFullYear(), first.getMonth()+1, 0).getDate();
       for(let i = 1; i <= last; i++){ const k = ym + "-" + pad(i); if(!(k in out)) out[k] = 0; }
