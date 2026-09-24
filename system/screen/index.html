@@ -2127,6 +2127,16 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* 감사 문자 위 줄(다녀간 날·공통 키워드·고급) 높이 하나로 — 47/45/44 로 달랐음(audit_rows) */
 .th-ctl input, .th-ctl .btn{height:44px; min-height:44px; box-sizing:border-box; padding-top:0; padding-bottom:0}
 .th-ctl .btn{display:inline-flex; align-items:center}
+
+/* 09-25 급여 손질 — 지급일 바꾸기(기간 머리 안), 연차 칸, 도움말 */
+.hr-pd{border:none; background:transparent; color:inherit; opacity:.7; text-decoration:underline; text-underline-offset:2px; font:inherit; font-size:var(--fs-label); cursor:pointer; padding:0 2px}
+.hc.leave{background:#EAF2FB; color:#24518F; font-weight:700}
+.hr-help .hr-help-s{margin-bottom:var(--s16)}
+.hr-help h3{font-size:var(--fs-body); margin:var(--s12) 0 var(--s8)}
+.hr-help ul{margin:0; padding-left:18px}
+.hr-help li{margin-bottom:6px; line-height:1.6; font-size:var(--fs-sub); color:var(--text-2)}
+.hr-help li b{color:var(--text)}
+.hr-pay td small.rust{color:var(--rust)}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -3262,6 +3272,10 @@ input.pk-in[type=number]{-moz-appearance:textfield}
 .pk-quick button{flex:none; padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:var(--surface); font:inherit; font-size:var(--fs-sub); color:var(--text-2); cursor:pointer}
 .pk-quick button:hover{border-color:var(--text-3); color:var(--text)}
 input.pk-in[type=time]::-webkit-calendar-picker-indicator{opacity:.45}
+/* 시계 아이콘 기본 여백 때문에 시간 칸만 4px 높았음(옆 숫자 칸과 줄이 안 맞음, 09-25 audit_rows) */
+input.pk-in[type=time]::-webkit-calendar-picker-indicator{padding:0; margin:0; height:1em}
+input.pk-in[type=time]::-webkit-datetime-edit, input.pk-in[type=time]::-webkit-datetime-edit-fields-wrapper{padding:0}
+input.pk-in[type=time]::-webkit-datetime-edit-hour-field, input.pk-in[type=time]::-webkit-datetime-edit-minute-field, input.pk-in[type=time]::-webkit-datetime-edit-ampm-field{padding-top:0; padding-bottom:0}
 
 /* 폰에서 키패드·단추를 빨리 두 번 누르면 화면이 확대(더블탭 줌)되던 것 — 두 번 눌러 확대만 끄고 두 손가락 확대는 그대로(09-24 재아) */
 html, body, button, a, input, label, .pkey{touch-action:manipulation}
@@ -4416,6 +4430,20 @@ function isHoliday(date){
   if((st.holidays||[]).indexOf(date) >= 0) return true;
   const y = KR_HOLIDAYS[Number(date.slice(0,4))];
   return !!y && y.indexOf(date) >= 0;
+}
+/* 급여용 '법정 유급휴일'(09-25 재아) — 가게 영업 공휴일(isHoliday)과 별개.
+   · 5월 1일 근로자의 날: 모든 사업장 유급휴일(근로자의날 제정에 관한 법률)
+   · 관공서 공휴일(내장표 KR_HOLIDAYS = 대체공휴일 포함) + 사장님이 '법정 공휴일' 로 넣은 날(임시공휴일·선거일 등, settings.holidaysLegal): 5인 이상 유급휴일(근로기준법 55조②)
+   가게가 그날 정상 영업하려고 공휴일을 꺼도(holidaysOff) 법정 유급휴일인 건 그대로 — 그래서 isHoliday 와 따로 둠.
+   돌려주는 값: "labor"(근로자의 날) · "public"(관공서 공휴일) · "" */
+function legalHolidayKind(date){
+  if(!date) return "";
+  if(date.slice(5) === "05-01") return "labor";
+  var y = KR_HOLIDAYS[Number(date.slice(0, 4))];
+  if(y && y.indexOf(date) >= 0) return "public";
+  var st = store().settings;
+  if((st.holidaysLegal || []).indexOf(date) >= 0) return "public";
+  return "";
 }
 /* 공휴일 표시 켜기/끄기 — 사장 추가(holidays)·제외(holidaysOff) 목록으로. 워크시프트 날짜 머리·휴무 등록에서 부름. 바로 저장(설정 '적용하기' 없이) */
 function setHolidayFlag(date, on){
@@ -8510,7 +8538,7 @@ async function openSiteAdmin(){
   if(!supaOn()){ await uiAlert("서버 설정이 없는 빌드입니다", "홈페이지 관리는 서버가 있어야 합니다.", "warn"); return; }
   if(!await adminGate("홈페이지 관리 열기")) return;
   view.form = {type:"site", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""};   /* 사장님 페이지에서 열었으면 닫을 때 거기로(09-20) */
-  /* 닫았다 다시 열면 고치던 초안은 그대로(서버에서 다시 읽지 않음). 저장돼 있으면 새로 읽어 다른 기기 변경을 반영 */
+  /* 나갈 때 적용 안 한 수정은 버리므로(saLeaveGuard, 09-25) 보통은 서버에서 새로 읽음. 서버 저장이 아직 안 끝났을 때만 그대로 둠 */
   if(SA && !SA.err && !SA.loading && saDirty()){ render(); return; }
   if(!SA || SA.err) SA = {loading:true, tab:"online"}; else SA.loading = true;
   render();
@@ -8528,11 +8556,11 @@ async function saLoad(){
     var live = lv[0] || null;
     /* 적용 대기 판(09-24 재아): 있으면 '수정사항' 의 기준이 그 판이 되고, 적용은 새 대기를 만들지 않고 그 판을 고침 */
     var pv = await sb("/rest/v1/site_versions?store=eq." + key + "&apply_at=gt." + encodeURIComponent(new Date().toISOString()) + "&select=id,data,apply_at,note,by&order=apply_at.asc&limit=1");
-    /* 초안이 없으면 지금 보이는 판(없으면 기본값)에서 시작 */
-    var base = dr[0] && dr[0].data && Object.keys(dr[0].data).length ? dr[0].data : (live ? live.data : {});
-    var draft = saMerge(defaults, base);
+    /* 09-25 재아: 적용 안 한 수정은 남기지 않음 — 열 때마다 '적용 대기 판(있으면) 또는 지금 홈페이지' 에서 시작. 서버 초안은 미리보기용으로만 씀 */
+    var draft = saMerge(defaults, (pv[0] ? pv[0].data : (live ? live.data : {})) || {});
     saSpPrune(draft);
-    SA = { draft: draft, saved: JSON.stringify(draft), savedAt: dr[0] ? dr[0].updated_at : null, savedBy: dr[0] ? dr[0].by : "",
+    /* saved 를 비워 둠 — 서버 초안이 옛것이어도 미리보기 전에 한 번 기준 판으로 맞춰 올리게(saPreview 가 saDirty 면 저장) */
+    SA = { draft: draft, saved: "", savedAt: dr[0] ? dr[0].updated_at : null, savedBy: dr[0] ? dr[0].by : "",
            live: live, pend: pv[0] || null, versions: vs, defaults: defaults, loading: false, err: null, tab: (SA && SA.tab) || "online" };
     SA.liveStr = saStrip(saBaseObj());
   }catch(e){ SA = { loading:false, err:e.message || String(e), tab:"online" }; }
@@ -8724,6 +8752,22 @@ async function saDiscard(){
   if(!await uiConfirm(SA.pend ? "고친 것을 되돌릴까요?" : "수정사항을 되돌릴까요?", SA.pend ? "적용 대기 중인 내용으로 돌아갑니다." : "지금 홈페이지에 보이는 내용으로 돌아갑니다.", {ok:"되돌리기", cancel:"취소"})) return;
   var nt = deepClone(SA.draft.notices || []);   /* 팝업은 따로 — 되돌리지 않음 */
   SA.draft = saBaseObj(); SA.draft.notices = nt; render(); saHeader();
+}
+/* 나갈 때(09-25 재아: '적용 안 했으면 나가면 알아서 초기화') — 고친 게 있으면 한 번 묻고 버림. 서버 초안도 기준 판으로 되돌려 둠 */
+var SA_LEAVING = false;
+function saLeaveGuard(){
+  if(SA_LEAVING || !SA || !SA.draft || SA.err || SA.loading) return false;
+  clearTimeout(SA_AUTOSAVE);
+  if(!saPending()){ saResetServerDraft(); return false; }
+  uiConfirm("적용하지 않은 수정사항이 있습니다", "나가면 사라집니다. 홈페이지는 " + (SA.pend ? "적용 대기 중인 내용" : "지금 모습") + " 그대로입니다.", {ok:"버리고 나가기", cancel:"계속 고치기"}).then(function(ok){
+    if(!ok) return;
+    var nt = deepClone(SA.draft.notices || []); SA.draft = saBaseObj(); SA.draft.notices = nt; saResetServerDraft();
+    SA_LEAVING = true; closeSheet(); SA_LEAVING = false;
+  });
+  return true;
+}
+function saResetServerDraft(){
+  try{ var nt = deepClone(SA.draft.notices || []), o = saBaseObj(); o.notices = nt; SA.draft = o; saSave(true); }catch(e){}
 }
 function saTab(t){ SA.tab = t; SA.open = null; saSpTidy(); render(); }
 /* 배열 항목 추가·삭제·이동 */
@@ -9298,9 +9342,28 @@ function saPostPreviewHtml(){
      월급제 = 월급 고정(통상시급 = 월급/209) + 연장·야간·배율 가산 [+ 결근 일할 공제(직원마다 켬/끔)] − 공제. 퇴직금은 1년 이상 근속자 추정.
    · 세금·보험은 참고용 — 최종 신고는 세무사/노무사와. */
 var HR = null;
-var HR_STATUS = { "정규":"○", "변형":"△", "결근":"×", "휴무":"–" };
+var HR_STATUS = { "정규":"○", "변형":"△", "결근":"×", "휴무":"–", "연차":"연" };   /* 연차(09-25): 유급 — 시급제는 그날 정규 시간만큼 지급, 개근으로 봄 */
 var HR_DAYS = ["일","월","화","수","목","금","토"];
-var HR_DEF = { over5:true, rates:{ pension:4.5, health:3.545, care:12.95, employ:0.9 }, night:["22:00","06:00"], taxRate:3.3, weeklyPay:true };
+/* 2026년 근로자 부담 요율(09-25 확인): 국민연금 4.75(연금개혁, 해마다 0.25씩 오름) · 건강 3.595 · 장기요양 = 건강보험료의 13.14% · 고용 0.9.
+   국민연금 기준소득월액 2025.7~2026.6: 하한 40만·상한 637만(해마다 7월 바뀜). 설정에서 고칠 수 있음 */
+var HR_DEF = { over5:true, rates:{ pension:4.75, health:3.595, care:13.14, employ:0.9 }, pensionBase:{ min:400000, max:6370000 }, night:["22:00","06:00"], taxRate:3.3, weeklyPay:true, payday:{ day:10, next:true } };
+/* 예전 기본값(2025)을 그대로 저장해 둔 가게는 새 기본값으로 — 사장님이 직접 다른 값을 넣은 거면 그대로 */
+function hrRatesOf(c){ var r = Object.assign({}, HR_DEF.rates, (c && c.rates) || {}); if(r.pension === 4.5 && r.health === 3.545 && r.care === 12.95) r = Object.assign({}, HR_DEF.rates); return r; }
+function hrFloor10(n){ return Math.floor(Number(n || 0) / 10) * 10; }   /* 보험료·세금은 10원 미만 버림 */
+/* 직원 추가 정보(09-25) — 표에 칸을 새로 안 만들려고 sched.ext 에 둠(수습 sched.probation 과 같은 방식) */
+function hrExt(s){ return Object.assign({ birth:"", emp:"", noPension:false, noHealth:false, noEmploy:false, meal:0, incomeTax:0, taxPct:100 }, (s && s.sched && s.sched.ext) || {}); }
+function hrEmpNo(s){ var e = hrExt(s); return e.emp || String(s.id || "").replace(/^stf_/, "").slice(-6).toUpperCase(); }
+/* 그날 정규(소정) 근로시간 */
+function hrSchedH(s, d){ return hrOnDuty(s, d) ? hrSchedAt(s, d).spans.reduce(function(a2, sp){ var s0 = toMin(sp.start), e0 = toMin(sp.end); if(e0 <= s0) e0 += 1440; return a2 + Math.max(0, (e0 - s0 - Number(sp.break || 0)) / 60); }, 0) : 0; }
+/* 그 날이 유급휴일인가(급여) — 근로자의 날은 모두, 관공서 공휴일은 5인 이상만 */
+function hrPaidHol(d, over5){ var k = typeof legalHolidayKind === "function" ? legalHolidayKind(d) : ""; return k === "labor" || (k === "public" && over5); }
+/* 지급일: 이 달 급여를 언제 주나 — 기본 '다음 달 10일', 달마다 바꿀 수 있음(paydayOver) */
+function hrPayday(m){
+  var c = hrCfg(); if(c.paydayOver && c.paydayOver[m]) return c.paydayOver[m];
+  var x = new Date(m + "-01T00:00:00"); if(c.payday.next) x.setMonth(x.getMonth() + 1);
+  var ym = monthStr(x), last = Number(hrMonthEnd(ym).slice(8));
+  return ym + "-" + pad(Math.min(last, Number(c.payday.day) || 10));
+}
 var HR_ROLES = ["주방", "홀"];   /* 묶는 순서. 다른 역할은 뒤에 '기타' */
 
 async function openStaffPage(){
@@ -9316,7 +9379,7 @@ function hrWeekDays(w){ var out = []; for(var i = 0; i < 7; i++) out.push(shiftD
 function hrWeekLabel(w){ var th = new Date(shiftDate(w, 3) + "T00:00:00"); return (th.getMonth() + 1) + "월 " + (Math.floor((th.getDate() - 1) / 7) + 1) + "주차"; }
 function hrMonthEnd(m){ var d = new Date(m + "-01T00:00:00"); d.setMonth(d.getMonth() + 1); d.setDate(0); return m + "-" + pad(d.getDate()); }
 function hrMonthDays(m){ var n = Number(hrMonthEnd(m).slice(8)), out = []; for(var i = 1; i <= n; i++) out.push(m + "-" + pad(i)); return out; }
-function hrCfg(){ var c = (HR && HR.cfg) || {}; return { over5: c.over5 !== false, over5Mode: c.over5Mode || "auto", inclusive: !!c.inclusive, rates: Object.assign({}, HR_DEF.rates, c.rates || {}), night: c.night || HR_DEF.night, taxRate: c.taxRate != null ? c.taxRate : HR_DEF.taxRate, weeklyPay: c.weeklyPay !== false }; }
+function hrCfg(){ var c = (HR && HR.cfg) || {}; return { over5: c.over5 !== false, over5Mode: c.over5Mode || "auto", inclusive: !!c.inclusive, rates: hrRatesOf(c), pensionBase: Object.assign({}, HR_DEF.pensionBase, c.pensionBase || {}), night: c.night || HR_DEF.night, taxRate: c.taxRate != null ? c.taxRate : HR_DEF.taxRate, weeklyPay: c.weeklyPay !== false, payday: Object.assign({}, HR_DEF.payday, c.payday || {}), paydayOver: c.paydayOver || {} }; }
 async function hrLoad(){
   var key = view.storeKey || "hanok";
   try{
@@ -9402,17 +9465,25 @@ function hrOver5Calc(month){
   return { over5: over5, avg: Math.round(avg * 10) / 10, biz: biz, under: under, over: over };
 }
 function hrWeekCalc(s, w){
-  var cfg = hrCfg(), _m = w.slice(0, 7), t; cfg.over5 = hrOver5(_m); t = { hours:0, ot:0, night:0, days:0, absent:0, dutyDays:0, sched:0, weeklyPay:0 };
+  var cfg = hrCfg(), _m = w.slice(0, 7), t; cfg.over5 = hrOver5(_m); t = { hours:0, workH:0, ot:0, night:0, days:0, absent:0, dutyDays:0, sched:0, weeklyPay:0 };
+  var daily = [];
   hrWeekDays(w).forEach(function(d){
-    var duty = hrOnDuty(s, d);
-    if(duty){ t.dutyDays++; t.sched += hrSchedAt(s, d).spans.reduce(function(a, sp){ var s0 = toMin(sp.start), e0 = toMin(sp.end); if(e0 <= s0) e0 += 1440; return a + Math.max(0, (e0 - s0 - Number(sp.break || 0)) / 60); }, 0); }
+    var duty = hrOnDuty(s, d), sh = hrSchedH(s, d);
+    if(duty){ t.dutyDays++; t.sched += sh; }
     var a = HR.att[s.id + "|" + d]; if(!a) return;
     if(a.status === "결근"){ t.absent++; return; }
+    if(a.status === "연차"){ t.days++; return; }   /* 연차 쓴 날은 결근이 아님 — 주휴 개근 유지 */
     var sps = hrSpans(s, a); if(!sps.length) return;
     var h = sps.reduce(function(x, sp){ return x + sp.hours; }, 0);
-    t.days++; t.hours += h; t.night += hrNight(sps); if(h > 8) t.ot += h - 8;
+    t.days++; t.hours += h; t.night += hrNight(sps);
+    if(hrPaidHol(d, cfg.over5)) return;   /* 유급휴일 근로는 휴일 가산으로 따로(hrCalc) — 연장과 겹쳐 세지 않음 */
+    t.workH += h; daily.push({ h:h, sh:sh });
   });
-  t.ot += Math.max(0, t.hours - 40 - t.ot);
+  /* 연장: 하루 8시간·주 40시간 넘긴 것. 단시간 근로자(주 정규 40시간 미만, 5인 이상)는 '정해 둔 시간' 을 넘긴 것부터(기간제법 6조, 09-25) */
+  var part = t.sched > 0 && t.sched < 40;
+  daily.forEach(function(x){ var lim = part ? Math.min(8, x.sh) : 8; if(x.h > lim) t.ot += x.h - lim; });
+  t.ot += Math.max(0, t.workH - (part ? t.sched : 40) - t.ot);
+  t.part = part;
   if(!cfg.over5){ t.ot = 0; t.night = 0; }
   if(s.pay_type !== "monthly" && s.weekly_pay !== false && cfg.weeklyPay && t.sched >= 15 && t.dutyDays > 0 && !t.absent && t.days >= t.dutyDays) t.weeklyPay = Math.min(t.hours, 40) / 40 * 8;
   return t;
@@ -9425,14 +9496,23 @@ function hrCalc(s, month){
   t.wage = hourly ? monthPay : Math.round(monthPay / 209);
   /* 수습(09-24 재아 "실제로 주는 금액이니 수습도 넣자"): 정규 근무 자료(sched.probation = {on, to, rate})에 둠 — 표에 칸을 새로 안 만들려고.
      수습 기간 날의 기본급만 rate% 로(시급제는 그날 시간 × 시급, 월급제는 달 안의 수습 날 비율). 가산·주휴는 그대로 */
-  var pb = s.sched && s.sched.probation, pbOn = !!(pb && pb.on && pb.to), pbR = pbOn ? Math.min(100, Math.max(0, Number(pb.rate || 90))) / 100 : 1;
+  var pb = s.sched && s.sched.probation, pbOn = !!(pb && pb.on && pb.to), pbR = pbOn ? Math.min(100, Math.max(90, Number(pb.rate || 90))) / 100 : 1;   /* 법정 하한 90%(최저임금법) — 그 아래로는 안 내려감 */
+  t.holPay = 0; t.holH = 0; t.holWorkH = 0; t.holBonusH = 0; t.leave = 0; t.leaveH = 0; t.leavePay = 0; t.warnBreak = 0; t.warn52 = 0; t.holDays = [];
   days.forEach(function(d){
-    var a = HR.att[s.id + "|" + d]; if(!a) return;
+    var a = HR.att[s.id + "|" + d], paidHol = hrPaidHol(d, cfg.over5), sh0 = hrSchedH(s, d);
+    /* 유급휴일(시급제): 정규 근무일에 걸린 법정 휴일은 쉬어도 그날 정규 시간만큼 줌(일하면 아래 휴일 가산을 더함). 월급제는 월급에 들어 있음 */
+    if(paidHol && hourly && sh0 > 0 && (!a || a.status !== "결근")){ t.holH += sh0; t.holPay += sh0 * hrPayAt(s, d); t.holDays.push(d); }
+    if(!a) return;
+    if(a.status === "연차"){ t.leave++; var lh = sh0 || 8; t.leaveH += lh; if(hourly) t.leavePay += lh * hrPayAt(s, d); t.log.push({ date:d, status:"연차", spans:[], hours:0, rate:1, memo:a.memo || "", wage:hourly ? hrPayAt(s, d) : t.wage }); return; }
     if(a.status === "정규") t.reg++; else if(a.status === "변형") t.alt++; else if(a.status === "결근") t.abs++; else if(a.status === "휴무") t.off++;
     var sps = hrSpans(s, a), h = sps.reduce(function(x, sp){ return x + sp.hours; }, 0), r = Number(a.rate || 1), w = hourly ? hrPayAt(s, d) : t.wage;
     t.log.push({ date:d, status:a.status, spans:sps, hours:h, rate:r, memo:a.memo || "", wage:w });
     if(!sps.length) return;
+    /* 휴게 부족 경고(근로기준법 54조: 4시간에 30분·8시간에 1시간) — 막지 않고 급여 표에 알림만 */
+    sps.forEach(function(sp){ var net = sp.hours, br = Number(sp.brk || 0); if((net > 8 && br < 60) || (net > 4 && br < 30)) t.warnBreak++; });
     t.hours += h; t.night += hrNight(sps); if(hourly){ t.base += h * w; if(pbOn && d <= pb.to) t.probCut += h * w * (1 - pbR); }
+    /* 유급휴일에 일함: 가산 0.5(8시간까지)·1.0(8시간 넘는 만큼). 월급제는 일한 시간 1.0 도 따로(월급엔 '쉬는 유급'만 들어 있음). 이 날 배율(r)은 겹치므로 안 씀 */
+    if(paidHol){ if(cfg.over5) t.holBonusH += Math.min(h, 8) * 0.5 + Math.max(h - 8, 0) * 1.0; if(!hourly) t.holWorkH += h; return; }   /* 가산은 5인 이상만, 월급제 근로분 1.0 은 모두 */
     var schedH = hrOnDuty(s, d) ? hrSchedAt(s, d).spans.reduce(function(a2, sp){ var s0 = toMin(sp.start), e0 = toMin(sp.end); if(e0 <= s0) e0 += 1440; return a2 + Math.max(0, (e0 - s0 - Number(sp.break || 0)) / 60); }, 0) : 0;
     if(h > schedH) t.offH += h - schedH;   /* 급여 표에 '정규 외 N시간' 으로만 보여 줌(돈 계산은 아래 extraH) */
     /* 월급제: 월급은 '정규 근무 시간' 값입니다. 그날 정규 시간을 넘긴 만큼(휴무일 출근은 전부)은 통상시급 × 1.0 을 따로 줍니다(초과 기본분, 재아 09-20).
@@ -9442,24 +9522,33 @@ function hrCalc(s, month){
   });
   t.days = t.reg + t.alt;
   var w0 = hrWeekStart(days[0]); if(hrWeekDays(w0)[6] < days[0]) w0 = shiftDate(w0, 7);
-  for(; hrWeekDays(w0)[6] <= last; w0 = shiftDate(w0, 7)){ var wk = hrWeekCalc(s, w0); t.ot += wk.ot; t.weekly += wk.weeklyPay; }
+  for(; hrWeekDays(w0)[6] <= last; w0 = shiftDate(w0, 7)){ var wk = hrWeekCalc(s, w0); t.ot += wk.ot; t.weekly += wk.weeklyPay; if(wk.hours > 52) t.warn52++; if(wk.part) t.part = true; }
   if(!cfg.over5) t.night = 0;
   if(!hourly){ t.base = monthPay; if(s.absent_deduct && t.abs) t.absentPay = -Math.round(t.abs * t.wage * 8);
     if(pbOn){ var pd = days.filter(function(d){ return d <= pb.to; }).length; t.probCut = monthPay * (pd / days.length) * (1 - pbR); } }
   t.probCut = Math.round(t.probCut); t.probRate = Math.round(pbR * 100); t.probTo = pbOn ? pb.to : "";
   t.otPay = t.ot * t.wage * 0.5; t.nightPay = t.night * t.wage * 0.5; t.weeklyPay = hourly ? t.weekly * t.wage : 0; t.bonusPay = t.bonusH * t.wage; t.extraPay = t.extraH * t.wage;
+  t.holBonusPay = (t.holBonusH + t.holWorkH) * t.wage; t.holPay = Math.round(t.holPay); t.leavePay = Math.round(t.leavePay);
   /* 급여 조정(09-24 재아): 보너스를 더 주거나 어떤 이유로 깎은 것 — 사장님이 급여 표에서 적음. 총지급에 들어가 공제 계산에도 반영 */
   t.adj = hrAdjList(s.id, month); t.adjSum = t.adj.reduce(function(a, x){ return a + (x.kind === "minus" ? -1 : 1) * Number(x.amount || 0); }, 0);
-  t.gross = Math.round(t.base + t.extraPay + t.otPay + t.nightPay + t.weeklyPay + t.bonusPay + t.absentPay - t.probCut + t.adjSum);
-  var tax = s.tax || "4대보험", r = cfg.rates;
+  t.gross = Math.round(t.base + t.extraPay + t.otPay + t.nightPay + t.weeklyPay + t.bonusPay + t.absentPay - t.probCut + t.adjSum + t.holPay + t.holBonusPay + t.leavePay);
+  var tax = s.tax || "4대보험", r = cfg.rates, ex = hrExt(s);
+  /* 비과세 식대(월 20만원까지) — 보험료·세금 기준에서 뺌 */
+  t.meal = Math.min(Number(ex.meal || 0), 200000, t.gross); t.taxable = Math.max(0, t.gross - t.meal);
+  t.employer = 0;
   if(tax === "4대보험"){
-    var health = Math.round(t.gross * r.health / 100);
-    t.ded = { "국민연금": Math.round(t.gross * r.pension / 100), "건강보험": health, "장기요양": Math.round(health * r.care / 100), "고용보험": Math.round(t.gross * r.employ / 100) };
-    t.employer = Math.round(t.gross * (r.pension + r.health + r.employ + 0.25) / 100) + Math.round(health * r.care / 100);
-  }else if(tax === "3.3%"){ var inc = Math.round(t.gross * (cfg.taxRate / 1.1) / 100); t.ded = { "소득세(3%)": inc, "지방소득세(0.3%)": Math.round(inc / 10) }; }
+    /* 09-25: 10원 미만 버림 · 국민연금은 기준소득월액(천원 미만 버림, 상·하한) · 직원별 제외(60세 이상 국민연금, 65세 넘어 새로 들어온 고용보험 등) */
+    var pBase = Math.min(cfg.pensionBase.max, Math.max(cfg.pensionBase.min, Math.floor(t.taxable / 1000) * 1000));
+    var pen = (ex.noPension || t.taxable <= 0) ? 0 : hrFloor10(pBase * r.pension / 100),   /* 번 돈이 없으면 하한(40만) 적용 안 함 */ hl = ex.noHealth ? 0 : hrFloor10(t.taxable * r.health / 100), cr = hrFloor10(hl * r.care / 100), em = ex.noEmploy ? 0 : hrFloor10(t.taxable * r.employ / 100);
+    t.ded = {}; if(pen) t.ded["국민연금"] = pen; if(hl) t.ded["건강보험"] = hl; if(cr) t.ded["장기요양"] = cr; if(em) t.ded["고용보험"] = em;
+    /* 근로소득세: 간이세액표 금액을 사장님이 넣음(홈택스 '근로소득 간이세액표' 조회) × 직원이 고른 80·100·120% — 지방소득세 10% 는 자동 */
+    var it = hrFloor10(Number(ex.incomeTax || 0) * (Number(ex.taxPct || 100) / 100));
+    if(it){ t.ded["소득세"] = it; t.ded["지방소득세"] = hrFloor10(it / 10); }
+    t.employer = pen + hl + cr + (ex.noEmploy ? 0 : hrFloor10(t.taxable * (r.employ + 0.25) / 100));   /* 산재보험(업종별, 전액 사업주)은 빠짐 */
+  }else if(tax === "3.3%"){ var inc = hrFloor10(t.gross * (cfg.taxRate / 1.1) / 100); t.ded = { "소득세(3%)": inc, "지방소득세(0.3%)": hrFloor10(inc / 10) }; }
   t.dedTotal = Object.keys(t.ded).reduce(function(a, k){ return a + t.ded[k]; }, 0);
   t.net = t.gross - t.dedTotal;
-  ["hours","night","ot","weekly","bonusH","extraH","offH"].forEach(function(k){ t[k] = hrRound(t[k]); });
+  ["hours","night","ot","weekly","bonusH","extraH","offH","holH","holBonusH","holWorkH","leaveH"].forEach(function(k){ t[k] = hrRound(t[k]); });
   return t;
 }
 async function hrSeverance(s){
@@ -9471,7 +9560,12 @@ async function hrSeverance(s){
   for(var i = 1; i <= 3; i++){ x.setMonth(x.getMonth() - 1); ms.push(monthStr(x)); }
   for(var j = 0; j < ms.length; j++) await hrLoadMonth(ms[j]);
   var sum = ms.reduce(function(a, m){ return a + hrCalc(s, m).gross; }, 0);
-  return { days:days, ok:true, months:ms.slice().reverse(), sum:sum, avgDay:sum / 91, amount:Math.round(sum / 91 * 30 * (days / 365)) };
+  /* 09-25: 3개월 실제 날수로 나눔(91 고정 X) · 주 정규 15시간 미만이면 퇴직금 없음 · 평균임금이 통상임금보다 낮으면 통상임금으로(근로기준법 2조②) */
+  var d3 = ms.reduce(function(a, m){ return a + hrMonthDays(m).length; }, 0), avg = sum / d3;
+  var wkSched = hrWeekDays(hrWeekStart(end)).reduce(function(a, d){ return a + hrSchedH(s, d); }, 0), dutyN = hrWeekDays(hrWeekStart(end)).filter(function(d){ return hrOnDuty(s, d); }).length || 5;
+  var wage = hrPayAt(s, end), ordDay = (s.pay_type === "monthly" ? wage / 209 : wage) * (wkSched / dutyN || 8);
+  var useOrd = ordDay > avg, dayPay = useOrd ? ordDay : avg;
+  return { days:days, ok:wkSched >= 15, short:wkSched < 15, wkSched:hrRound(wkSched), months:ms.slice().reverse(), sum:sum, d3:d3, avgDay:dayPay, useOrd:useOrd, amount:Math.round(dayPay * 30 * (days / 365)) };
 }
 
 /* ---------- 칸 편집 ---------- */
@@ -9524,7 +9618,7 @@ async function hrDayClick(date){
 
 /* ---------- 직원 편집 ---------- */
 function hrStaffNew(){ HR.edit = { probation:{on:false, to:"", rate:90}, id:newId("stf"), name:"", nick:"", role:"홀", phone:"", pay_type:"hourly", pay:0, tax:"4대보험", weekly_pay:true, absent_deduct:false, sched_hist:[{from:"", days:[false,true,true,true,true,true,true], spans:[{start:"10:00", end:"22:00", break:60}]}], pay_hist:[{from:"", pay:0}], start_date:todayStr(), end_date:null, memo:"", active:true, sort:HR.staff.length, _new:true, tab:"sched" }; render(); }
-function hrStaffEdit(id){ var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return; HR.edit = deepClone(s); HR.edit.probation = Object.assign({on:false, to:"", rate:90}, (s.sched && s.sched.probation) || {}); HR.edit.sched_hist = hrSchedHist(s).map(function(e){ return { from:e.from || "", days:(e.days || []).slice(), spans:(e.spans || []).map(function(x){ return Object.assign({}, x); }) }; }); HR.edit.pay_hist = hrPayHist(s).map(function(e){ return Object.assign({}, e); }); HR.edit.sev = null; HR.edit.tab = "sched"; render(); }
+function hrStaffEdit(id){ var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return; HR.edit = deepClone(s); HR.edit.ext = hrExt(s); HR.edit.probation = Object.assign({on:false, to:"", rate:90}, (s.sched && s.sched.probation) || {}); HR.edit.sched_hist = hrSchedHist(s).map(function(e){ return { from:e.from || "", days:(e.days || []).slice(), spans:(e.spans || []).map(function(x){ return Object.assign({}, x); }) }; }); HR.edit.pay_hist = hrPayHist(s).map(function(e){ return Object.assign({}, e); }); HR.edit.sev = null; HR.edit.tab = "sched"; render(); }
 function hrEditSet(k, v){ if(HR.edit) HR.edit[k] = v; }
 function hrEditDay(i, j){ HR.edit.sched_hist[i].days[j] = !HR.edit.sched_hist[i].days[j]; render(); }
 function hrEditSpan(i, j, k, v){ HR.edit.sched_hist[i].spans[j][k] = k === "break" ? Number(v || 0) : v; }
@@ -9542,7 +9636,7 @@ async function hrStaffSave(){
   var cur = sh[sh.length - 1], sp0 = cur.spans[0] || {start:"10:00", end:"22:00", break:0};
   var row = { id:e.id, store:view.storeKey || "hanok", name:(e.name || "").trim() || (e.nick || "").trim(), nick:(e.nick || "").trim(), role:(e.role || "").trim(), phone:phoneNorm(e.phone || ""),
               pay_type:e.pay_type || "hourly", pay:ph[ph.length - 1].pay, pay_hist:ph, tax:e.tax || "4대보험", weekly_pay:e.weekly_pay !== false, absent_deduct:!!e.absent_deduct,
-              sched:{ days:cur.days, start:sp0.start, end:sp0.end, break:sp0.break, spans:cur.spans, probation:e.probation || {on:false, to:"", rate:90} }, sched_hist:sh,
+              sched:{ days:cur.days, start:sp0.start, end:sp0.end, break:sp0.break, spans:cur.spans, probation:e.probation || {on:false, to:"", rate:90}, ext:e.ext || hrExt(null) }, sched_hist:sh,
               start_date:e.start_date || null, end_date:e.end_date || null, memo:(e.memo || "").trim(), active:e.active !== false, sort:Number(e.sort || 0) };
   try{
     await sb("/rest/v1/staff?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
@@ -9558,7 +9652,7 @@ async function hrStaffRetire(){
   await hrStaffSave();
 }
 async function hrShowSeverance(){ var e = HR.edit; if(!e) return; e.sev = { loading:true }; render(); e.sev = await hrSeverance(e) || { none:true }; render(); }
-function hrSetupOpen(){ HR.setup = deepClone(Object.assign({}, HR_DEF, HR.cfg || {})); HR.setup.rates = Object.assign({}, HR_DEF.rates, (HR.cfg || {}).rates || {}); render(); }
+function hrSetupOpen(){ HR.setup = deepClone(Object.assign({}, HR_DEF, HR.cfg || {})); HR.setup.rates = hrRatesOf(HR.cfg); HR.setup.pensionBase = Object.assign({}, HR_DEF.pensionBase, (HR.cfg || {}).pensionBase || {}); HR.setup.payday = Object.assign({}, HR_DEF.payday, (HR.cfg || {}).payday || {}); render(); }
 async function hrSetupSave(){
   var d = HR.setup; if(!d) return;
   try{
@@ -9576,12 +9670,12 @@ function hrGroups(list){
 function sheetStaff(){
   if(!HR || HR.loading) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
   if(HR.err) return '<div class="alert rust"><span class="ic">!</span><div><div class="a-t">불러오지 못했습니다</div><div class="a-s">' + esc(HR.err) + '</div></div></div><div class="btn-row" style="margin-top:12px"><button class="btn" onclick="HR.loading=true; render(); hrLoad().then(render)">다시 시도</button></div>';
-  var top = '<div class="hr-top"><div class="seg"><button class="' + (HR.view === "week" ? "on" : "") + '" onclick="HR.view=\'week\'; render()">주간표</button><button class="' + (HR.view === "pay" ? "on" : "") + '" onclick="HR.view=\'pay\'; render()">급여</button></div>' +
-      '<div class="btn-row">' + (HR.view === "week" ? '<button class="btn sm ' + (HR.retired ? "" : "ghost") + '" onclick="HR.retired=!HR.retired; render()">' + (HR.retired ? "재직자 보기" : "퇴사자 보기") + '</button>' : '') +
+  var top = '<div class="hr-top"><div class="seg"><button class="' + (HR.view === "week" ? "on" : "") + '" onclick="HR.view=\'week\'; render()">주간표</button><button class="' + (HR.view === "pay" ? "on" : "") + '" onclick="HR.view=\'pay\'; render()">급여</button><button class="' + (HR.view === "leave" ? "on" : "") + '" onclick="HR.view=\'leave\'; hrLeaveLoad()">연차</button></div>' +
+      '<div class="btn-row">' + (HR.view === "pay" ? '<button class="btn sm ghost" onclick="HR.help=true; render()" title="계산 방법·법 안내">?</button>' : '') + (HR.view === "week" ? '<button class="btn sm ' + (HR.retired ? "" : "ghost") + '" onclick="HR.retired=!HR.retired; render()">' + (HR.retired ? "재직자 보기" : "퇴사자 보기") + '</button>' : '') +
       '<button class="btn sm ghost" onclick="hrSetupOpen()">설정</button><button class="btn sm primary" onclick="hrStaffNew()">＋ 직원</button></div></div>';
   var body = !HR.staff.length ? '<div class="empty">직원이 없습니다. "＋ 직원" 으로 첫 사람을 넣고 정규 근무(요일·시간)를 정해 두면, 칸을 눌러 ○ 만 찍으면 됩니다.</div>'
-           : HR.view === "pay" ? hrPayView() : hrWeekView();
-  return top + body + (HR.pop ? hrPopHtml() : "") + (HR.edit ? hrEditHtml() : "") + (HR.slip ? hrSlipHtml() : "") + (HR.setup ? hrSetupHtml() : "") + (HR.adj ? hrAdjHtml() : "");
+           : HR.view === "pay" ? hrPayView() : HR.view === "leave" ? hrLeaveView() : hrWeekView();
+  return top + body + (HR.pop ? hrPopHtml() : "") + (HR.edit ? hrEditHtml() : "") + (HR.slip ? hrSlipHtml() : "") + (HR.setup ? hrSetupHtml() : "") + (HR.adj ? hrAdjHtml() : "") + (HR.help ? hrHelpHtml() : "");
 }
 /* 기간 옮기기(재아 09-20): 화살표 말고도 날짜를 바로 골라 뛸 수 있게 — 제목 옆 달력 입력 */
 async function hrJumpWeek(v){ if(!v) return; HR.week = hrWeekStart(v); HR.loading = true; render(); await hrLoadRange(); HR.loading = false; render(); }
@@ -9608,7 +9702,7 @@ function hrWeekView(){
     var tds = days.map(function(d){
       var a = HR.att[s.id + "|" + d], duty = hrOnDuty(s, d), past = d <= today, sps = hrSpans(s, a), h = sps.reduce(function(x, sp){ return x + sp.hours; }, 0);
       /* 안 찍은 정규 근무일: 지난 날은 빨간 '정규', 오늘 이후는 검정 '정규' — 빗금은 화려하다는 평(재아 09-20)이라 글자만 */
-      var cls = "hc" + (a ? " " + ({"정규":"reg","변형":"alt","결근":"abs","휴무":"off"}[a.status]) : (duty ? (past ? " due" : " due-future") : "")) + (d === today ? " today" : "");
+      var cls = "hc" + (a ? " " + ({"정규":"reg","변형":"alt","결근":"abs","휴무":"off","연차":"leave"}[a.status]) : (duty ? (past ? " due" : " due-future") : "")) + (d === today ? " today" : "");
       var sub = sps.length ? hrRound(h) + "h" : (a ? "" : (duty ? "정규" : ""));
       return '<td class="' + cls + '" onclick="hrCell(\'' + s.id + '\',\'' + d + '\')"><span class="m">' + (a ? HR_STATUS[a.status] : "") + '</span><small>' + esc(sub) + '</small>' +
         (a && Number(a.rate) > 1 ? '<i class="r">' + a.rate + 'x</i>' : '') + (a && a.memo ? '<i class="dot" title="' + esc(a.memo) + '"></i>' : '') + '</td>';
@@ -9627,20 +9721,22 @@ function hrWeekView(){
 function hrPayView(){
   var m = HR.month, mx = new Date(m + "-01T00:00:00"), title = mx.getFullYear() + "년 " + (mx.getMonth() + 1) + "월";
   var last = hrMonthEnd(m), list = HR.staff.filter(function(s){ return s.active !== false || !s.end_date || s.end_date >= m + "-01"; });   /* 퇴사자도 퇴사한 달까지 */
-  var head = hrPeriodHead(title, "급여", "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
+  var pd = hrPayday(m), pdx = new Date(pd + "T00:00:00");
+  var head = hrPeriodHead(title, "급여 · 지급일 " + (pdx.getMonth() + 1) + "/" + pdx.getDate() + ' <button class="hr-pd" onclick="event.stopPropagation(); hrPaydayPick(\'' + m + '\')">바꾸기</button>', "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
   var tot = { gross:0, ded:0, net:0, employer:0 };
   var rowHtml = function(s){
     var t = hrCalc(s, m); tot.gross += t.gross; tot.ded += t.dedTotal; tot.net += t.net; tot.employer += t.employer;
     var extra = t.offH ? ["정규 외 " + t.offH + "h"] : [];
+    var warn = (t.warnBreak ? "휴게 부족 " + t.warnBreak + "일" : "") + (t.warnBreak && t.warn52 ? " · " : "") + (t.warn52 ? "주 52시간 넘음 " + t.warn52 + "주" : "");
     return '<tr' + (s.active === false ? ' class="gone"' : '') + '><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.nick && s.name !== s.nick ? s.name + " · " : "") + esc(s.role || "") + (s.active === false ? " · 퇴사" : "") + '</small></button></td>' +
-      '<td class="won"><small>' + (s.pay_type === "monthly" ? "월급" : "시급") + '</small>' + hrWon(hrPayAt(s, last)) + '</td><td>' + t.days + '일' + (t.abs ? '<small class="rust">결근 ' + t.abs + '</small>' : '') + '</td><td>' + t.hours + 'h' + (extra.length ? '<small>' + extra.join(" · ") + '</small>' : '') + '</td>' +
+      '<td class="won"><small>' + (s.pay_type === "monthly" ? "월급" : "시급") + '</small>' + hrWon(hrPayAt(s, last)) + '</td><td>' + t.days + '일' + (t.abs ? '<small class="rust">결근 ' + t.abs + '</small>' : '') + '</td><td>' + t.hours + 'h' + (extra.length ? '<small>' + extra.join(" · ") + '</small>' : '') + (warn ? '<small class="rust">' + warn + '</small>' : '') + '</td>' +
       '<td class="won">' + hrWon(t.gross) + (t.adjSum ? '<small>조정 ' + (t.adjSum > 0 ? "+" : "−") + hrWon(Math.abs(t.adjSum)) + '</small>' : '') + '</td><td class="won">' + (t.dedTotal ? '−' + hrWon(t.dedTotal) + '<small>' + esc(s.tax || "4대보험") + '</small>' : '<small class="muted">공제 없음</small>') + '</td><td class="won"><b>' + hrWon(t.net) + '</b></td>' +
       '<td class="hr-acts"><button class="btn sm ghost" onclick="hrAdjOpen(\'' + s.id + '\', \'' + m + '\')">조정</button><button class="btn sm" onclick="HR.slip={id:\'' + s.id + '\', month:\'' + m + '\'}; render()">계산서</button></td></tr>';
   };
   var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><td colspan="8">' + esc(g.role) + '</td></tr>' + g.list.map(rowHtml).join(""); }).join("");
   return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay"><thead><tr><th>직원</th><th>시급·월급</th><th>근무</th><th>시간</th><th>총지급</th><th>공제</th><th>실지급</th><th class="hr-acts-h"></th></tr></thead><tbody>' + trs +
     '<tr class="tot"><td colspan="4">합계</td><td class="won">' + hrWon(tot.gross) + '</td><td class="won">−' + hrWon(tot.ded) + '</td><td class="won"><b>' + hrWon(tot.net) + '</b></td><td></td></tr></tbody></table></div>' +
-    '<p class="f-note">총지급 = 기본급 + 연장·야간 가산(5인 이상) + 주휴수당(시급제, 주 15h 이상 개근) + 배율 가산. 월급제는 월급 고정 + 가산(통상시급 = 월급 ÷ 209), 결근 공제는 직원마다 켬. 공제 = 4대보험(근로자분) 또는 3.3%. 사업주 부담 4대보험(산재 제외) 약 ' + hrWon(tot.employer) + '. 퇴사자는 퇴사한 달까지 회색으로. <b>참고용 계산</b> — 신고·정산은 세무사/노무사 확인 후.</p>';
+    '<p class="f-note"><button class="btn sm ghost" onclick="HR.help=true; render()">? 계산 방법·법 안내</button> ' + '총지급 = 기본급 + 연장·야간 가산(5인 이상) + 주휴수당(시급제, 주 15h 이상 개근) + 배율 가산. 월급제는 월급 고정 + 가산(통상시급 = 월급 ÷ 209), 결근 공제는 직원마다 켬. 공제 = 4대보험(근로자분) 또는 3.3%. 사업주 부담 4대보험(산재 제외) 약 ' + hrWon(tot.employer) + '. 퇴사자는 퇴사한 달까지 회색으로. <b>참고용 계산</b> — 신고·정산은 세무사/노무사 확인 후.</p>';
 }
 /* ---------- 급여계산서: 영수증 모양 (재아 09-19 "직원한테 보내기 안 민망하게") ----------
    hrSlipData 가 줄 목록을 만들고, 화면(HTML)·인쇄·사진 저장(캔버스)이 같은 줄을 씁니다 — 셋이 늘 같게 */
@@ -9651,27 +9747,33 @@ function hrSlipData(s, m){
   L.push({k:"h1", a:shop}); L.push({k:"sub", a:title + " 급여계산서"});
   L.push({k:"dash"});
   L.push({k:"row", a:"직원", b:hrLabel(s) + (s.nick && s.name !== s.nick ? " (" + s.name + ")" : "") + (s.role ? " · " + s.role : "")});
+  var ex = hrExt(s);   /* 임금명세서 필수(근로기준법 48조②): 근로자를 특정할 정보(사번 또는 생년월일)·지급일 */
+  L.push({k:"row", a:"직원 번호", b:hrEmpNo(s) + (ex.birth ? " · " + ex.birth : "")});
+  L.push({k:"row", a:"지급일", b:hrPayday(m)});
   L.push({k:"row", a:"기준", b:(s.pay_type === "monthly" ? "월급제 · 통상시급 " + hrWon(t.wage) : "시급 " + hrWon(t.wage)) + " · " + (s.tax || "4대보험")});
   L.push({k:"row", a:"근무", b:t.days + "일 · " + t.hours + "시간" + (t.abs ? " · 결근 " + t.abs + "일" : "")});
   L.push({k:"dash"}); L.push({k:"sec", a:"지급"});
   L.push({k:"row", a:s.pay_type === "monthly" ? "월급" : "기본급", b:hrWon(t.base), n:s.pay_type === "monthly" ? "" : t.hours + "h × " + hrWon(t.wage)});
   if(t.extraPay) L.push({k:"row", a:"정규 외 근무", b:hrWon(t.extraPay), n:t.extraH + "h × " + hrWon(t.wage)});
-  if(t.otPay) L.push({k:"row", a:"연장수당", b:hrWon(t.otPay), n:t.ot + "h × 0.5"});
+  if(t.otPay) L.push({k:"row", a:"연장수당", b:hrWon(t.otPay), n:t.ot + "h × 0.5" + (t.part ? " (단시간: 정해 둔 시간 초과분 포함)" : "")});
   if(t.nightPay) L.push({k:"row", a:"야간수당", b:hrWon(t.nightPay), n:t.night + "h × 0.5"});
   if(t.weeklyPay) L.push({k:"row", a:"주휴수당", b:hrWon(t.weeklyPay), n:t.weekly + "h"});
-  if(t.bonusPay) L.push({k:"row", a:"휴일·배율 가산", b:hrWon(t.bonusPay), n:t.bonusH + "h"});
+  if(t.bonusPay) L.push({k:"row", a:"배율 가산", b:hrWon(t.bonusPay), n:t.bonusH + "h"});
+  if(t.holPay) L.push({k:"row", a:"유급휴일수당", b:hrWon(t.holPay), n:t.holH + "h (" + t.holDays.map(function(d){ return Number(d.slice(5, 7)) + "/" + Number(d.slice(8)); }).join(", ") + ")"});
+  if(t.holBonusPay) L.push({k:"row", a:"휴일근로 가산", b:hrWon(t.holBonusPay), n:(t.holWorkH ? t.holWorkH + "h 근로 + " : "") + "가산 " + t.holBonusH + "h"});
+  if(t.leavePay || t.leave) L.push({k:"row", a:"연차(유급)", b:hrWon(t.leavePay), n:t.leave + "일 · " + t.leaveH + "h" + (t.leavePay ? "" : " — 월급에 포함")});
   if(t.absentPay) L.push({k:"row", a:"결근 공제", b:hrWon(t.absentPay), n:t.abs + "일 × 8h"});
   t.adj.forEach(function(x){ var minus = x.kind === "minus"; L.push({k:"row", a:x.label || (minus ? "감액" : "추가"), b:(minus ? "−" : "+") + hrWon(x.amount), n:minus ? "감액" : "추가"}); });
   if(t.probCut) L.push({k:"row", a:"수습 감액", b:"−" + hrWon(t.probCut), n:t.probRate + "% 지급 · " + pkShort(t.probTo) + "까지"});
   L.push({k:"tot", a:"총지급", b:hrWon(t.gross)});
-  L.push({k:"sec", a:"공제 · " + (s.tax || "4대보험")});
+  L.push({k:"sec", a:"공제 · " + (s.tax || "4대보험") + (t.meal ? " (비과세 식대 " + hrWon(t.meal) + " 제외)" : "")});
   if(Object.keys(t.ded).length) Object.keys(t.ded).forEach(function(k){ L.push({k:"row", a:k, b:"−" + hrWon(t.ded[k])}); }); else L.push({k:"row", a:"공제 없음", b:"0원"});
   L.push({k:"tot", a:"실지급액", b:hrWon(t.net), big:true});
   L.push({k:"dash"}); L.push({k:"sec", a:"근무 기록 " + t.log.length + "일"});
   t.log.forEach(function(l){ var dt = new Date(l.date + "T00:00:00"); L.push({k:"log", a:(dt.getMonth() + 1) + "/" + dt.getDate() + "(" + HR_DAYS[dt.getDay()] + ")", b:HR_STATUS[l.status] + " " + (l.spans.length ? l.spans.map(function(sp){ return minToHM(sp.s0) + "-" + minToHM(sp.e0 % 1440); }).join("+") + " " + hrRound(l.hours) + "h" : l.status) + (l.rate > 1 ? " " + l.rate + "x" : ""), n:""}); });   /* 메모(결근 사유 등)는 직원에게 가는 종이에 안 씀(09-24 재아) */
   L.push({k:"dash"});
   L.push({k:"note", a:"발행 " + todayStr() + " · " + shop});
-  L.push({k:"note", a:"참고용 계산서 — 소득세(간이세액표)·비과세는 넣지 않았습니다"});
+  L.push({k:"note", a:hrExt(s).incomeTax ? "소득세는 간이세액표 금액(직원 정보에 넣은 값)" : "소득세 미입력 — 직원 정보 → 급여에서 간이세액표 금액을 넣으세요"});
   return { lines:L, title:title, t:t, cfg:cfg, shop:shop };
 }
 function hrSlipHtml(){
@@ -9740,7 +9842,7 @@ function hrPopHtml(){
   return '<div class="overlay" onclick="HR.pop=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead(esc(hrLabel(s)) + ' · ' + dateLabel(p.date)) +
     '<p class="f-note" style="margin:-6px 0 12px">정규 근무: ' + esc(hrSchedText(s, p.date)) + '</p>' +
-    '<div class="seg hr-seg">' + seg("status", "정규", "○ 정규") + seg("status", "변형", "△ 다른 시간") + seg("status", "결근", "× 결근") + seg("status", "휴무", "– 휴무") + '</div>' +
+    '<div class="seg hr-seg">' + seg("status", "정규", "○ 정규") + seg("status", "변형", "△ 다른 시간") + seg("status", "결근", "× 결근") + seg("status", "휴무", "– 휴무") + seg("status", "연차", "연 연차") + '</div>' +
     (p.status === "변형" ? '<div style="margin-top:12px">' + spans + (p.spans.length < 2 ? '<button class="btn sm ghost" onclick="hrPopSpanAdd()">＋ 타임 추가 (점심·저녁 따로)</button>' : '') + '</div>' : '') +
     (p.status === "정규" || p.status === "변형" ? '<div class="f" style="margin-top:12px"><div class="lb">배율 <span class="lbl-note">휴일 근무 같은 때(연장·야간은 자동)</span></div><div class="seg">' + seg("rate", 1, "1x") + seg("rate", 1.5, "1.5x") + seg("rate", 2, "2x") + '</div></div>' : '') +
     '<label class="f" style="margin-top:12px"><div class="lb">메모 <span class="lbl-note">선택</span></div><input type="text" value="' + esc(p.memo || "") + '" placeholder="예: 늦게 옴, 행사 지원" oninput="hrPopSet(\'memo\', this.value)"></label>' +
@@ -9765,17 +9867,29 @@ function hrEditHtml(){
       '<div class="btn-row"><button class="btn sm" onclick="hrEditPayAdd()">＋ 시급 변경 (다음 달 1일부터)</button></div>' +
       (function(){ var pb = e.probation || (e.probation = {on:false, to:"", rate:90});
         return '<div class="f"><div class="lb">수습 <span class="lbl-note">수습 기간의 기본급만 줄여서 계산</span></div><div class="seg">' +
-          '<button class="' + (pb.on ? "on" : "") + '" onclick="HR.edit.probation.on=true; render()">적용</button><button class="' + (!pb.on ? "on" : "") + '" onclick="HR.edit.probation.on=false; render()">안 함</button></div></div>' +
+          '<button class="' + (pb.on ? "on" : "") + '" onclick="hrProbOn()">적용</button><button class="' + (!pb.on ? "on" : "") + '" onclick="HR.edit.probation.on=false; render()">안 함</button></div></div>' +
           (pb.on ? '<div class="grid2"><label class="f"><div class="lb">수습 끝나는 날</div><input type="date" value="' + esc(pb.to || "") + '" onchange="HR.edit.probation.to=this.value"></label>' +
-            '<label class="f"><div class="lb">수습 지급률 (%)</div><input type="number" min="50" max="100" value="' + (pb.rate || 90) + '" onchange="HR.edit.probation.rate=Number(this.value)||90"></label></div>' : ''); })() +
+            '<label class="f"><div class="lb">수습 지급률 (%) <span class="lbl-note">90~100</span></div><input type="number" min="90" max="100" value="' + (pb.rate || 90) + '" onchange="HR.edit.probation.rate=Math.min(100, Math.max(90, Number(this.value)||90)); render()"></label></div>' +
+            '<p class="f-note">수습 감액은 <b>1년 이상 계약 · 수습 3개월 이내 · 90% 이상 · 단순노무 직종이 아닐 때</b>만 됩니다. 서빙·주방보조처럼 단순노무로 보이는 일은 감액하면 최저임금 위반일 수 있습니다.</p>' : ''); })() +
+      (function(){ var x = e.ext || (e.ext = hrExt(null));
+        return '<div class="subhead">공제 세부 <span>임금명세서·보험료 계산</span></div>' +
+          '<div class="grid2"><label class="f"><div class="lb">소득세 (간이세액표 월 금액) <span class="lbl-note">홈택스 → 근로소득 간이세액표 조회값</span></div><input type="text" inputmode="numeric" value="' + (Number(x.incomeTax) ? Number(x.incomeTax).toLocaleString("ko-KR") : "") + '" placeholder="0" onchange="HR.edit.ext.incomeTax=Number(this.value.replace(/[^\\d]/g,\'\'))||0"></label>' +
+          '<div class="f"><div class="lb">직원 선택 비율</div><div class="seg">' + [80, 100, 120].map(function(p){ return '<button class="' + (Number(x.taxPct || 100) === p ? "on" : "") + '" onclick="HR.edit.ext.taxPct=' + p + '; render()">' + p + '%</button>'; }).join("") + '</div></div></div>' +
+          '<div class="grid2"><label class="f"><div class="lb">비과세 식대 (월) <span class="lbl-note">20만원까지 — 보험료·세금에서 뺌</span></div><input type="text" inputmode="numeric" value="' + (Number(x.meal) ? Number(x.meal).toLocaleString("ko-KR") : "") + '" placeholder="0" onchange="HR.edit.ext.meal=Math.min(200000, Number(this.value.replace(/[^\\d]/g,\'\'))||0)"></label>' +
+          '<div class="f"><div class="lb">4대보험 빼기 <span class="lbl-note">해당하는 것만</span></div><div class="seg">' +
+            '<button class="' + (x.noPension ? "on" : "") + '" onclick="HR.edit.ext.noPension=!HR.edit.ext.noPension; render()">국민연금 (60세 이상)</button>' +
+            '<button class="' + (x.noEmploy ? "on" : "") + '" onclick="HR.edit.ext.noEmploy=!HR.edit.ext.noEmploy; render()">고용보험 (65세 넘어 입사)</button>' +
+            '<button class="' + (x.noHealth ? "on" : "") + '" onclick="HR.edit.ext.noHealth=!HR.edit.ext.noHealth; render()">건강보험</button></div></div></div>'; })() +
       (e.pay_type !== "monthly" ? '<div class="f"><div class="lb">주휴수당 <span class="lbl-note">주 15h 이상 개근이면 자동</span></div><div class="seg">' + segv("weekly_pay", true, "계산") + segv("weekly_pay", false, "안 함") + '</div></div>'
         : '<div class="f"><div class="lb">결근 공제 <span class="lbl-note">월급제 — 결근일 × 8h 일할 공제</span></div><div class="seg">' + segv("absent_deduct", true, "공제") + segv("absent_deduct", false, "안 함") + '</div></div>') +
       (e._new ? '' : '<div class="hr-sev"><div class="hr-sev-h"><b>퇴직금</b><button class="btn sm" onclick="hrShowSeverance()">계산</button></div>' +
-        (e.sev ? (e.sev.loading ? '<p class="muted">계산 중…</p>' : e.sev.none ? '<p class="muted">입사일이 없어 계산할 수 없습니다.</p>' : !e.sev.ok ? '<p class="muted">근속 ' + e.sev.days + '일 — 1년(365일)이 되면 생깁니다.</p>' :
+        (e.sev ? (e.sev.loading ? '<p class="muted">계산 중…</p>' : e.sev.none ? '<p class="muted">입사일이 없어 계산할 수 없습니다.</p>' : e.sev.short ? '<p class="muted">주 정규 근무 ' + e.sev.wkSched + '시간 — 주 15시간 미만이면 퇴직금 대상이 아닙니다.</p>' : !e.sev.ok ? '<p class="muted">근속 ' + e.sev.days + '일 — 1년(365일)이 되면 생깁니다.</p>' :
           '<div class="hr-sev-n">' + hrWon(e.sev.amount) + '</div><div class="hr-sev-s">근속 ' + e.sev.days + '일 (' + hrRound(e.sev.days / 365) + '년) · 최근 3개월(' + e.sev.months.join(", ") + ') 총지급 ' + hrWon(e.sev.sum) + ' → 하루 평균 ' + hrWon(e.sev.avgDay) + ' × 30일 × 근속년수 · 참고용</div>') : '<p class="muted">1년 이상 근속하면 최근 3개월 평균임금으로 추정합니다.</p>') + '</div>');
   }else{
     body = '<div class="grid2"><label class="f"><div class="lb">전화</div><input type="tel" value="' + esc(e.phone || "") + '" oninput="hrEditSet(\'phone\', this.value)"></label><label class="f"><div class="lb">역할 <span class="lbl-note">주방 · 홀 (표에서 묶임)</span></div><input type="text" value="' + esc(e.role || "") + '" oninput="hrEditSet(\'role\', this.value)"></label></div>' +
       '<div class="grid2"><label class="f"><div class="lb">입사일</div><input type="date" value="' + esc(e.start_date || "") + '" onchange="hrEditSet(\'start_date\', this.value)"></label><label class="f"><div class="lb">퇴사일 <span class="lbl-note">비우면 재직</span></div><input type="date" value="' + esc(e.end_date || "") + '" onchange="hrEditSet(\'end_date\', this.value || null)"></label></div>' +
+      '<div class="grid2"><label class="f"><div class="lb">직원 번호 <span class="lbl-note">임금명세서에 — 비우면 자동</span></div><input type="text" value="' + esc((e.ext && e.ext.emp) || "") + '" placeholder="' + esc(hrEmpNo(e)) + '" oninput="HR.edit.ext.emp=this.value.trim()"></label>' +
+      '<label class="f"><div class="lb">생년월일 <span class="lbl-note">선택 — 직원 번호로도 충분</span></div><input type="text" inputmode="numeric" value="' + esc((e.ext && e.ext.birth) || "") + '" placeholder="예: 1990-05-12" oninput="HR.edit.ext.birth=this.value.trim()"></label></div>' +
       '<label class="f"><div class="lb">메모</div><input type="text" value="' + esc(e.memo || "") + '" oninput="hrEditSet(\'memo\', this.value)"></label>';
   }
   return '<div class="overlay" onclick="HR.edit=null; render()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' +
@@ -9797,10 +9911,13 @@ function hrSetupHtml(){
     '<div class="f"><div class="lb">주휴수당 자동 계산</div><div class="seg"><button class="' + (d.weeklyPay !== false ? "on" : "") + '" onclick="HR.setup.weeklyPay=true; render()">켬</button><button class="' + (d.weeklyPay === false ? "on" : "") + '" onclick="HR.setup.weeklyPay=false; render()">끔</button></div></div>' +
     '<div class="subhead">4대보험 근로자 부담 요율(%) <span>매년 1월 바뀝니다 — 확인 후 고치세요</span></div>' +
     '<div class="grid2">' + num("rates.pension", "국민연금") + num("rates.health", "건강보험") + num("rates.care", "장기요양", "건강보험료의 %") + num("rates.employ", "고용보험") + '</div>' +
+    '<div class="grid2">' + num("pensionBase.min", "국민연금 기준소득월액 하한", "원 · 해마다 7월") + num("pensionBase.max", "국민연금 기준소득월액 상한", "원") + '</div>' +
+    '<div class="f"><div class="lb">급여 지급일 <span class="lbl-note">임금명세서에 — 달마다 다르면 급여 화면에서 그 달만 바꾸기</span></div><div class="grid2"><div class="seg"><button class="' + (d.payday.next ? "on" : "") + '" onclick="HR.setup.payday.next=true; render()">다음 달</button><button class="' + (!d.payday.next ? "on" : "") + '" onclick="HR.setup.payday.next=false; render()">그 달</button></div>' +
+      '<label class="f" style="margin:0"><input type="number" min="1" max="31" value="' + (d.payday.day || 10) + '" oninput="HR.setup.payday.day=Number(this.value)||10"></label></div></div>' +
     '<div class="grid2">' + num("taxRate", "사업소득 원천징수(%)", "3.3 = 소득세 3 + 지방 0.3") + '<div class="f"><div class="lb">야간 시간대</div><div class="grid2"><input type="time" value="' + esc(d.night[0]) + '" onchange="HR.setup.night[0]=this.value"><input type="time" value="' + esc(d.night[1]) + '" onchange="HR.setup.night[1]=this.value"></div></div></div>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="HR.setup=null; render()">취소</button><button class="btn primary" onclick="hrSetupSave()">저장</button></div></div></div>';
 }
-function hrEsc(){ if(!HR || !(view.form && view.form.type === "staff")) return false; var k = ["pop","edit","slip","setup","adj"].find(function(x){ return HR[x]; }); if(k){ HR[k] = null; render(); return true; } return false; }
+function hrEsc(){ if(!HR || !(view.form && view.form.type === "staff")) return false; var k = ["pop","edit","slip","setup","adj","help"].find(function(x){ return HR[x]; }); if(k){ HR[k] = null; render(); return true; } return false; }
 
 /* ---------- 급여 조정(09-24 재아) — 급여 표의 '조정' → 이 달 이 직원에게 더 주거나 깎을 항목. 계산서에 한 줄씩 나옴 ---------- */
 function hrAdjOpen(id, month){ HR.adj = { id:id, month:month, rows:deepClone(hrAdjList(id, month)) }; hrAdjTail(); render(); }
@@ -9824,6 +9941,8 @@ function hrAdjHtml(){
   return '<div class="overlay" onclick="HR.adj=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead("급여 조정 · " + esc(hrLabel(s)) + " · " + (mx.getMonth() + 1) + "월") +
     rows + '<p class="f-note">금액을 넣고 Enter(또는 칸 밖을 누르면) 아래에 새 줄이 생깁니다. 비워 둔 줄은 저장되지 않습니다.</p>' +
+    /* 감액은 막지 않고 알리기만(09-25 재아) — 임금 전액 지급 원칙이라 모르고 빼면 문제가 됨 */
+    (a.rows.some(function(r){ return r.kind === "minus" && Number(r.amount) > 0; }) ? '<p class="f-note" style="color:var(--rust)">감액 안내 — 임금은 전액 지급이 원칙입니다(근로기준법 43조). 변상 등을 급여에서 빼려면 직원의 개별·서면 동의가 있어야 하고, 벌금을 미리 정해 두는 것은 금지입니다(20조). 계산 실수를 바로잡는 것은 괜찮습니다.</p>' : '') +
     '<div class="sheet-actions"><button class="btn ghost" onclick="HR.adj=null; render()">취소</button><button class="btn primary" data-enter onclick="hrAdjSave()">저장</button></div></div></div>';
 }
 async function hrAdjSave(){
@@ -9835,6 +9954,114 @@ async function hrAdjSave(){
     await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:cfg }, prefer:"resolution=merge-duplicates,return=minimal" });
     HR.cfg = cfg; HR.adj = null; logEvent("급여 조정", a.month + " " + a.id + " " + rows.length + "건"); render(); showToast("저장했습니다");
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
+}
+
+/* ---------- 지급일(09-25 재아: 달마다 다를 수 있음) ----------
+   기본은 설정의 '다음 달 N일'. 급여 화면 기간 머리의 '바꾸기' 로 그 달만 다른 날로 — hr_settings.paydayOver[월] */
+async function hrPaydayPick(m){
+  var v = await uiDate(Number(m.slice(5)) + "월 급여 지급일", hrPayday(m), {}); if(!v) return;
+  var cfg = deepClone(HR.cfg || {}); cfg.paydayOver = cfg.paydayOver || {}; cfg.paydayOver[m] = v;
+  try{ await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:cfg }, prefer:"resolution=merge-duplicates,return=minimal" }); HR.cfg = cfg; logEvent("급여 지급일", m + " → " + v); render(); showToast("지급일을 바꿨습니다 · " + pkShort(v)); }
+  catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
+}
+/* 수습 켤 때 조건 안내(09-25 재아: 사장님이 고르되 조건은 알려 주기) */
+async function hrProbOn(){
+  await uiAlert("수습 감액 조건", "아래를 모두 갖췄을 때만 최저임금의 90%까지 줄일 수 있습니다(최저임금법 5조).\n· 근로계약 기간 1년 이상\n· 수습 시작부터 3개월 이내\n· 지급률 90% 이상\n· 단순노무 직종이 아님 — 서빙·주방보조·설거지 등은 단순노무로 보일 수 있어 감액이 안 될 수 있습니다.", "ok");
+  HR.edit.probation.on = true; if(!HR.edit.probation.rate || HR.edit.probation.rate < 90) HR.edit.probation.rate = 90; render();
+}
+
+/* ---------- 연차(09-25 재아) ----------
+   5인 이상 사업장만(근로기준법 60조). 입사일 기준:
+   · 1년 미만: 한 달 개근할 때마다 1일(최대 11일)
+   · 1년 이상: 15일, 3년차부터 2년마다 1일 더(최대 25일) — 출근율 80% 확인은 사장님이
+   · 쓴 날 = 주간표에서 '연 연차' 로 찍은 날. 시급제는 그날 정규 시간만큼 유급(급여에 자동), 월급제는 월급에 포함
+   · 단시간 근로자는 시간 단위로 비례(주 정규시간 ÷ 40 × 8시간이 하루치) */
+async function hrLeaveLoad(){
+  HR.leaveLoading = true; render();
+  try{
+    var ids = HR.staff.map(function(s){ return s.id; }), from = shiftDate(todayStr(), -760);
+    HR.leaveRows = ids.length ? await sb("/rest/v1/attendance?staff_id=in.(" + ids.join(",") + ")&status=in.(%EC%97%B0%EC%B0%A8,%EA%B2%B0%EA%B7%BC)&date=gte." + from + "&select=staff_id,date,status&order=date") : [];
+  }catch(e){ HR.leaveRows = []; HR.leaveErr = e.message || String(e); }
+  HR.leaveLoading = false; render();
+}
+function hrLeaveOf(s){
+  var today = todayStr(), st = s.start_date; if(!st) return { none:true };
+  var rows = (HR.leaveRows || []).filter(function(r){ return r.staff_id === s.id; });
+  var y = Math.floor((new Date(today + "T00:00:00") - new Date(st + "T00:00:00")) / (365.25 * 864e5));
+  var wkSched = hrWeekDays(hrWeekStart(today)).reduce(function(a, d){ return a + hrSchedH(s, d); }, 0), dayH = wkSched >= 40 ? 8 : Math.round(wkSched / 40 * 8 * 10) / 10;
+  if(y < 1){
+    var grant = 0, m = new Date(st + "T00:00:00");
+    for(var k = 0; k < 11; k++){
+      var a = new Date(m); a.setMonth(a.getMonth() + k); var b = new Date(m); b.setMonth(b.getMonth() + k + 1);
+      if(b > new Date(today + "T00:00:00")) break;
+      var A = pkYmd(a), B = pkYmd(b), abs = rows.some(function(r){ return r.status === "결근" && r.date >= A && r.date < B; });
+      if(!abs) grant++;
+    }
+    var used = rows.filter(function(r){ return r.status === "연차" && r.date >= st; }).length;
+    var nx = new Date(st + "T00:00:00"); while(pkYmd(nx) <= today) nx.setMonth(nx.getMonth() + 1);
+    return { years:0, grant:grant, used:used, left:grant - used, next:pkYmd(nx), dayH:dayH, from:st };
+  }
+  var anniv = new Date(st + "T00:00:00"); anniv.setFullYear(anniv.getFullYear() + y); var from = pkYmd(anniv);
+  var g = Math.min(25, 15 + Math.floor((y - 1) / 2)), usedY = rows.filter(function(r){ return r.status === "연차" && r.date >= from; }).length;
+  var nx2 = new Date(anniv); nx2.setFullYear(nx2.getFullYear() + 1);
+  return { years:y, grant:g, used:usedY, left:g - usedY, next:pkYmd(nx2), dayH:dayH, from:from };
+}
+function hrLeaveView(){
+  var over5 = hrOver5(monthStr());
+  if(HR.leaveLoading || !HR.leaveRows) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
+  if(!over5) return '<div class="alert amber"><span class="ic">!</span><div><div class="a-t">이번 달은 5인 미만 사업장으로 계산됩니다</div><div class="a-s">법정 연차는 5인 이상 사업장에만 있습니다(근로기준법 11조). 5인 이상이 되면 여기에 자동으로 나옵니다.</div></div></div>';
+  var list = HR.staff.filter(function(s){ return s.active !== false; });
+  var rows = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><td colspan="7">' + esc(g.role) + '</td></tr>' + g.list.map(function(s){
+    var L = hrLeaveOf(s), ord = (s.pay_type === "monthly" ? hrPayAt(s, todayStr()) / 209 : hrPayAt(s, todayStr())) * (L.dayH || 8);
+    if(L.none) return '<tr><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>입사일 없음</small></button></td><td colspan="6" class="muted">직원 정보 → 기타 에서 입사일을 넣으면 계산됩니다</td></tr>';
+    return '<tr><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>입사 ' + esc(s.start_date) + '</small></button></td>' +
+      '<td>' + (L.years ? L.years + '년' : '1년 미만') + '</td><td>' + L.grant + '일' + (L.dayH !== 8 ? '<small>하루 ' + L.dayH + 'h(단시간)</small>' : '') + '</td><td>' + L.used + '일</td>' +
+      '<td><b class="' + (L.left < 0 ? 'rust' : '') + '">' + L.left + '일</b></td><td>' + esc(pkShort(L.next)) + '<small>' + (L.years ? '새로 15일+' : '1일 더') + '</small></td>' +
+      '<td class="won">' + (L.left > 0 ? hrWon(L.left * ord) : '—') + '<small>못 쓰면 수당(참고)</small></td></tr>';
+  }).join(""); }).join("");
+  return '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay"><thead><tr><th>직원</th><th>근속</th><th>생긴 연차</th><th>쓴 날</th><th>남음</th><th>다음 발생</th><th>남은 연차 수당</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="f-note">연차를 쓴 날은 <b>주간표에서 칸을 눌러 "연 연차"</b>로 찍으면 여기 반영되고, 시급제는 급여에 유급으로 들어갑니다. 1년 미만은 한 달 개근마다 1일(최대 11일), 1년부터 15일·3년차부터 2년마다 1일 더(최대 25일). 출근율 80% 미만인 해는 달라지니 사장님이 확인하세요. 1년 미만에 생긴 연차는 입사 1년이 되면 사라집니다(사용 촉진을 했을 때).</p>';
+}
+
+/* ---------- ? 계산 방법·법 안내(09-25 재아: 사장님 보라고) ---------- */
+function hrHelpHtml(){
+  var sec = function(t, items){ return '<div class="hr-help-s"><h3>' + t + '</h3><ul>' + items.map(function(x){ return '<li>' + x + '</li>'; }).join("") + '</ul></div>'; };
+  var c = hrCfg();
+  return '<div class="overlay" onclick="HR.help=false; render()"><div class="sheet sheet-tall hr-help" onclick="event.stopPropagation()">' + sheetHead("급여 계산 방법 · 법 안내") +
+    '<div class="searchbox" style="flex:1; min-height:0; overflow:auto">' +
+    '<p class="f-note" style="margin-top:0">사장님 계산을 돕는 도구입니다. 법률 자문이 아니니, 신고·분쟁이 걸린 일은 노무사·세무사와 확인하세요.</p>' +
+    sec("자동으로 계산하는 것", [
+      "<b>기본급</b> — 시급제: 휴게를 뺀 일한 시간 × 그날 시급(시급이 바뀐 날부터 새 시급). 월급제: 월급 그대로, 통상시급 = 월급 ÷ 209",
+      "<b>연장수당 0.5배</b>(5인 이상) — 하루 8시간·주 40시간 넘긴 시간. <b>단시간 근로자</b>(주 정규 40시간 미만)는 정해 둔 시간을 넘긴 것부터(기간제법 6조)",
+      "<b>야간수당 0.5배</b>(5인 이상) — " + c.night[0] + "~" + c.night[1],
+      "<b>주휴수당</b>(시급제) — 주 정규 15시간 이상이고 그 주에 결근이 없으면(연차 쓴 날은 결근 아님)",
+      "<b>유급휴일</b> — 5월 1일 근로자의 날(모든 사업장), 관공서 공휴일·대체·임시공휴일(5인 이상). 시급제는 정규 근무일에 걸리면 쉬어도 그날 정규 시간만큼 지급, 일하면 휴일가산 0.5배(8시간 넘는 만큼 1.0배)를 더 줌. 월급제는 쉬는 날이 월급에 들어 있어, 일하면 1.5배(8시간 넘으면 2배)",
+      "<b>연차</b> — 연차 탭. 주간표에서 '연 연차' 로 찍은 날은 시급제면 정규 시간만큼 유급",
+      "<b>수습</b> — 직원별로 켜고 끔. 기본급만 90~100% 로(조건은 켤 때 안내)",
+      "<b>조정</b> — 보너스(추가)·감액을 달마다 적음",
+      "<b>4대보험</b>(근로자분) — 국민연금 " + c.rates.pension + "%(기준소득월액 " + hrWon(c.pensionBase.min) + "~" + hrWon(c.pensionBase.max) + ", 천원 미만 버림) · 건강 " + c.rates.health + "% · 장기요양 = 건강보험료의 " + c.rates.care + "% · 고용 " + c.rates.employ + "%. 10원 미만 버림. 비과세 식대(월 20만원까지)는 빼고 계산. 직원별로 국민연금(60세 이상)·고용보험(65세 넘어 입사)을 뺄 수 있음",
+      "<b>소득세</b> — 직원 정보에 넣은 간이세액표 금액 × 80·100·120%, 지방소득세 10% 자동",
+      "<b>퇴직금</b>(참고) — 1년 이상·주 15시간 이상. 최근 3개월 총지급 ÷ 그 3개월 날수 × 30일 × 근속연수. 통상임금이 더 높으면 통상임금으로",
+      "<b>임금명세서</b> — 계산서에 직원 번호(또는 생년월일)·지급일·항목별 금액과 계산 방법·공제 내역이 들어감(근로기준법 48조②)",
+      "<b>경고</b>(막지는 않음) — 휴게 부족(4시간에 30분·8시간에 1시간), 주 52시간 넘음"
+    ]) +
+    sec("사장님이 알고 계셔야 할 것", [
+      "<b>감액(조정)</b> — 임금은 전액 지급이 원칙이라(근로기준법 43조) 파손 변상 같은 걸 급여에서 빼려면 직원의 <b>개별·서면 동의</b>가 있어야 합니다. 벌금을 미리 정해 두는 것도 금지(20조). 계산을 잘못해서 바로잡는 용도라면 괜찮습니다",
+      "<b>수습 감액</b> — 1년 이상 계약·수습 3개월 이내·90% 이상·단순노무 아님을 모두 갖춰야 합니다",
+      "<b>5인 이상 판단</b> — 한 달 평균 인원(시행령 7조의2). 설정에서 직접 고를 수도 있음",
+      "<b>요율</b>은 해마다 바뀝니다(국민연금 1월, 기준소득월액 7월). 설정에서 고칠 수 있어요",
+      "<b>임금명세서</b>는 급여를 줄 때 서면이나 전자(사진·카톡)로 줘야 합니다 — 계산서의 '사진으로 저장'"
+    ]) +
+    sec("넣지 않은 것과 이유", [
+      "<b>소득세 자동 계산</b> — 국세청 간이세액표는 한글(HWPX) 파일로만 나와 표를 그대로 옮겨야 정확합니다. 틀린 세금이 더 위험해서 지금은 홈택스 조회값을 넣는 방식입니다",
+      "<b>산재보험</b> — 업종 요율이 다르고 전액 사업주 부담이라 직원 계산서에는 안 들어갑니다",
+      "<b>연말정산·4대보험 취득/상실 신고·원천세 신고</b> — 국세청·공단 신고라 이 시스템 밖(세무사·홈택스·EDI)",
+      "<b>두루누리 등 사업주 지원금</b> — 신청·승인에 따라 달라 자동으로 빼지 않음",
+      "<b>출근율 80% 계산</b>(연차) — 약정 휴일·휴가 등 따질 게 많아 사장님이 확인",
+      "<b>주휴일 근로 가산</b> — 가게마다 주휴일이 다르고 기록에 없어서, 그날은 근무 칸의 '배율 1.5x' 로",
+      "<b>최저임금 확인</b> — 사장님이 시급을 직접 정하므로 넣지 않음(사장님 판단)"
+    ]) +
+    '</div><div class="sheet-actions"><button class="btn primary" onclick="HR.help=false; render()">닫기</button></div></div></div>';
 }
 /* ---------- 손님 관리 (customers, 15차) ----------
    손님 = 전화번호(숫자만) 하나. 예약 기록(reservations)에서 그 번호로 모아 방문·노쇼·취소·마지막 방문을 셉니다.
@@ -10802,6 +11029,7 @@ function openSchedule(from){
 function openOverride(){ view.form={type:"ovr"}; view.ovrBulk = null; render(); }
 function closeSheet(){
   if(typeof thGuard === "function" && thGuard()) return;   /* 감사 문자 AI 진행 중엔 못 나감(09-20) */
+  if(view.form && view.form.type === "site" && typeof saLeaveGuard === "function" && saLeaveGuard()) return;   /* 홈페이지 관리: 적용 안 한 수정은 나갈 때 버림(09-25) */
   view.cdStaff = false; view.cdThanks = false;
   if(view.form && view.form.page && view.form.back === "owner"){ view.form = {type:"owner", page:true}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "messages"){ view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }
@@ -11817,6 +12045,9 @@ function sheetOverride(){
       <label class="chk"><input type="checkbox" ${d.noBreak?"checked":""} onchange="setOvr('noBreak',this.checked)"><span>브레이크타임 없음</span></label>
       <label class="f"><div class="lb">라스트오더</div><input type="time" value="${d.noLo?"":(d.lo||base.lo)}" ${d.noLo?"disabled":""} onchange="setOvr('lo',this.value)"></label>
       <label class="chk"><input type="checkbox" ${d.noLo?"checked":""} onchange="setOvr('noLo',this.checked)"><span>라스트오더 없음</span></label>`}
+    ${d.kind==="holiday"?`<div class="f"><div class="lb">어떤 공휴일인가요 <span class="lbl-note">급여 계산에 씀 — 법정이면 5인 이상 사업장은 쉬어도 유급·일하면 가산</span></div><div class="seg">
+        <button class="${d.legal!==false?'on':''}" onclick="setOvr('legal', true)">법정 공휴일 (임시공휴일·선거일 등)</button>
+        <button class="${d.legal===false?'on':''}" onclick="setOvr('legal', false)">가게 사정 (유급 아님)</button></div></div>`:""}
     <label class="f"><div class="lb">메모</div><input value="${esc(d.note||"")}" placeholder="${d.kind==="holiday"?"예: 임시공휴일":"예: 창립기념일 단축 영업"}" onchange="setOvr('note',this.value)"></label>
     ${d.kind==="holiday"?"":`<label class="chk"><input type="checkbox" ${d.holiday?"checked":""} onchange="setOvr('holiday',this.checked)"><span>공휴일(빨간날)로도 표시</span></label>`}
     <div class="sheet-actions">
@@ -12079,6 +12310,9 @@ async function saveOverride(){
   const dates = []; for(let x = from; x <= to && dates.length < 62; x = shiftDate(x, 1)) dates.push(x);
   if(d.kind === "holiday"){
     dates.forEach(x=>setHolidayFlag(x, true));
+    /* 법정 공휴일로 넣은 날은 급여 계산(유급휴일·휴일가산)에 씀. 내장표에 있는 날은 원래 법정이라 따로 안 적음 */
+    st.holidaysLegal = (st.holidaysLegal || []).filter(x => dates.indexOf(x) < 0).concat(d.legal !== false ? dates.filter(x => legalHolidayKind(x) !== "public") : []);
+    mirrorDraft("holidaysLegal");
     if(d.note){ /* 공휴일 메모는 휴무 기록 없이 남길 곳이 없어 로그에만 */ logEvent("설정 변경", `공휴일 메모 ${from}~${to} ${d.note}`); }
   }else{
     const recs = dates.map(date=>{ const base = hoursFor(date); return d.kind === "closed"
