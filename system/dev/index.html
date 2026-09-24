@@ -1577,6 +1577,10 @@ label.chk span{width:auto}
 .logrow{display:flex; gap:var(--s12); padding:var(--s8) var(--s12); border-bottom:1px solid var(--border);
   font-size:var(--fs-sub); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; white-space:nowrap}
 .logrow:last-child{border-bottom:none}
+/* 로그 창 윗줄: 탭은 왼쪽, '전체 복사' 는 같은 줄 오른쪽 끝. 검색칸은 두 탭 모두 그 아래(09-25 재아) */
+.log-bar{display:flex; align-items:center; gap:var(--s8); margin-bottom:10px}
+.log-bar .btn{margin-left:auto}
+.log-q{width:100%; margin-bottom:10px; box-sizing:border-box}
 .lg-t{color:var(--text-3); flex:none}
 .lg-ip{color:var(--text-2); width:120px; flex:none; overflow:hidden; text-overflow:ellipsis}
 .lg-a{font-weight:700; width:130px; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}   /* "문자 보내기(흉내)" 가 96px 을 넘어 옆 칸과 겹쳤음(검토 2026-09-17) */
@@ -3495,7 +3499,7 @@ function adminToPassword(code){ return String(code) + "00"; }
 async function sb(path, opt){
   opt = opt || {};
   var headers = { "apikey": SUPA_CFG.anonKey,
-                  "Authorization": "Bearer " + ((opt.anon || !SESSION) ? SUPA_CFG.anonKey : SESSION.access_token),
+                  "Authorization": "Bearer " + (opt.token ? opt.token : (opt.anon || !SESSION) ? SUPA_CFG.anonKey : SESSION.access_token),   /* token: 사장님 확인용 임시 토큰(보안 화면) */
                   "Content-Type": "application/json" };
   if(opt.prefer) headers["Prefer"] = opt.prefer;
   if(opt.range){ headers["Range-Unit"] = "items"; headers["Range"] = opt.range; }
@@ -3534,10 +3538,44 @@ function sessionSave(){ try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify(
 function sessionLoad(){ try{ var j = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); if(j && j.access_token) SESSION = j; }catch(e){} }
 function sessionClear(){ SESSION = null; try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){} }
 function sessionSet(j, email){
+  var um = (j.user && j.user.user_metadata) || {};
   SESSION = { access_token:j.access_token, refresh_token:j.refresh_token,
               expires_at: Math.floor(Date.now()/1000) + (j.expires_in || 3600),
-              who: email === SUPA_CFG.adminEmail ? "admin" : "staff" };
+              who: email === SUPA_CFG.adminEmail ? "admin" : "staff",
+              email: email, name: um.name || "" };   /* 직원별 PIN 이면 그 직원 이름(29차) */
   sessionSave();
+}
+/* ---------- 직원별 PIN(09-25 재아, 29차) ----------
+   PIN 마다 서버 계정이 하나씩: 이메일 = 공용 계정 이메일에 'PIN 의 해시 12자리' 를 붙인 것, 비밀번호 = PIN+"00".
+   PIN 만 치면 어느 계정인지 기기가 바로 압니다(목록을 미리 읽을 필요 없음 — 로그인 전엔 읽을 수도 없음).
+   계정 만들기·지우기는 사장님 토큰으로만 되는 서버 함수(hanok_pin_add / hanok_pin_del)가 합니다 */
+var PIN_USERS = [];   /* [{id, name, email, created_at}] — 로그인 뒤 staff_pins 에서 */
+async function pinEmail(pin){
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("madang-pin:" + pin));
+  var hex = Array.prototype.map.call(new Uint8Array(buf), function(b){ return ("0" + b.toString(16)).slice(-2); }).join("").slice(0, 12);
+  return SUPA_CFG.staffEmail.replace("@", "-" + hex + "@");
+}
+/* 공용 PIN 먼저, 틀리면(400) 직원별 PIN 으로 한 번 더. 둘 다 틀리면 첫 오류(400)를 그대로 던짐 */
+async function pinLogin(pin){
+  try{ await sbLogin(SUPA_CFG.staffEmail, pinToPassword(pin)); }
+  catch(e){
+    if(e.status !== 400) throw e;
+    var em = null; try{ em = await pinEmail(pin); }catch(x){}
+    if(!em) throw e;
+    try{ await sbLogin(em, pinToPassword(pin)); }catch(e2){ throw e2.status === 400 ? e : e2; }
+  }
+}
+/* 기록의 '누가'(by·who) — 직원별 PIN 이면 그 이름, 아니면 staff/admin (09-25, 29차) */
+function sessionBy(){ return SESSION ? (SESSION.name || SESSION.who || "") : ""; }
+/* 로그에 남는 계정(이메일) → 사람이 읽는 이름 */
+function whoLabel(w){
+  if(!w) return "";
+  if(w === "admin" || w === SUPA_CFG.adminEmail) return "사장님";
+  if(w === "staff" || w === SUPA_CFG.staffEmail) return "공용 PIN";
+  var u = PIN_USERS.find(function(x){ return x.email === w; });
+  if(u) return u.name;
+  if(/-[0-9a-f]{12}@/.test(w)) return "지운 PIN";
+  return w;
 }
 async function sbLogin(email, password){
   var j = await sb("/auth/v1/token?grant_type=password", { method:"POST", anon:true, body:{ email:email, password:password } });
@@ -3546,7 +3584,9 @@ async function sbLogin(email, password){
 async function sbRefresh(){
   if(!SESSION) return;
   var j = await sb("/auth/v1/token?grant_type=refresh_token", { method:"POST", anon:true, body:{ refresh_token:SESSION.refresh_token } });
-  sessionSet(j, SESSION.who === "admin" ? SUPA_CFG.adminEmail : SUPA_CFG.staffEmail);
+  var name = SESSION.name;
+  sessionSet(j, SESSION.email || (SESSION.who === "admin" ? SUPA_CFG.adminEmail : SUPA_CFG.staffEmail));
+  if(!SESSION.name && name){ SESSION.name = name; sessionSave(); }
 }
 /* 만료 5분 전에 갱신. 1분 타이머에서 부릅니다. 갱신이 거부되면(토큰 폐기) 잠급니다 — 연결만 없는 경우는 그대로 둡니다 */
 async function sessionTick(){
@@ -3628,6 +3668,7 @@ async function loadFromServer(){
       else d[k].reservations.push(rec);
     });
   }
+  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=id,name,email,created_at&order=created_at")) || []; }catch(e){ PIN_USERS = PIN_USERS || []; }   /* 29차 전 서버면 표가 없음 — 무시 */
   var logs = await sb("/rest/v1/logs?select=*&order=at.desc&limit=300");
   d._logs = logs.reverse().map(function(l){ return { ts:l.at, ip:l.who || "", store:l.store, action:l.action, detail:l.detail, ua:l.ua }; });
   return d;
@@ -3828,7 +3869,7 @@ function enterOffline(pin){
 async function reconnect(){
   if(!OFFLINE || !supaOn()) return;
   try{
-    if(!SESSION && OFFLINE.pin) await sbLogin(SUPA_CFG.staffEmail, pinToPassword(OFFLINE.pin));
+    if(!SESSION && OFFLINE.pin) await pinLogin(OFFLINE.pin);
     if(!SESSION) return;
     if(OFFLINE.keep){
       /* 못 보낸 변경을 들고 있던 경우 — 먼저 보내고 나서 서버 것을 다시 읽습니다 */
@@ -4277,6 +4318,11 @@ function hoursLineHtml(dh){
   </div>`;
 }
 function nowHM(){ const d=new Date(); return pad(d.getHours())+":"+pad(d.getMinutes()); }
+/* 영업일 — 새벽 4시 전은 아직 전날 장사(09-25 재아: 12시 넘어 퇴근하기를 누르면 날짜가 넘어가 '영업 중' 이 떴음) */
+var BIZ_DAY_START = 4;
+function bizToday(){ return new Date().getHours() < BIZ_DAY_START ? shiftDate(todayStr(), -1) : todayStr(); }
+/* 영업일 기준 지금 분 — 새벽 0~4시는 24:00~28:00 으로 셈(마감 22:00 과 비교하려고) */
+function bizNowMin(){ const d = new Date(); return d.getHours() * 60 + d.getMinutes() + (d.getHours() < BIZ_DAY_START ? 1440 : 0); }
 /* 예약 한 줄 요약 — '9/20(금) 18:00 · 홍길동 · 4명 · 관우 룸'. 확인창·토스트처럼 좁은 곳에 씁니다 */
 function resLine(r){
   const d = new Date(r.date + "T00:00:00");
@@ -4362,7 +4408,7 @@ function logEvent(action, detail){
   if(!DATA || !DATA._logs) return;
   DATA._logs.push({
     ts: new Date().toISOString(),
-    ip: SESSION && SESSION.who ? SESSION.who : CLIENT_IP,
+    ip: SESSION ? (SESSION.email || SESSION.who) : CLIENT_IP,   /* 서버에서 다시 읽은 것(토큰 이메일)과 같은 모양 — whoLabel 로 이름을 붙임 */
     store: view.storeKey || "-",
     action,
     detail: detail || "",
@@ -5116,7 +5162,7 @@ async function askScheduleOnApply(before, after){
   }
   for(const g of groups){
     const values = {}; SCHED_GROUPS[g].keys.forEach(k => { if(after[k] !== undefined) values[k] = deepClone(after[k]); });
-    const e = { id:"sc_" + Date.now() + "_" + g, from, to, group:g, values, note, createdAt:new Date().toISOString(), by:SESSION ? SESSION.who : "-" };
+    const e = { id:"sc_" + Date.now() + "_" + g, from, to, group:g, values, note, createdAt:new Date().toISOString(), by:(sessionBy() || "-") };
     const conf = schedConflicts(e);
     if(conf.length){
       const ok = await uiConfirm(`${SCHED_GROUPS[g].label} 예정에 걸리는 예약 ${conf.length}건`, conf.slice(0,8).join("\n") + (conf.length > 8 ? `\n외 ${conf.length-8}건` : "") + "\n\n예약은 지워지지 않고 '경고 예약' 으로 남습니다.", {ok:"그래도 예정", cancel:"취소"});
@@ -5515,11 +5561,11 @@ async function pinCheckServer(){
   var pin = PIN_BUF;
   LOCK_BUSY = true; PIN_ERR = ""; render();
   try{
-    await sbLogin(SUPA_CFG.staffEmail, pinToPassword(pin));
+    await pinLogin(pin);   /* 공용 PIN → 안 되면 직원별 PIN(29차) */
     PIN_FAILS = 0; pinHashSave(pin);
     await enterStore();
     PIN_BUF = ""; PIN_ERR = "";
-    logEvent("로그인 성공", "staff");
+    logEvent("로그인 성공", (SESSION && SESSION.name) || "공용 PIN");
     LOCK_BUSY = false;
     startIntro();
     return;
@@ -5788,7 +5834,7 @@ async function applySettings(){
   if(!await askScheduleOnApply(before, after)) return;
   after.scheduled = before.scheduled;   /* 예정 목록은 임시본이 아니라 설정에서 직접 관리 */
   const diff = settingsDiff(before, after);
-  after._setlog = (before._setlog || []).concat(diff.length ? [{at:new Date().toISOString(), who:SESSION ? SESSION.who : "-", items:diff}] : []).slice(-60);
+  after._setlog = (before._setlog || []).concat(diff.length ? [{at:new Date().toISOString(), who:(sessionBy() || "-"), items:diff}] : []).slice(-60);
   store().settings = after;
   view.draft = deepClone(after);   /* _setlog 가 붙어 임시본과 달라지지 않게 */
   logEvent("설정 변경", diff.length ? diff.join(" / ").slice(0, 300) : "적용(변경 없음)");
@@ -7883,10 +7929,10 @@ function infoize(html){
 /* 설정 화면의 구역 — 09-20(재아): 접이식 행 대신 사장님 메뉴처럼 큰 단추 목록. 하나를 누르면 그 구역만 펼쳐지고 '← 설정' 으로 돌아옵니다.
    (접힌 행만 죽 늘어선 화면은 내용이 안 보여 허전했음) */
 const SET_ICON = { thanks:"spark", site:"site", hours:"clock", rules:"rules", seats:"dash", course:"bowl", source:"route", sms:"mail", disp:"tv", policy:"scale", zoom:"fontsize", admin:"key", etc:"more" };   /* 사장님 메뉴 타일과 같게(09-24) */
-function sec(key, title, extra, inner){
+function sec(key, title, extra, inner, help){   /* help: 제목 오른쪽 ⓘ 설명(보안, 09-25 재아) */
   if(view.setSec === key) return `
     <section class="card fold on set-one">
-      <div class="fold-h static"><span class="fh-t">${title}</span><span class="fh-x">${extra||""}</span></div>
+      <div class="fold-h static"><span class="fh-t">${title}${help ? infoBtn(help) : ""}</span><span class="fh-x">${extra||""}</span></div>
       <div class="fold-b">${infoize(inner)}</div>
     </section>`;
   if(view.setSec) return "";   /* 다른 구역이 열려 있으면 안 그림 */
@@ -8127,12 +8173,15 @@ function renderSettings(){
   /* ---------- 보안 / 기타 ---------- */
   const adminBody = `
     <div class="btn-row">
-      <button class="btn" onclick="openPinManage()">PIN 번호 관리</button>
-      ${supaOn() ? `<button class="btn" onclick="openAdminPw()">사장님 2차 비밀번호 변경</button>` : ""}
+      <button class="btn" onclick="openPinManage()">PIN 관리</button>
+      ${supaOn() ? `<button class="btn" onclick="openAdminPw()">2차 PIN 변경</button>` : ""}
       <button class="btn" onclick="openLogs()">로그</button>
       <button class="btn danger" onclick="resetSettingsAll()">설정 초기화</button>
-    </div>
-    <p class="f-note">설정은 사장님 2차 비밀번호로 들어옵니다. PIN 관리·2차 비밀번호 변경·로그·초기화는 한 번 더 묻습니다. PIN 은 직원과 공유하는 번호, 관리자 비밀번호는 사장님만 아는 것입니다.</p>`;
+    </div>`;
+  /* 설명은 제목 옆 ⓘ 로(09-25 재아) */
+  const adminHelp = `<b>PIN(4자리)</b> — 직원이 기기를 열 때 쓰는 번호입니다. 모두 같이 쓰는 공용 PIN 하나에, 직원마다 따로 만들 수도 있습니다. 직원별 PIN 으로 들어오면 로그에 그 사람 이름이 남고, 그만두면 그 PIN 만 지우면 됩니다.<br><br>
+    <b>2차 PIN(6자리)</b> — 사장님만 아는 번호입니다. 이 보안 화면·설정·사장님 메뉴에 들어올 때 쓰고, PIN 을 바꾸거나 추가·삭제할 때 한 번 더 넣습니다. 직원 PIN 과 다르게 정하세요.<br><br>
+    <b>로그</b> — 이용 로그는 누가 언제 무엇을 했는지, 설정 로그는 '적용하기' 로 무엇을 바꿨는지입니다.`;
 
   /* 화면 크기 — 기기마다 적당한 값이 달라 사장님이 직접 고르게 둡니다.
      저장 위치가 settings 가 아니라 DATA._ui 인 이유: 이건 매장 운영 값이 아니라
@@ -8252,7 +8301,7 @@ function renderSettings(){
       policyBody)}
     ${sec("zoom","화면 크기",`${uiZoom()}%`, zoomBody)}
     ${view.setSec ? "" : `<div class="set-divider">관리</div>`}
-    ${sec("admin","PIN·보안 관리",`직원 PIN · 사장님 비밀번호 · 로그`, adminBody)}
+    ${sec("admin","보안","", adminBody, adminHelp)}
     </div>
 
     ${dirty ? `<div class="applybar on"><span class="ab-t">저장하지 않은 변경이 있습니다</span></div>` : ""}`;
@@ -8655,8 +8704,8 @@ async function saSave(quiet){
   if(!SA || !SA.draft) return false;
   try{
     var key = view.storeKey || "hanok";
-    await sb("/rest/v1/site_draft?on_conflict=store", { method:"POST", body:{ store:key, data:saDiffData(), by:(SESSION && SESSION.who) || "" }, prefer:"resolution=merge-duplicates,return=minimal" });
-    SA.saved = JSON.stringify(SA.draft); SA.savedAt = new Date().toISOString(); SA.savedBy = (SESSION && SESSION.who) || "";
+    await sb("/rest/v1/site_draft?on_conflict=store", { method:"POST", body:{ store:key, data:saDiffData(), by:sessionBy() }, prefer:"resolution=merge-duplicates,return=minimal" });
+    SA.saved = JSON.stringify(SA.draft); SA.savedAt = new Date().toISOString(); SA.savedBy = sessionBy();
     if(!quiet) showToast("저장했습니다");
     return true;
   }catch(e){ await uiAlert("초안 저장 실패", e.message, "warn"); return false; }
@@ -8702,7 +8751,7 @@ async function saApplyDo(){
   view.saApply = null;
   try{
     var key = view.storeKey || "hanok";
-    await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:saDataWith(saLiveObj()), apply_at:at.toISOString(), note:"", by:(SESSION && SESSION.who) || "" }, prefer:"return=minimal" });
+    await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:saDataWith(saLiveObj()), apply_at:at.toISOString(), note:"", by:sessionBy() }, prefer:"return=minimal" });
     logEvent("홈페이지 적용", a.sched ? "예약 " + d + " " + t : "즉시");
     showToast(a.sched ? "예약해 두었습니다 · " + pkShort(d) + " " + t : "홈페이지에 적용했습니다");
     SA.loading = true; render(); await saLoad(); render();
@@ -8712,7 +8761,7 @@ async function saApplyDo(){
    대기 중엔 그 판만 고침: 같은 시각으로 새 판을 넣고 옛 대기 판을 지움(서버 권한이 미래 판 '넣기·지우기' 만이라). 넣기가 먼저라 중간에 실패해도 내용은 안 사라짐 */
 async function saPendReplace(data, atIso, msg){
   var key = view.storeKey || "hanok", old = SA.pend;
-  await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:data, apply_at:atIso, note:old.note || "", by:(SESSION && SESSION.who) || "" }, prefer:"return=minimal" });
+  await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:data, apply_at:atIso, note:old.note || "", by:sessionBy() }, prefer:"return=minimal" });
   if(new Date(old.apply_at).getTime() > Date.now()) await sb("/rest/v1/site_versions?id=eq." + old.id, { method:"DELETE", prefer:"return=minimal" });
   logEvent("홈페이지 적용 대기 판", msg);
 }
@@ -9025,7 +9074,7 @@ async function saNtPublish(msg){
   try{
     clearTimeout(SA_AUTOSAVE); if(saDirty()) await saSave(true);
     var o = saLiveObj(); o.notices = deepClone(SA.draft.notices || []);
-    await sb("/rest/v1/site_versions", { method:"POST", body:{ store:view.storeKey || "hanok", data:saDiff(SA.defaults || {}, o) || {}, apply_at:new Date().toISOString(), note:"팝업", by:(SESSION && SESSION.who) || "" }, prefer:"return=minimal" });
+    await sb("/rest/v1/site_versions", { method:"POST", body:{ store:view.storeKey || "hanok", data:saDiff(SA.defaults || {}, o) || {}, apply_at:new Date().toISOString(), note:"팝업", by:sessionBy() }, prefer:"return=minimal" });
     if(SA.pend){ var po = saMerge(SA.defaults || {}, SA.pend.data || {}); po.notices = deepClone(SA.draft.notices || []); await saPendReplace(saDiff(SA.defaults || {}, po) || {}, SA.pend.apply_at, "팝업 같이"); }   /* 안 그러면 대기 판이 적용될 때 팝업이 옛것으로 돌아감 */
     logEvent("홈페이지 팝업", msg || "저장");
     var tab = SA.tab; SA.open = null; SA.loading = true; render(); await saLoad(); SA.tab = tab; render(); showToast(msg || "팝업을 저장했습니다");
@@ -9220,7 +9269,7 @@ async function saPostSave(status){
   if(!(p.title || "").trim()){ await uiAlert("제목을 적어 주세요", "", "warn"); return; }
   if(!/^\d{4}-\d{2}-\d{2}$/.test(p.date || "")){ await uiAlert("날짜를 골라 주세요", "", "warn"); return; }
   var row = { id:p.id, store:view.storeKey || "hanok", title:p.title.trim(), body:(p.body || "").replace(/\r/g, ""), date:p.date,
-              images:p.images || [], files:p.files || [], pinned:!!p.pinned, status:status || p.status || "게시", by:(SESSION && SESSION.who) || "" };
+              images:p.images || [], files:p.files || [], pinned:!!p.pinned, status:status || p.status || "게시", by:sessionBy() };
   try{
     await sb("/rest/v1/site_posts?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
     logEvent("소식 " + ({"게시":"게시", "초안":"초안 저장", "비공개":"비공개"})[row.status], row.title);
@@ -9592,7 +9641,7 @@ async function hrPopSave(){
   if(p.status === "변형" && !spans.length){ await uiAlert("시작·종료 시각을 넣어 주세요", "", "warn"); return; }
   var row = { id:p.id, store:view.storeKey || "hanok", staff_id:p.staff_id, date:p.date, status:p.status,
               start:spans[0] ? spans[0].start : "", end:spans[0] ? spans[0].end : "", break_min:spans[0] ? Number(spans[0].break || 0) : 0, spans:spans,
-              rate:Number(p.rate || 1), memo:(p.memo || "").trim(), by:(SESSION && SESSION.who) || "" };
+              rate:Number(p.rate || 1), memo:(p.memo || "").trim(), by:sessionBy() };
   try{
     await sb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
     HR.att[row.staff_id + "|" + row.date] = row; HR.pop = null; render();
@@ -10144,7 +10193,7 @@ function gsClose(){ GS.open = null; render(); }
 async function gsSave(){
   var map = gsBuild(), g = map[GS.open]; if(!g) return;
   var nameEl = document.getElementById("gs-name"), memoEl = document.getElementById("gs-memo");
-  var row = { store:view.storeKey || "hanok", phone:GS.open, name:(nameEl ? nameEl.value : "").trim(), memo:(memoEl ? memoEl.value : "").trim(), by:(SESSION && SESSION.who) || "" };
+  var row = { store:view.storeKey || "hanok", phone:GS.open, name:(nameEl ? nameEl.value : "").trim(), memo:(memoEl ? memoEl.value : "").trim(), by:sessionBy() };
   try{
     await sb("/rest/v1/customers?on_conflict=store,phone", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
     CUST = CUST || {}; CUST[GS.open] = row; showToast("저장했습니다"); render();
@@ -10179,7 +10228,7 @@ function gsDetailHtml(){
 function gsEsc(){ if(GS && view.form && view.form.type === "guests" && GS.open){ GS.open = null; render(); return true; } return false; }
 /* ---------- 사장님 메뉴 (18차, 재아) ----------
    더보기(⋮) → 사장님. 관리자 비밀번호 한 번 통과하면 그 안의 것들은 다시 안 묻습니다(설정과 같은 view.adminOk).
-   여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · PIN·보안 관리 · 홈페이지 관리.
+   여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · 보안 · 홈페이지 관리.
    화면형(view.form={type:"owner", page:true}) — 큰 단추 격자. 폰에서는 두 줄. */
 async function openOwnerPage(){
   /* 09-20(재아): 메뉴 자체는 안 묻고, 안의 것을 누를 때마다 묻습니다(10분 유지 체크로 줄일 수 있음) */
@@ -10209,16 +10258,19 @@ function sheetMessages(){
 /* ---------- 퇴근하기(09-20 재아) — 안내 겸 정리. 써도 되고 안 써도 되는 편의 기능 ----------
    1) 오늘 예약 중 아직 '확정' 인 것 → 방문/노쇼 한 번에   2) 근무 찍기(워크시프트)   3) 감사 문자 만들어 예약 발송   4) 끝 */
 async function openCloseDay(date){
-  var d = date || todayStr();
-  if(d === todayStr()){   /* 영업 종료 2시간 전부터(재아 09-20). 그 전이면 막지 않고 되묻기만 */
-    var h = hoursFor(d); if(!h.closed && toMin(nowHM()) < toMin(h.close) - 120){
-      if(!await uiConfirm("아직 영업 중입니다", "퇴근 정리는 영업 종료 2시간 전(" + hm(minToHM(toMin(h.close) - 120)) + ")부터 여는 걸 권합니다. 그래도 열까요?", {ok:"열기", cancel:"나중에"})) return;
+  var d = date || bizToday();   /* 새벽 4시 전은 전날 영업(09-25 재아) */
+  /* 이미 퇴근한 날은 다시 안 들어감 — 방문 처리·워크시프트는 퇴근하기 밖에서도 되고, 두 번 들어가면 헷갈림(09-25 재아). 새벽 4시가 지나면 다음 날로 풀림 */
+  if(store().settings._closedDay === d){ await uiAlert("오늘은 이미 퇴근 처리했습니다", "", "ok"); return; }
+  if(d === bizToday()){   /* 영업 종료 30분 전부터(09-25 재아, 전엔 2시간). 그 전이면 막지 않고 되묻기만 */
+    var h = hoursFor(d), cm = toMin(h.close); if(cm <= toMin(h.open)) cm += 1440;   /* 자정 넘어 닫는 날 */
+    if(!h.closed && bizNowMin() < cm - 30){
+      if(!await uiConfirm("영업 종료 전입니다", "", {ok:"열기", cancel:"나중에"})) return;
     }
   }
   view.form = {type:"closeday", page:true, date:d, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render();
 }
 function sheetCloseDay(){
-  var today = (view.form && view.form.date) || todayStr();
+  var today = (view.form && view.form.date) || bizToday();
   /* 그날 예약 전부(확정·방문·노쇼) — 누른 건 사라지지 않고 검게 표시된 채 남음. 한 번 더 누르면 풀림(09-24 재아) */
   var all = store().reservations.filter(function(r){ return r.date === today && (r.status === "확정" || r.status === "방문" || r.status === "노쇼"); }).sort(function(a,b){ return a.time.localeCompare(b.time); });
   var left = all.filter(function(r){ return r.status === "확정"; });
@@ -10227,7 +10279,7 @@ function sheetCloseDay(){
   var done = left.length === 0;
   var step = function(n, ok, title, right, body){ return '<div class="cd-step' + (ok ? ' done' : '') + '"><div class="cd-n">' + n + '</div><div class="cd-b"><div class="cd-bh"><b>' + title + '</b>' + (right || '') + '</div>' + (body || '') + '</div></div>'; };
   return '<div class="cd-wrap">' +
-    '<div class="cd-hello"><b>' + (today === todayStr() ? "오늘도 고생 많으셨습니다." : dateLabel(today) + " 정리") + '</b><small>' + esc(dateLabel(today)) + '</small></div>' +
+    '<div class="cd-hello"><b>' + (today === bizToday() ? "오늘도 고생 많으셨습니다." : dateLabel(today) + " 정리") + '</b><small>' + esc(dateLabel(today)) + '</small></div>' +
     step(1, done, "손님 방문 처리", done || !all.length ? '' : '<button class="btn sm primary" onclick="cdMarkAll()">남은 ' + left.length + '건 전부 방문</button>',
       all.length ? '<div class="card searchbox" style="margin-top:8px">' + rows + '</div>' : '<small>이날 예약이 없습니다.</small>') +
     step(2, false, "워크시프트", '<button class="btn sm" onclick="cdStaffOpen()">워크시프트 작성</button>') +
@@ -10242,7 +10294,7 @@ async function cdMark(id, st){
   var before = deepClone(r); r.status = to; addChange(r, "상태", diffRes(before, r)); saveData(); render();
 }
 async function cdMarkAll(){
-  var today = (view.form && view.form.date) || todayStr();
+  var today = (view.form && view.form.date) || bizToday();
   var left = store().reservations.filter(function(r){ return r.date === today && r.status === "확정"; });
   if(!left.length) return;
   if(!await uiConfirm("남은 " + left.length + "건을 전부 방문으로 표시할까요?", "안 온 손님이 있으면 그 줄만 노쇼로 바꾸면 됩니다.", {ok:"전부 방문", cancel:"취소"})) return;
@@ -10256,23 +10308,23 @@ async function cdStaffOpen(){
   if(!await adminGate("워크시프트")) return;
   if(!HR) HR = { week: hrWeekStart(todayStr()), month: monthStr(), staff:[], att:{}, loaded:{}, cfg:null, loading:true, pop:null, edit:null, view:"week", slip:null, setup:false, retired:false };
   view.cdStaff = true; HR.loading = true; render();
-  HR.week = hrWeekStart((view.form && view.form.date) || todayStr()); HR.month = ((view.form && view.form.date) || todayStr()).slice(0, 7);
+  HR.week = hrWeekStart((view.form && view.form.date) || bizToday()); HR.month = ((view.form && view.form.date) || bizToday()).slice(0, 7);
   await hrLoad(); render();
 }
 function cdStaffClose(){ view.cdStaff = false; if(HR) HR.pop = null; render(); }
 async function cdStaffQuick(id, status){
-  var d = (view.form && view.form.date) || todayStr(), s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return;
+  var d = (view.form && view.form.date) || bizToday(), s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return;
   var a = HR.att[id + "|" + d];
   if(a && a.status === status){   /* 같은 걸 또 누르면 지움 */
     try{ await sb("/rest/v1/attendance?id=eq." + encodeURIComponent(a.id), { method:"DELETE", prefer:"return=minimal" }); delete HR.att[id + "|" + d]; render(); }catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
     return;
   }
-  var row = { id:"att_" + id + "_" + d, store:view.storeKey || "hanok", staff_id:id, date:d, status:status, start:"", end:"", break_min:0, spans:[], rate:1, memo:"", by:(SESSION && SESSION.who) || "" };
+  var row = { id:"att_" + id + "_" + d, store:view.storeKey || "hanok", staff_id:id, date:d, status:status, start:"", end:"", break_min:0, spans:[], rate:1, memo:"", by:sessionBy() };
   try{ await sb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" }); HR.att[id + "|" + d] = row; render(); }
   catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
 function cdStaffHtml(){
-  var d = (view.form && view.form.date) || todayStr();
+  var d = (view.form && view.form.date) || bizToday();
   var body;
   if(!HR || HR.loading) body = '<p class="muted" style="padding:16px 0">불러오는 중…</p>';
   else if(HR.err) body = '<p class="f-note rust">불러오지 못했습니다: ' + esc(HR.err) + '</p>';
@@ -10293,9 +10345,9 @@ function cdStaffHtml(){
 async function cdThanksOpen(){
   if(!supaOn()){ await uiAlert("서버 설정이 없는 빌드입니다", "감사 문자는 서버가 있어야 합니다.", "warn"); return; }
   if(!await adminGate("감사 문자")) return;
-  if(!TH) TH = { date: todayStr(), items:{}, queue:[], tab:"make", busy:{}, sendAt:"", adv:false, run:null, stop:false, qf:"all" };
-  TH.date = (view.form && view.form.date) || todayStr();
-  TH.sendAt = TH.sendAt || (shiftDate(todayStr(), 1) + "T" + thCfg().hour);
+  if(!TH) TH = { date: bizToday(), items:{}, queue:[], tab:"make", busy:{}, sendAt:"", adv:false, run:null, stop:false, qf:"all" };
+  TH.date = (view.form && view.form.date) || bizToday();
+  TH.sendAt = TH.sendAt || (shiftDate(TH.date, 1) + "T" + thCfg().hour);   /* 자정 넘어 퇴근해도 '그날의 다음 날' 아침 */
   view.cdThanks = true; render(); await thLoadQueue(); render();
 }
 function cdThanksClose(){ if(thRunning()){ showToast("AI 가 글을 짓는 중입니다 — 끝나거나 중단한 뒤에 닫으세요"); return; } view.cdThanks = false; render(); }
@@ -10307,23 +10359,28 @@ function cdThanksHtml(){
 /* ---------- 퇴근 — '수고하셨습니다' + 폭죽 뒤 잠금 화면으로(09-24 재아) ---------- */
 function cdLeave(){
   view.cdStaff = false; view.cdThanks = false;
+  /* 퇴근한 날을 서버 설정에 남김 — 다른 기기에서도 다시 안 들어가게(09-25 재아). 설정 임시본에도 같이 써야 '수정사항' 으로 안 잡힘 */
+  var day = (view.form && view.form.date) || bizToday();
+  store().settings._closedDay = day; mirrorDraft("_closedDay"); saveData();
   var ov = document.createElement("div"); ov.className = "cd-bye";
-  ov.innerHTML = '<canvas></canvas><div class="cd-bye-t"><b>수고하셨습니다</b><small>오늘도 고맙습니다. 푹 쉬세요.</small></div>';
+  ov.innerHTML = '<canvas></canvas><div class="cd-bye-t"><b>수고하셨습니다</b></div>';   /* 한 줄만(09-25 재아) */
   document.body.appendChild(ov);
   var c = ov.querySelector("canvas"), g = c.getContext("2d"), W = c.width = window.innerWidth, H = c.height = window.innerHeight, parts = [], t0 = Date.now();
   var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var cols = ["#E5C15C", "#F28C6B", "#8FC6E8", "#B5E39B", "#FFFFFF", "#F5A3C7"];
   function burst(x, y){ for(var i = 0; i < 90; i++){ var a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 5; parts.push({x:x, y:y, vx:Math.cos(a) * v, vy:Math.sin(a) * v, life:60 + Math.random() * 30, c:cols[i % cols.length]}); } }
-  if(!still){ burst(W * 0.3, H * 0.35); setTimeout(function(){ burst(W * 0.7, H * 0.3); }, 350); setTimeout(function(){ burst(W * 0.5, H * 0.2); }, 700); setTimeout(function(){ burst(W * 0.2, H * 0.25); }, 1050); setTimeout(function(){ burst(W * 0.8, H * 0.4); }, 1350); }
+  /* 3초는 너무 짧았음(09-25 재아) — 5.5초 동안 터뜨림 */
+  var at = [[0.3,0.35,0],[0.7,0.3,350],[0.5,0.2,700],[0.2,0.25,1050],[0.8,0.4,1350],[0.4,0.3,2000],[0.65,0.22,2400],[0.25,0.4,2900],[0.75,0.3,3400],[0.5,0.28,3900]];
+  if(!still) at.forEach(function(a){ setTimeout(function(){ burst(W * a[0], H * a[1]); }, a[2]); });
   (function tick(){
     if(!ov.parentNode) return;
     g.fillStyle = "rgba(20,19,17,.18)"; g.fillRect(0, 0, W, H);   /* 옅은 덮기로 꼬리를 남김 */
     parts.forEach(function(p){ p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.vx *= 0.985; p.life--; g.globalAlpha = Math.min(1, Math.max(0, p.life / 45)); g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, 2.6, 0, Math.PI * 2); g.fill(); });   /* 3px 네모는 너무 옅었음 — 동그라미·끝까지 밝게 */
     g.globalAlpha = 1; parts = parts.filter(function(p){ return p.life > 0; });
-    if(Date.now() - t0 < 3200) requestAnimationFrame(tick);
+    if(Date.now() - t0 < 5800) requestAnimationFrame(tick);
   })();
-  logEvent("퇴근", (view.form && view.form.date) || todayStr());
-  setTimeout(function(){ ov.classList.add("out"); setTimeout(function(){ ov.remove(); view.form = null; lockNow(); }, 450); }, 3000);
+  logEvent("퇴근", day);
+  setTimeout(function(){ ov.classList.add("out"); setTimeout(function(){ ov.remove(); view.form = null; lockNow(); }, 450); }, 5500);
 }
 /* ---------- 예약 내보내기(CSV, 09-20 재아) — 엑셀에서 바로 열림(UTF-8 BOM). 기간은 물어봄 ---------- */
 async function exportCsv(){
@@ -10346,7 +10403,7 @@ function sheetOwner(){
     item("openStaffPage()", ICON.staff, "워크시프트", "직원 근무표 · 급여") +
     item("openGuestsPage()", ICON.users, "손님 관리", "단골·메모 · 노쇼 관리") +
     item("openMessagesPage()", ICON.sms, "문자 관리", "감사 문자 · 직접 보내기 · 기록") +
-    item("openCloseDay()", ICON.home, "퇴근하기", "방문 처리 · 근무 · 감사 문자 차례로") +
+    item("openCloseDay()", ICON.home, "퇴근하기", st._closedDay === bizToday() ? "오늘 퇴근 완료" : "방문 처리 · 근무 · 감사 문자 차례로") +
     '</div></div><div class="own-section"><h2>설정</h2><div class="own-grid">' +
     item("openOwnerSetting('hours')", ICON.clock, "운영시간", hoursFor(todayStr()).open + " ~ " + hoursFor(todayStr()).close) +
     item("openOwnerSetting('rules')", ICON.rules, "예약 규칙", "단체 " + (st.groupSize||8) + "명") +
@@ -10363,7 +10420,7 @@ function sheetOwner(){
     item("openDevPage()", ICON.sos, "개발자에게", "고칠 것 · 급한 것 글로 남기기") +
     item("exportCsv()", ICON.download, "예약 내보내기", "엑셀로 여는 CSV") +
     item("openRate('owner')", ICON.chart, "예약률 추이", "최근 예약률과 흐름") +
-    item("openOwnerSetting('admin')", ICON.key, "PIN·보안 관리", "직원 PIN · 사장님 비밀번호 · 로그") +
+    item("openOwnerSetting('admin')", ICON.key, "보안", "PIN · 2차 PIN · 로그") +
     '</div></div>';
 }
 /* Esc: 퇴근하기 안의 작은 창부터 닫음(바로 퇴근하기 화면 전체가 닫히지 않게) */
@@ -10419,8 +10476,8 @@ async function openThanksPage(){
   if(!await adminGate("감사 문자 열기")) return;
   var back = view.form && (view.form.type === "messages" || view.form.back === "messages") ? "messages" : ((view.form && (view.form.type === "owner" || view.form.back === "owner")) ? "owner" : "");
   view.form = {type:"thanks", page:true, back:back};
-  if(!TH) TH = { date: todayStr(), items:{}, queue:[], tab:"make", busy:{}, sendAt:"", adv:false, run:null, stop:false, qf:"all" };   /* 다녀간 날 기본 = 오늘(퇴근 때 만드니까, 09-20) · 발송 내일 */
-  TH.sendAt = TH.sendAt || (shiftDate(todayStr(), 1) + "T" + thCfg().hour);   /* 기본 내일 11시(09-20) */
+  if(!TH) TH = { date: bizToday(), items:{}, queue:[], tab:"make", busy:{}, sendAt:"", adv:false, run:null, stop:false, qf:"all" };   /* 다녀간 날 기본 = 오늘(퇴근 때 만드니까, 09-20) · 발송 내일 */
+  TH.sendAt = TH.sendAt || (shiftDate(TH.date, 1) + "T" + thCfg().hour);   /* 기본 내일 11시(09-20). 새벽 4시 전이면 오늘 11시(영업일 기준, 09-25) */
   render(); await thLoadQueue(); render();
 }
 async function thLoadQueue(){
@@ -10506,11 +10563,11 @@ async function thMake(resId, force){
       if(TH.stop) throw new Error("STOP");
       if(t.length > max){ var cut = t.slice(0, max), k = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?")); t = (k > max * 0.5 ? cut.slice(0, k + 1) : cut).trim(); if(!/한옥반점 드림$/.test(t)) t += "\n한옥반점 드림"; }
     }
-    it.text = t; it.made = "ai"; it.err = ""; it.manual = false;
+    it.text = t; it.made = "ai"; it.err = ""; it.manual = false; TH.aiErr = false;
   }catch(e){
     if(e.message === "STOP"){ TH.busy[resId] = false; return; }
     var why = e.network ? "인터넷 연결을 확인해 주세요" : /timeout|timed out/i.test(e.message || "") ? "AI 응답이 늦습니다 — 다시 눌러 주세요" : e.message === "NOKEY" ? "AI 키가 아직 없습니다 — 개발자에게 알려 주세요(기본 양식으로 보낼 수 있음)" : e.message;
-    it.err = why; if(!it.text || force){ it.text = thTemplate(r, thKw(it)); it.made = "template"; }
+    it.err = why; TH.aiErr = true; if(!it.text || force){ it.text = thTemplate(r, thKw(it)); it.made = "template"; }
   }
   TH.busy[resId] = false; render();
 }
@@ -10546,7 +10603,7 @@ async function thSchedule(){
   if(!list.length){ await uiAlert("보낼 문자가 없습니다", "글이 만들어진 건을 체크하세요.", "warn"); return; }
   var at = new Date(TH.sendAt); if(isNaN(at)){ await uiAlert("보낼 시각을 정해 주세요", "", "warn"); return; }
   if(!await uiConfirm(list.length + "건 예약 발송", dateLabel(TH.sendAt.slice(0, 10)) + " " + hm(TH.sendAt.slice(11, 16)) + " 에 나갑니다. 그 전에는 '대기' 목록에서 취소할 수 있습니다.", {ok:"예약 발송", cancel:"취소", tone:"ok"})) return;
-  var rows = list.map(function(r){ var it = thItem(r); return { id:"th_" + r.id, store:view.storeKey || "hanok", res_id:r.id, phone:r.phone.replace(/\D/g, ""), name:r.name, text:it.text, send_at:at.toISOString(), status:"대기", made_by:it.made || "manual", by:(SESSION && SESSION.who) || "", kw:thKw(it) }; });
+  var rows = list.map(function(r){ var it = thItem(r); return { id:"th_" + r.id, store:view.storeKey || "hanok", res_id:r.id, phone:r.phone.replace(/\D/g, ""), name:r.name, text:it.text, send_at:at.toISOString(), status:"대기", made_by:it.made || "manual", by:sessionBy(), kw:thKw(it) }; });
   try{
     await sb("/rest/v1/thanks_sms?on_conflict=store,res_id", { method:"POST", body:rows, prefer:"resolution=merge-duplicates,return=minimal" });
     logEvent("감사 문자 예약", rows.length + "건 · " + TH.sendAt);
@@ -10593,14 +10650,14 @@ function sheetThanks(){
   var body = TH.tab === "queue" ? thQueueHtml() : thMakeHtml();
   /* AI 가 도는 동안: 화면 위 가운데 동그라미 하나(카드마다·맨 위 띠가 아니라). 중단 가능. 그동안 닫기는 막힘(thGuard) */
   var run = thRunning() ? '<div class="th-dim"></div><div class="th-orb"><canvas class="ai-wave"></canvas><div class="th-orb-t">AI 가 문자를 완성하고 있습니다' + (TH.run ? '<small>' + TH.run.done + ' / ' + TH.run.total + '</small>' : '') + '</div><button class="btn sm" onclick="thStop()">중단</button></div>' : '';
-  return run + '<div class="th-top">' + tabs + (cfg.key ? '' : '<span class="tag rust sm">Gemini 키 없음 — 기본 양식만</span>') + '</div>' + body;
+  return run + '<div class="th-top">' + tabs + (TH.aiErr ? '<span class="tag rust sm">AI 기능 오류 발생</span>' : '') + '</div>' + body;   /* 키가 서버로 옮겨 간 뒤로 cfg.key 가 늘 비어 '키 없음' 이 늘 떴음 — 실제로 AI 가 실패했을 때만(09-25 재아) */
 }
 function thMakeHtml(){
   var list = thTargets(), cfg = thCfg(), running = thRunning();
   var open = list.filter(function(r){ return !thQueued(r.id); });
   var todo = open.filter(function(r){ var it = thItem(r); return !it.manual && !(it.text && it.made === "ai"); }).length;
   var head = '<div class="th-ctl"><label class="f"><div class="lb">다녀간 날</div><input type="date" value="' + esc(TH.date) + '" onchange="TH.date=this.value; TH.items={}; render()"></label>' +
-    '<label class="f"><div class="lb">공통 키워드 <span class="lbl-note">계절·날씨·행사 등, 모든 문자에 참고</span></div><input type="text" value="' + esc(cfg.common) + '" placeholder="예: 갑자기 추워진 날씨, 추석 연휴" onchange="thSaveCfg({thanksCommon:this.value})"></label>' +
+    '<label class="f"><div class="lb">공통 키워드</div><input type="text" value="' + esc(cfg.common) + '" placeholder="예: 갑자기 추워진 날씨, 추석 연휴 등" onchange="thSaveCfg({thanksCommon:this.value})"></label>' +
     '<div class="f"><div class="lb">&nbsp;</div><button class="btn sm ghost" onclick="TH.adv=!TH.adv; render()">' + (TH.adv ? "고급 닫기" : "고급") + '</button></div></div>' +
     (TH.adv ? '<div class="th-ctl adv"><label class="f"><div class="lb">보낼 시각 <span class="lbl-note">기본은 내일 ' + esc(cfg.hour) + ' — 글도 이 날짜 기준으로 씁니다</span></div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="TH.sendAt=this.value"></label></div>' : '') +
     '<div class="th-actions"><div class="btn-row">' +
@@ -10768,7 +10825,7 @@ async function dqSend(){
   var d = DQ.draft; if(!d) return;
   if(!d.title.trim()){ await uiAlert("제목을 적어 주세요", "", "warn"); return; }
   try{
-    var row = { id:newId("dq"), store:view.storeKey || "hanok", title:d.title.trim(), body:d.body.trim(), urgent:!!d.urgent, images:d.images, by:(SESSION && SESSION.who) || "" };
+    var row = { id:newId("dq"), store:view.storeKey || "hanok", title:d.title.trim(), body:d.body.trim(), urgent:!!d.urgent, images:d.images, by:sessionBy() };
     await sb("/rest/v1/dev_requests", { method:"POST", body:row, prefer:"return=minimal" });
     logEvent("개발자에게", (d.urgent ? "급함 " : "") + row.title);
     DQ.draft = null; showToast(d.urgent ? "보냈습니다 · 재아에게 알림이 갑니다" : "보냈습니다");
@@ -10998,18 +11055,75 @@ async function naverApply(){
 function openNoshow(back){ view.form={type:"noshow", page:!!back, back:back||""}; render(); window.scrollTo(0,0); }
 function openSearch(){ view.form={type:"search"}; view.searchGuest=false; view.searchOpen=null; render(); }   /* 열 때는 늘 예약 검색부터 */
 function openPin(){ view.form={type:"pin"}; render(); }
-async function openPinManage(){ if(!await adminGate("PIN 번호 관리")) return; view.form={type:"pinlist"}; render(); }
+/* 보안 화면은 들어올 때 2차 PIN 을 이미 물었으므로(설정 열기) 안의 목록·로그는 다시 안 묻습니다(09-25 재아).
+   번호를 바꾸거나 추가·삭제할 때만 그 창 안에서 2차 PIN 을 넣습니다 — 서버가 사장님 토큰으로만 받아 줌 */
+async function openPinManage(){ view.form={type:"pinlist"}; render(); await pinUsersLoad(); render(); }
+async function pinUsersLoad(){
+  if(!supaOn()) return;
+  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=id,name,email,created_at&order=created_at")) || []; view.pinErr = ""; }
+  catch(e){ view.pinErr = e.status === 404 ? "서버 준비 전(29차)" : (e.network ? "서버에 연결할 수 없습니다" : e.message); }
+}
 function sheetPinList(){
+  const rows = PIN_USERS.map(u=>`<div class="rowitem"><span class="grow"><span class="t">${esc(u.name)}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
+      <button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button></div>`).join("");
   return `
-    ${sheetHead("PIN 번호 관리")}
-    <div class="rowitem"><span class="grow"><span class="t">공용 <span class="tag pine">사용 중</span></span><span class="s">직원 모두가 쓰는 PIN · 로그에는 '공용(staff)' 으로 남습니다</span></span>
+    ${sheetHead("PIN 관리")}
+    <div class="rowitem"><span class="grow"><span class="t">공용 PIN <span class="tag pine">사용 중</span></span><span class="s">직원 모두가 쓰는 번호 · 로그에 '공용 PIN' 으로 남음</span></span>
       <button class="btn sm" onclick="openPin()">번호 바꾸기</button></div>
-    <div class="btn-row" style="margin-top:12px"><button class="btn" disabled title="직원별 PIN 은 서버 계정을 하나씩 만들어야 해서 다음 단계에서">＋ 직원 PIN 추가 (준비 중)</button></div>
-    <p class="f-note">직원마다 다른 PIN 을 만들면 로그에 이름이 남고, 그만두면 그 PIN 만 지우면 됩니다. 서버 쪽 준비가 필요해 지금은 공용 하나입니다. 추가·삭제할 때도 관리자 비밀번호를 한 번 더 묻게 만듭니다.</p>
+    <div class="subhead" style="margin-top:14px">직원별 PIN</div>
+    ${view.pinErr ? `<p class="f-note rust">불러오지 못했습니다: ${esc(view.pinErr)}</p>` : (rows || `<div class="empty">아직 없습니다.</div>`)}
+    <div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openPinAdd()">＋ 직원 PIN 추가</button></div>
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
+function openPinAdd(){ view.form={type:"pinadd"}; render(); }
+function sheetPinAdd(){
+  return `
+    ${sheetHead("직원 PIN 추가")}
+    <label class="f big"><div class="lb">2차 PIN</div><input id="pa-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label class="f big"><div class="lb">직원 이름</div><input id="pa-name" type="text" maxlength="20" placeholder="로그에 남는 이름" autocomplete="off"></label>
+    <label class="f big"><div class="lb">새 PIN</div><input id="pa-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
+    <label class="f big"><div class="lb">새 PIN 확인</div><input id="pa-new2" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
+    <div class="sheet-actions">
+      <button class="btn ghost" onclick="view.form={type:'pinlist'}; render()">취소</button>
+      <button class="btn primary" onclick="pinAddSave()">추가</button>
+    </div>`;
+}
+/* 2차 PIN 으로 사장님 임시 토큰 — 틀리면 알리고 null */
+async function pinAdminTok(code, what){
+  if(!/^\d{6}$/.test(code || "")){ await uiAlert2("2차 PIN 을 입력하세요."); return null; }
+  try{ return await adminAuth(code); }
+  catch(e){
+    if(e.status === 400){ logEvent(what + " 실패", "2차 PIN 불일치"); await uiAlert2("2차 PIN 이 맞지 않습니다."); return null; }
+    await uiAlert(what + " 실패", e.network ? "서버에 연결할 수 없습니다." : e.message, "warn"); return null;
+  }
+}
+function pinErrKo(e){ return e.network ? "서버에 연결할 수 없습니다." : e.status === 404 ? "서버 준비가 아직 안 됐습니다(29차)." : (e.message || String(e)); }
+async function pinAddSave(){
+  const g = id => (document.getElementById(id) || {}).value || "";
+  const adm = g("pa-admin"), name = g("pa-name").trim(), a = g("pa-new"), b = g("pa-new2");
+  if(!name){ await uiAlert2("직원 이름을 입력하세요."); return; }
+  if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
+  if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
+  const tok = await pinAdminTok(adm, "PIN 추가"); if(!tok) return;
+  try{ await sb("/rest/v1/rpc/hanok_pin_add", { method:"POST", token:tok, body:{ p_name:name, p_pin:a, p_base:SUPA_CFG.staffEmail } }); }
+  catch(e){ await uiAlert("PIN 을 추가하지 못했습니다", pinErrKo(e), "warn"); return; }
+  logEvent("PIN 추가", name);
+  view.form = {type:"pinlist"}; await pinUsersLoad(); render();
+  showToast(name + " PIN 을 추가했습니다");
+}
+async function pinDel(id){
+  const u = PIN_USERS.find(x=>x.id === id); if(!u) return;
+  if(!await uiConfirm(u.name + " PIN 을 지울까요?", "지우면 그 번호로는 들어올 수 없습니다.", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
+  const r = await uiPin("PIN 삭제", "2차 PIN", 6); if(!r || !r.code) return;
+  const tok = await pinAdminTok(r.code, "PIN 삭제"); if(!tok) return;
+  try{ await sb("/rest/v1/rpc/hanok_pin_del", { method:"POST", token:tok, body:{ p_id:id } }); }
+  catch(e){ await uiAlert("PIN 을 지우지 못했습니다", pinErrKo(e), "warn"); return; }
+  logEvent("PIN 삭제", u.name);
+  await pinUsersLoad(); render();
+  showToast(u.name + " PIN 을 지웠습니다");
+}
 function openAdminPw(){ view.form={type:"apw"}; render(); }
-async function openLogs(){ if(!await adminGate("접속 기록")) return; view.form={type:"logs"}; render(); }
+function openLogs(){ view.form={type:"logs"}; render(); }   /* 보안 화면 안 — 들어올 때 이미 2차 PIN(09-25 재아) */
 function openSmsLog(fromMessages){ view.form={type:"smslog", page:!!fromMessages, back:fromMessages?"messages":""}; view.smsOpen = {}; render(); window.scrollTo(0,0); }
 /* 예약률 시트는 자기 커서(view.rateEnd)로 주를 옮깁니다. 6차 전에는 moveDate(±7) 로 메인 날짜를 밀어서
    시트를 닫으면 대시보드가 엉뚱한 주에 가 있었습니다. 열 때 view.date 로 시작하고 닫으면 view.date 는 그대로 */
@@ -11066,7 +11180,7 @@ function toastSaved(rec){
 }
 
 function renderSheet(){
-  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
+  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
   /* 검색은 창 높이를 고정해 두고 결과만 안에서 스크롤 — 칠 때마다 창이 늘었다 줄었다 하지 않게(재아) */
   const wide = view.form.type==="rate" ? " sheet-wide" : ((view.form.type==="search" || (view.form.type==="reqs" && reqPending().length >= 3)) ? " sheet-tall" : "");   /* 홈페이지 예약은 3건부터 높이를 고정하고 목록만 스크롤(재아 09-17). 0~2건이면 빈 상자를 길게 안 보임(검토 D3) */
   if(view.form.page) return `<div class="sheet page-sheet">${inner}</div>`;   /* 화면형: 덮개 없이 본문 자리에 */
@@ -12336,33 +12450,29 @@ async function delOverride(date){
   saveData(); render();
 }
 
-/* ---------- PIN 변경 ---------- */
+/* ---------- 공용 PIN 변경 ----------
+   09-25(재아): 현재 PIN 은 안 묻고 2차 PIN · 새 PIN · 새 PIN 확인. 보안 화면이 사장님 것이라 현재 PIN 을 몰라도 바꿀 수 있어야 함.
+   예전엔 현재 PIN 으로 staff 에 로그인해 그 토큰으로 바꿨는데, 이제는 사장님 토큰으로 서버 함수(hanok_set_staff_pin, 29차)가 바꿈 */
 function sheetPin(){
-  if(!supaOn()) return `${sheetHead("PIN 번호 변경")}<p class="f-note">서버 미연결 빌드에서는 PIN 이 없습니다(아무 번호나 통과). 실서비스 빌드에서 바꿉니다.</p>
+  if(!supaOn()) return `${sheetHead("PIN 변경")}<p class="f-note">서버 미연결 빌드에서는 PIN 이 없습니다(아무 번호나 통과). 실서비스 빌드에서 바꿉니다.</p>
     <div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button></div>`;
   return `
-    ${sheetHead("PIN 번호 변경")}
-    <label class="f big"><div class="lb">사장님 2차 비밀번호</div>
-      <input id="pin-admin" type="password" placeholder="숫자 6자리" autocomplete="off" inputmode="numeric">
+    ${sheetHead("공용 PIN 변경")}
+    <label class="f big"><div class="lb">2차 PIN</div>
+      <input id="pin-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
     </label>
-    <label class="f big"><div class="lb">현재 PIN</div>
-      <input id="pin-cur" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
-    </label>
-    <label class="f big"><div class="lb">새 PIN (숫자 4자리)</div>
+    <label class="f big"><div class="lb">새 PIN</div>
       <input id="pin-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
     </label>
     <label class="f big"><div class="lb">새 PIN 확인</div>
       <input id="pin-new2" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
     </label>
-    <p class="f-note">PIN을 잊으면 관리자 비밀번호로만 되돌릴 수 있습니다. 직원들에게 공유하는 번호입니다.</p>
     <div class="sheet-actions">
-      <button class="btn ghost" onclick="closeSheet()">닫기</button>
+      <button class="btn ghost" onclick="view.form={type:'pinlist'}; render()">취소</button>
       <button class="btn primary" onclick="savePin()">변경</button>
     </div>`;
 }
-/* PIN = staff 계정 비밀번호. admin 토큰으로는 남(staff)의 비밀번호를 못 바꾸므로:
-   관리자 비밀번호로 admin 로그인(권한 확인) → 현재 PIN 으로 staff 로그인 → 그 토큰으로 PUT /auth/v1/user.
-   지금 세션(SESSION)은 건드리지 않습니다 — 임시 토큰만 씁니다 */
+/* PIN = staff 계정 비밀번호. 로그인 토큰 받기·자기 비밀번호 바꾸기(2차 PIN 변경에 씀) */
 async function authToken(email, password){
   var j = await sb("/auth/v1/token?grant_type=password", { method:"POST", anon:true, body:{ email:email, password:password } });
   return j.access_token;
@@ -12374,40 +12484,31 @@ async function setPassword(token, password){
   if(!res.ok){ var j = null; try{ j = await res.json(); }catch(e){} var err = new Error((j && (j.msg || j.message || j.error_description)) || ("HTTP " + res.status)); err.status = res.status; throw err; }
 }
 async function savePin(){
-  const g = id => document.getElementById(id).value;
-  const adminPw = g("pin-admin"), cur = g("pin-cur"), a = g("pin-new"), b = g("pin-new2");
+  const g = id => (document.getElementById(id) || {}).value || "";
+  const adm = g("pin-admin"), a = g("pin-new"), b = g("pin-new2");
   if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
   if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
-  if(!/^\d{4}$/.test(cur)){ await uiAlert2("현재 PIN을 입력하세요."); return; }
-  try{
-    try{ await adminAuth(adminPw); }
-    catch(e){ if(e.status === 400){ logEvent("PIN 변경 실패", "2차 비밀번호 불일치"); await uiAlert2("사장님 2차 비밀번호가 맞지 않습니다."); return; } throw e; }
-    var staffTok;
-    try{ staffTok = await authToken(SUPA_CFG.staffEmail, pinToPassword(cur)); }
-    catch(e){ if(e.status === 400){ logEvent("PIN 변경 실패", "현재 PIN 불일치"); await uiAlert2("현재 PIN이 맞지 않습니다."); return; } throw e; }
-    await setPassword(staffTok, pinToPassword(a));
-  }catch(e){
-    await uiAlert("PIN을 바꾸지 못했습니다", e.network ? "서버에 연결할 수 없습니다." : e.message, "warn"); return;
-  }
+  const tok = await pinAdminTok(adm, "PIN 변경"); if(!tok) return;
+  try{ await sb("/rest/v1/rpc/hanok_set_staff_pin", { method:"POST", token:tok, body:{ p_pin:a, p_base:SUPA_CFG.staffEmail } }); }
+  catch(e){ await uiAlert("PIN을 바꾸지 못했습니다", pinErrKo(e), "warn"); return; }
   pinHashSave(a);
-  logEvent("PIN 변경", "성공");
-  view.form = null; render();
-  await uiAlert2("PIN이 변경되었습니다.\n다른 기기는 다음 로그인부터 새 PIN 을 씁니다.");
+  logEvent("PIN 변경", "공용 PIN");
+  view.form = {type:"pinlist"}; render();
+  await uiAlert2("공용 PIN이 변경되었습니다.\n다른 기기는 다음 로그인부터 새 PIN 을 씁니다.");
 }
-/* 관리자 비밀번호 변경 — admin 본인 토큰으로 */
+/* 2차 PIN 변경 — 사장님 본인 토큰으로. 09-25(재아): '현재 2차 비밀번호' → '2차 PIN', 설명 글 뺌 */
 function sheetAdminPw(){
   return `
-    ${sheetHead("사장님 2차 비밀번호 변경")}
-    <label class="f big"><div class="lb">현재 2차 비밀번호</div>
-      <input id="apw-cur" type="password" autocomplete="off" inputmode="numeric">
+    ${sheetHead("2차 PIN 변경")}
+    <label class="f big"><div class="lb">2차 PIN</div>
+      <input id="apw-cur" type="password" autocomplete="off" inputmode="numeric" maxlength="6">
     </label>
-    <label class="f big"><div class="lb">새 2차 비밀번호 (숫자 6자리)</div>
+    <label class="f big"><div class="lb">새 2차 PIN</div>
       <input id="apw-new" type="password" autocomplete="off" inputmode="numeric" maxlength="6" pattern="[0-9]*">
     </label>
-    <label class="f big"><div class="lb">새 2차 비밀번호 확인</div>
+    <label class="f big"><div class="lb">새 2차 PIN 확인</div>
       <input id="apw-new2" type="password" autocomplete="off" inputmode="numeric" maxlength="6" pattern="[0-9]*">
     </label>
-    <p class="f-note">2차 비밀번호는 사장님 메뉴·설정·PIN 변경처럼 사장님만 하는 일에 씁니다. 직원 PIN(4자리)과 다르게 정하세요. 잊으면 Supabase 대시보드에서만 되돌릴 수 있습니다.</p>
     <div class="sheet-actions">
       <button class="btn ghost" onclick="closeSheet()">닫기</button>
       <button class="btn primary" onclick="saveAdminPw()">변경</button>
@@ -12416,19 +12517,14 @@ function sheetAdminPw(){
 async function saveAdminPw(){
   const g = id => document.getElementById(id).value;
   const cur = g("apw-cur"), a = g("apw-new"), b = g("apw-new2");
-  if(!/^\d{6}$/.test(a)){ await uiAlert2("새 2차 비밀번호는 숫자 6자리여야 합니다."); return; }
-  if(a !== b){ await uiAlert2("새 2차 비밀번호가 서로 다릅니다."); return; }
-  try{
-    var tok;
-    try{ tok = await adminAuth(cur); }
-    catch(e){ if(e.status === 400){ logEvent("2차 비밀번호 변경 실패", "현재 비밀번호 불일치"); await uiAlert2("현재 2차 비밀번호가 맞지 않습니다."); return; } throw e; }
-    await setPassword(tok, adminToPassword(a));
-  }catch(e){
-    await uiAlert("비밀번호를 바꾸지 못했습니다", e.network ? "서버에 연결할 수 없습니다." : e.message, "warn"); return;
-  }
-  logEvent("관리자 비밀번호 변경", "성공");
+  if(!/^\d{6}$/.test(a)){ await uiAlert2("새 2차 PIN 은 숫자 6자리여야 합니다."); return; }
+  if(a !== b){ await uiAlert2("새 2차 PIN 이 서로 다릅니다."); return; }
+  const tok = await pinAdminTok(cur, "2차 PIN 변경"); if(!tok) return;
+  try{ await setPassword(tok, adminToPassword(a)); }
+  catch(e){ await uiAlert("2차 PIN 을 바꾸지 못했습니다", e.network ? "서버에 연결할 수 없습니다." : e.message, "warn"); return; }
+  logEvent("2차 PIN 변경", "성공");
   view.form = null; render();
-  await uiAlert2("사장님 2차 비밀번호가 변경되었습니다.");
+  await uiAlert2("2차 PIN 이 변경되었습니다.");
 }
 
 /* ---------- 접속 기록 ---------- */
@@ -12439,12 +12535,12 @@ var ADMIN_UNTIL = 0;   /* '10분간 다시 묻지 않기' 를 켜고 맞힌 시�
 async function adminGate(what){
   if(!supaOn()) return true;
   if(ADMIN_UNTIL > Date.now()) return true;
-  const r = await uiPin(what, "2차 비밀번호 6자리", 6, {keep:"10분간 다시 묻지 않기"});   /* PIN 화면과 같은 키패드(09-20) */
+  const r = await uiPin(what, "2차 PIN", 6, {keep:"10분간 다시 묻지 않기"});   /* '6자리' 설명은 뺌(09-25 재아) — 점 여섯 개로 보임 */   /* PIN 화면과 같은 키패드(09-20) */
   if(r == null) return false;
   if(!r || !r.code) return false;   /* 바깥 누름·취소 */
   const pw = r.code;
   try{ await adminAuth(pw); logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
-  catch(e){ await uiAlert("2차 비밀번호가 다릅니다", "", "warn"); return false; }
+  catch(e){ await uiAlert("2차 PIN 이 다릅니다", "", "warn"); return false; }
 }
 /* 사장님 계정 로그인 — 6자리면 '6자리+00' 먼저, 안 되면 친 그대로(6자리 자체를 비밀번호로 만든 서버도 있음 — 실서비스가 그렇게 만들어짐, 09-24 재아).
    PIN 바꾸기·2차 비밀번호 바꾸기·관리자 확인이 모두 이걸 씀(예전엔 관리자 확인만 두 번 시도해서 PIN 바꾸기에서 막혔음) */
@@ -12462,44 +12558,43 @@ function sheetSetLog(){
 }
 /* 설정 초기화 — 기본표(DEFAULT_DATA)로. 누님과 정한 값이 기본표에 들어간 뒤에 쓸모가 있습니다. 관리자 비밀번호 */
 async function resetSettingsAll(){
-  if(!await uiConfirm("설정을 처음 값으로 되돌릴까요?", "좌석·운영시간·코스·경로·문자 등 설정 전부가 기본표로 돌아갑니다. 예약은 그대로 둡니다.\n관리자 비밀번호를 물어봅니다.", {ok:"초기화"})) return;
+  if(!await uiConfirm("설정을 처음 값으로 되돌릴까요?", "좌석·운영시간·코스·경로·문자 등 설정 전부가 기본표로 돌아갑니다. 예약은 그대로 둡니다.\n2차 PIN 을 한 번 더 묻습니다.", {ok:"초기화"})) return;
   if(!await adminGate("설정 초기화")) return;
   const keep = store().settings._setlog || [];
   const def = migrate(deepClone(DEFAULT_DATA))[view.storeKey].settings;
-  def._setlog = keep.concat([{at:new Date().toISOString(), who:SESSION ? SESSION.who : "-", items:["설정 초기화(기본표)"]}]).slice(-60);
+  def._setlog = keep.concat([{at:new Date().toISOString(), who:(sessionBy() || "-"), items:["설정 초기화(기본표)"]}]).slice(-60);
   store().settings = def; view.draft = null;
   logEvent("설정 변경", "초기화"); takeSnapshot(); saveData(); render();
 }
-function sheetLogs(){
-  const logs = (DATA._logs||[]).slice().reverse();
-  const q = (view.logQuery||"").trim();
-  const filtered = q ? logs.filter(l =>
-    (l.action+" "+l.detail+" "+l.ip+" "+l.ts).toLowerCase().includes(q.toLowerCase())) : logs;
-  const rows = filtered.slice(0,400).map(l=>{
-    const dd = new Date(l.ts), t = isNaN(dd) ? String(l.ts).slice(0,19) : `${dd.getFullYear()}-${pad(dd.getMonth()+1)}-${pad(dd.getDate())} ${pad(dd.getHours())}:${pad(dd.getMinutes())}:${pad(dd.getSeconds())}`;   /* 저장은 UTC, 표시는 이 기기(한국) 시각 */
-    return `<div class="logrow">
-      <span class="lg-t">${esc(t)}</span>
-      <span class="lg-ip">${esc(l.ip)}</span>
+/* 로그 두 탭 — 09-25(재아): 검색은 설정 로그에도, '전체 복사' 는 탭 줄 오른쪽 끝. 계정은 이름으로(whoLabel) */
+function logTime(ts, sec){ const d = new Date(ts); return isNaN(d) ? String(ts).slice(0,19) : `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` + (sec ? `:${pad(d.getSeconds())}` : ""); }   /* 저장은 UTC, 표시는 이 기기(한국) 시각 */
+function logList(tab, q){
+  q = (q || "").trim().toLowerCase();
+  if(tab === "set"){
+    const all = (store().settings._setlog || []).slice().reverse();
+    const list = q ? all.filter(e=>(logTime(e.at) + " " + whoLabel(e.who) + " " + (e.items||[]).join(" ")).toLowerCase().includes(q)) : all;
+    return { all:all.length, n:list.length, html: list.map(e=>`<div class="logrow"><span class="lg-t">${esc(logTime(e.at))}</span><span class="lg-ip">${esc(whoLabel(e.who))}</span><span class="lg-d">${(e.items||[]).map(esc).join("<br>")}</span></div>`).join("") ||
+      `<div class="empty">${all.length ? "찾는 기록이 없습니다." : "아직 없습니다. '적용하기' 를 누를 때부터 쌓입니다."}</div>` };
+  }
+  const all = (DATA._logs||[]).slice().reverse();
+  const list = q ? all.filter(l=>(l.action+" "+l.detail+" "+whoLabel(l.ip)+" "+logTime(l.ts, true)).toLowerCase().includes(q)) : all;
+  return { all:all.length, n:Math.min(list.length, 400), html: list.slice(0,400).map(l=>`<div class="logrow">
+      <span class="lg-t">${esc(logTime(l.ts, true))}</span>
+      <span class="lg-ip">${esc(whoLabel(l.ip))}</span>
       <span class="lg-a">${esc(l.action)}</span>
       <span class="lg-d">${esc(l.detail)}</span>
-    </div>`;
-  }).join("");
-  const tab = view.logTab || "use";
-  const setlog = (store().settings._setlog || []).slice().reverse();
-  const setRows = setlog.length ? setlog.map(e=>{ const d = new Date(e.at); const t = isNaN(d) ? e.at : `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    return `<div class="logrow"><span class="lg-t">${esc(t)}</span><span class="lg-ip">${esc(e.who||"")}</span><span class="lg-d">${e.items.map(esc).join("<br>")}</span></div>`; }).join("") : `<div class="empty">아직 없습니다. '적용하기' 를 누를 때부터 쌓입니다.</div>`;
+    </div>`).join("") || `<div class="empty">기록이 없습니다.</div>` };
+}
+function logNote(tab, r){ return tab === "set" ? `'적용하기' 마다 무엇이 어떻게 바뀌었는지. 최근 60번까지.` : `전체 ${r.all}건 중 ${r.n}건 표시. 로그인·예약 등록·상태 변경·좌석 배정·노쇼·설정 적용이 계정과 함께 쌓입니다.`; }
+function sheetLogs(){
+  const tab = view.logTab || "use", q = view.logQuery || "", r = logList(tab, q);
   return `
     ${sheetHead("로그")}
-    <div class="seg" style="margin-bottom:10px"><button class="${tab==="use"?'on':''}" onclick="view.logTab='use'; render()">이용 로그</button><button class="${tab==="set"?'on':''}" onclick="view.logTab='set'; render()">설정 로그</button></div>
-    ${tab==="use" ? `
-    <div class="row" style="margin-bottom:10px">
-      <input id="log-q" value="${esc(q)}" placeholder="검색 (동작·계정·날짜)" oninput="setLogQuery(this.value)" style="flex:1">
-      <button class="btn" onclick="copyLogs()">전체 복사</button>
-    </div>
-    <div class="logbox">${rows || `<div class="empty">기록이 없습니다.</div>`}</div>
-    <p class="f-note">전체 ${logs.length}건 중 ${Math.min(filtered.length,400)}건 표시. 로그인·예약 등록·상태 변경·좌석 배정·노쇼·설정 적용이 계정과 함께 쌓입니다.</p>` : `
-    <div class="logbox">${setRows}</div>
-    <p class="f-note">'적용하기' 마다 무엇이 어떻게 바뀌었는지. 최근 60번까지.</p>`}
+    <div class="log-bar"><div class="seg"><button class="${tab==="use"?'on':''}" onclick="view.logTab='use'; render()">이용 로그</button><button class="${tab==="set"?'on':''}" onclick="view.logTab='set'; render()">설정 로그</button></div>
+      <button class="btn sm" onclick="copyLogs()">전체 복사</button></div>
+    <input id="log-q" class="log-q" value="${esc(q)}" placeholder="검색 (${tab==="use" ? "동작" : "내용"}·계정·날짜)" oninput="setLogQuery(this.value)">
+    <div class="logbox">${r.html}</div>
+    <p class="f-note" id="log-note">${logNote(tab, r)}</p>
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
 /* ---------- 보낸 문자 ---------- */
@@ -12565,15 +12660,19 @@ async function sendSmsFree(){
 }
 function setLogQuery(v){
   view.logQuery = v;
-  const box = document.querySelector(".logbox");
-  if(box) box.innerHTML = sheetLogs().split('<div class="logbox">')[1].split("</div>\n    <p")[0];
+  const tab = view.logTab || "use", r = logList(tab, v), box = document.querySelector(".logbox"), note = document.getElementById("log-note");
+  if(box) box.innerHTML = r.html;   /* 다시 그리지 않고 목록만 — 치는 중에 입력칸이 튀지 않게 */
+  if(note) note.textContent = logNote(tab, r);
 }
-async function copyLogs(){
-  if(!await adminGate("접속 기록 전체 복사")) return;   /* 전화번호·이름이 들어 있어 관리자 비밀번호(재아) */
-  const txt = (DATA._logs||[]).map(l=>{ const d = new Date(l.ts); const t = isNaN(d) ? l.ts : `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; return `${t}\t${l.ip}\t${l.store}\t${l.action}\t${l.detail}\t${l.ua}`; }).join("\n");
+/* 지금 보는 탭 전체를 복사(검색과 무관). 보안 화면 안이라 2차 PIN 을 다시 묻지 않음(09-25 재아) */
+function copyLogs(){
+  const tab = view.logTab || "use";
+  const txt = tab === "set"
+    ? (store().settings._setlog || []).map(e=>`${logTime(e.at)}\t${whoLabel(e.who)}\t${(e.items||[]).join(" / ")}`).join("\n")
+    : (DATA._logs||[]).map(l=>`${logTime(l.ts, true)}\t${whoLabel(l.ip)}\t${l.store}\t${l.action}\t${l.detail}\t${l.ua}`).join("\n");
   if(!navigator.clipboard) return uiAlert("복사 실패","클립보드를 쓸 수 없습니다.","warn");
   navigator.clipboard.writeText(txt).then(
-    ()=>uiAlert("복사 완료","접속 기록을 클립보드에 복사했습니다.","ok"),
+    ()=>uiAlert("복사 완료", (tab === "set" ? "설정 로그" : "이용 로그") + "를 클립보드에 복사했습니다.","ok"),
     ()=>uiAlert("복사 실패","클립보드에 접근할 수 없습니다.","warn"));
 }
 
