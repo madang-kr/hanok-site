@@ -425,10 +425,14 @@ body.rv-open{overflow:hidden}
 .rv-done p b{color:var(--ink); font-variant-numeric:tabular-nums}
 
 /* ---------- 팝업창: 왼쪽 위에 여러 개, 아래 줄에 '오늘 하루 보지 않기' ---------- */
-.pops{position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; pointer-events:none}
-.pop{position:absolute; pointer-events:auto; background:#FDFCFA; color:#413A35; box-shadow:0 24px 60px rgba(0,0,0,.5); letter-spacing:0; animation:rv-fade .25s ease}
+/* 여러 장이면 나란히 — 예전엔 32px 씩 비껴 포갰는데 PC 는 옆이 비어 있어 겹칠 이유가 없었음(09-24 재아). 넘치면 다음 줄 */
+.pops{position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; pointer-events:none; display:flex; flex-wrap:wrap; align-items:flex-start; align-content:flex-start; gap:20px; padding:110px 40px 40px; overflow:auto}
+.pop{position:relative; flex:0 0 auto; max-width:calc(100vw - 80px); pointer-events:auto; background:#FDFCFA; color:#413A35; box-shadow:0 24px 60px rgba(0,0,0,.5); letter-spacing:0; animation:rv-fade .25s ease}
 .pop-b{padding:30px 30px 26px}
 .pop-b img{width:100%; display:block; margin:-30px -30px 0; width:calc(100% + 60px); max-width:none}
+/* 그림만 있는 팝업: 안쪽 여백을 없애 그림이 아래 띠까지 꽉 — 예전엔 아래 26px 여백이 흰 띠로 남았음(09-24 재아) */
+.pop-b.only-img{padding:0}
+.pop-b.only-img img{margin:0; width:100%}
 .pop-b h3{font-size:20px; color:#191614; letter-spacing:-.01em; margin-bottom:14px; line-height:1.4}
 .pop-b p{font-size:14.5px; line-height:1.75; margin-bottom:8px}
 .pop-b .btn{margin-top:14px; height:46px; padding:0 24px; background:#191614; border-color:#191614; color:#fff; font-size:14px}
@@ -440,9 +444,10 @@ body.rv-open{overflow:hidden}
 .pop-f .x:hover{text-decoration:underline; text-underline-offset:3px}
 /* 폰: 위에서부터 차례로 쌓임, 뒤는 어둡게 */
 @media (max-width:760px){
-  .pops{pointer-events:auto; overflow:auto; background:rgba(0,0,0,.6); padding:calc(var(--nav) + 16px) 16px 80px}
+  .pops{display:block; pointer-events:auto; overflow:auto; background:rgba(0,0,0,.6); padding:calc(var(--nav) + 16px) 16px 80px}
   .pop{position:static; width:auto!important; margin:0 auto 14px; max-width:420px}
   .pop-b{padding:24px 22px 20px}
+  .pop-b img{margin:-24px -22px 0; width:calc(100% + 44px)}   /* 폰 안쪽 여백(24/22)에 맞춤 — 예전 -30px 은 그림이 옆으로 삐져나감 */
 }
 
 /* ---------- 바닥 ---------- */

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>마당 · 개발자</title>
+<!--
+  개발자 페이지 (2026-09-24, 재아) — hanokbanjeom.com/system/developer/
+  재아 계정(madang-dev) 하나만 들어옴. 가게 기기에서 열 일이 없는 페이지라 가게 시스템(HTML 한 파일 빌드)과 따로 둠 —
+  그래서 구형 TV 문법 제한도 없음(재아의 PC·폰에서만 엶). 서버 권한은 system/supabase/patch_23차_개발자페이지.sql.
+    · 요청   : 사장님·직원이 '개발자에게' 로 보낸 글 보기·답하기(답하면 '답변 완료' — 가게 화면에 답이 보임)
+    · 점검   : 서버·홈페이지·카운터 동기화·로그인·접수·용량·최근 기록을 한눈에(dev_health)
+    · 긴급   : 모든 기기 새로고침 · 홈페이지 예약 끄기/켜기(dev_action) · 전체 백업 내려받기
+  접속 정보는 홈페이지와 같은 js/config.js(anon 키 — 공개용). 로그인 세션은 이 브라우저 localStorage 에만.
+-->
+<style>
+@font-face{font-family:Pretendard; src:url(../../fonts/Pretendard-Regular.woff2) format("woff2"); font-weight:400; font-display:swap}
+@font-face{font-family:Pretendard; src:url(../../fonts/Pretendard-SemiBold.woff2) format("woff2"); font-weight:600; font-display:swap}
+@font-face{font-family:Pretendard; src:url(../../fonts/Pretendard-Bold.woff2) format("woff2"); font-weight:700; font-display:swap}
+:root{
+  --bg:#F5F4F1; --surface:#FFFFFF; --surface-2:#F0EEEA; --border:#E3E0DA; --text:#1D1A17; --text-2:#5C554E; --text-3:#968E86;
+  --ink:#1D1A17; --pine:#2F7A55; --pine-bg:#E6F2EB; --amber:#A8680E; --amber-bg:#FBF0DC; --rust:#B3402A; --rust-bg:#FBE9E4; --blue:#2B5F9E;
+  --r:12px; --sans:'Pretendard','Noto Sans KR','Apple SD Gothic Neo',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0; background:var(--bg); color:var(--text); font:15px/1.55 var(--sans); -webkit-text-size-adjust:100%}
+button,input,textarea{font:inherit; color:inherit}
+a{color:var(--blue)}
+.wrap{max-width:1080px; margin:0 auto; padding:0 20px 60px}
+header{display:flex; align-items:center; gap:12px; height:64px}
+header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:-.01em}
+header h1 span{color:var(--text-3); font-weight:600}
+header .sp{flex:1}
+.btn{height:38px; padding:0 16px; border-radius:10px; border:1px solid var(--border); background:var(--surface); cursor:pointer; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; color:var(--text)}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--ink); border-color:var(--ink); color:#fff}
+.btn.primary:hover{background:#000}
+.btn.danger{color:var(--rust); border-color:#EBC4BA}
+.btn.danger.fill{background:var(--rust); border-color:var(--rust); color:#fff}
+.btn:disabled{opacity:.45; cursor:default}
+.btn.sm{height:32px; padding:0 12px; font-size:13px}
+.muted{color:var(--text-3)}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:20px}
+/* 로그인 */
+.login{max-width:380px; margin:12vh auto 0}
+.login h2{margin:0 0 4px; font-size:22px}
+.login p{margin:0 0 20px; color:var(--text-2); font-size:14px}
+label.f{display:block; margin-bottom:12px}
+label.f span{display:block; font-size:13px; color:var(--text-2); margin-bottom:6px; font-weight:600}
+input[type=text],input[type=password],textarea{width:100%; height:44px; border:1px solid var(--border); border-radius:10px; padding:0 14px; background:var(--surface); outline:none}
+textarea{height:auto; padding:10px 14px; resize:vertical; min-height:84px}
+input:focus,textarea:focus{border-color:var(--ink)}
+.err{color:var(--rust); font-size:14px; min-height:20px; margin:4px 0 8px}
+.login .btn.primary{width:100%; height:46px; justify-content:center; font-size:15px}
+/* 탭 */
+nav.tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px}
+nav.tabs button{border:0; background:none; height:44px; padding:0 14px; cursor:pointer; font-weight:600; color:var(--text-3); border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap}
+nav.tabs button.on{color:var(--text); border-bottom-color:var(--ink)}
+.badge{display:inline-flex; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--surface-2); color:var(--text-2); font-size:12px; align-items:center; justify-content:center; margin-left:4px}
+.badge.red{background:var(--rust); color:#fff}
+/* 요청 */
+.bar{display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap}
+.chip{height:32px; padding:0 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface); cursor:pointer; font-size:13px; font-weight:600; color:var(--text-2)}
+.chip.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+.req{margin-bottom:12px}
+.req.urgent{border-color:#E9B4A7; box-shadow:inset 3px 0 0 var(--rust)}
+.req-h{display:flex; align-items:flex-start; gap:10px}
+.req-h h3{margin:0; font-size:16px; flex:1; line-height:1.4}
+.req-m{font-size:13px; color:var(--text-3); margin-top:2px}
+.req-b{white-space:pre-wrap; margin:12px 0 0; color:var(--text-2)}
+.imgs{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+.imgs a{display:block; width:96px; height:72px; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:var(--surface-2)}
+.imgs img{width:100%; height:100%; object-fit:cover}
+.reply{margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
+.reply .done{background:var(--pine-bg); border-radius:10px; padding:10px 14px; white-space:pre-wrap; font-size:14px}
+.reply .done b{display:block; font-size:12px; color:var(--pine); margin-bottom:2px}
+.row-btns{display:flex; gap:8px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap}
+.tag{display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:6px; font-size:12px; font-weight:700; white-space:nowrap}
+.tag.red{background:var(--rust-bg); color:var(--rust)} .tag.green{background:var(--pine-bg); color:var(--pine)} .tag.amber{background:var(--amber-bg); color:var(--amber)} .tag.gray{background:var(--surface-2); color:var(--text-2)}
+.empty{text-align:center; padding:48px 0; color:var(--text-3)}
+/* 점검 */
+.grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px}
+.hc{position:relative; padding:16px 16px 14px 34px}
+.hc .dot{position:absolute; left:14px; top:21px; width:10px; height:10px; border-radius:50%; background:var(--text-3)}
+.hc .dot.ok{background:#3BA86B} .hc .dot.warn{background:#E0A030} .hc .dot.bad{background:var(--rust)}
+.hc .k{font-size:13px; color:var(--text-2); font-weight:600}
+.hc .v{font-size:18px; font-weight:700; margin-top:2px; letter-spacing:-.01em}
+.hc .s{font-size:13px; color:var(--text-3); margin-top:2px}
+h2.sec{font-size:15px; margin:28px 0 10px}
+table.logs{width:100%; border-collapse:collapse; font-size:13px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r); overflow:hidden}
+table.logs td{padding:8px 12px; border-top:1px solid var(--border); vertical-align:top}
+table.logs tr:first-child td{border-top:0}
+table.logs td.t{white-space:nowrap; color:var(--text-3); width:1%}
+table.logs td.a{font-weight:600; white-space:nowrap; width:1%}
+table.logs td.d{color:var(--text-2); word-break:break-all}
+/* 긴급 */
+.em{display:flex; align-items:center; gap:16px; margin-bottom:12px}
+.em .tx{flex:1}
+.em h3{margin:0; font-size:16px}
+.em p{margin:4px 0 0; font-size:14px; color:var(--text-2)}
+.links{display:flex; gap:8px; flex-wrap:wrap}
+.toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 18px; border-radius:12px; font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); z-index:50; max-width:calc(100vw - 32px)}
+.spin{color:var(--text-3); padding:40px 0; text-align:center}
+@media (max-width:640px){
+  .wrap{padding:0 16px 48px}
+  .em{flex-direction:column; align-items:stretch}
+  .em .btn{justify-content:center}
+  table.logs td.t{white-space:normal}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="spin">불러오는 중…</p></div>
+<script src="../../js/config.js"></script>
+<script>
+"use strict";
+const CFG = window.SUPA || {};
+const DEV_ID = "madang-dev", DEV_EMAIL = "madang-dev@jaealee.com";   // 서버 hanok_is_dev() 와 같아야 함
+const SKEY = "madang.dev.session";
+const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, busy:false, err:"" };
+const $app = document.getElementById("app");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- 시각 ---------- */
+const kst = iso => { if(!iso) return "—"; const d = new Date(iso); return d.toLocaleString("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false}); };
+const ago = iso => {
+  if(!iso) return "기록 없음";
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if(m < 1) return "방금"; if(m < 60) return m + "분 전"; const h = Math.floor(m / 60); if(h < 24) return h + "시간 전"; return Math.floor(h / 24) + "일 전";
+};
+const mins = iso => iso ? (Date.now() - new Date(iso).getTime()) / 60000 : Infinity;
+const mb = b => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + "MB";
+const kstHour = () => Number(new Date().toLocaleString("en-US", {timeZone:"Asia/Seoul", hour:"numeric", hour12:false}));
+
+/* ---------- 세션 ---------- */
+function saveSess(s){ S.sess = s; try{ s ? localStorage.setItem(SKEY, JSON.stringify(s)) : localStorage.removeItem(SKEY); }catch(e){} }
+function loadSess(){ try{ return JSON.parse(localStorage.getItem(SKEY) || "null"); }catch(e){ return null; } }
+async function auth(grant, body){
+  const r = await fetch(CFG.url + "/auth/v1/token?grant_type=" + grant, { method:"POST", headers:{ apikey:CFG.anonKey, "Content-Type":"application/json" }, body:JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(/invalid/i.test(j.error_description || j.msg || "") ? "아이디나 비밀번호가 맞지 않습니다" : "로그인하지 못했습니다(" + r.status + ")");
+  if((j.user && j.user.email) !== DEV_EMAIL) throw new Error("개발자 계정만 들어올 수 있습니다");
+  return { access_token:j.access_token, refresh_token:j.refresh_token, expires_at:Date.now() + (j.expires_in || 3600) * 1000 };
+}
+async function ensureSess(){
+  if(!S.sess) return false;
+  if(S.sess.expires_at - Date.now() > 60000) return true;
+  try{ saveSess(await auth("refresh_token", { refresh_token:S.sess.refresh_token })); return true; }
+  catch(e){ saveSess(null); return false; }
+}
+/* PostgREST — 401 이면 한 번 새로 받아서 다시 */
+async function api(path, opt = {}, retry = true){
+  if(!await ensureSess()){ render(); throw new Error("다시 로그인해 주세요"); }
+  const h = { apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token, "Content-Type":"application/json" };
+  if(opt.prefer) h.Prefer = opt.prefer; if(opt.range) h.Range = opt.range;
+  const r = await fetch(CFG.url + path, { method:opt.method || "GET", headers:h, body:opt.body ? JSON.stringify(opt.body) : undefined });
+  if(r.status === 401 && retry){ S.sess.expires_at = 0; return api(path, opt, false); }
+  const t = await r.text(); let j = null; try{ j = t ? JSON.parse(t) : null; }catch(e){}
+  if(!r.ok){ const m = (j && (j.message || j.hint)) || t || ""; throw new Error(/not dev/.test(m) ? "개발자 계정이 아닙니다 — 서버에 23차 SQL 을 실행했는지 확인" : (m || "서버 오류 " + r.status)); }
+  return j;
+}
+async function login(ev){
+  ev.preventDefault();
+  const id = document.getElementById("id").value.trim(), pw = document.getElementById("pw").value;
+  if(id !== DEV_ID && id !== DEV_EMAIL){ S.err = "개발자 아이디가 아닙니다"; render(); return; }
+  S.busy = true; S.err = ""; render();
+  try{ saveSess(await auth("password", { email:DEV_EMAIL, password:pw })); S.tab = "req"; loadTab(); }
+  catch(e){ S.err = e.message; }
+  S.busy = false; render();
+}
+function logout(){
+  if(S.sess) fetch(CFG.url + "/auth/v1/logout", { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token } }).catch(() => {});
+  saveSess(null); S.reqs = null; S.health = null; render();
+}
+function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
+
+/* ---------- 요청(개발자에게) ---------- */
+async function loadReqs(){
+  try{ S.reqs = await api("/rest/v1/dev_requests?select=*&order=created_at.desc&limit=300"); }
+  catch(e){ S.reqs = []; toast(e.message); }
+  render();
+}
+const isDone = r => r.status === "답변 완료" || r.status === "끝";
+function reqHtml(r){
+  const imgs = (r.images || []).filter(Boolean);
+  return `<div class="card req${r.urgent && !isDone(r) ? " urgent" : ""}">
+    <div class="req-h"><div style="flex:1"><h3>${esc(r.title)}</h3>
+      <div class="req-m">${r.store === "anjip" ? "안집" : "한옥반점"} · ${r.by === "admin" ? "사장님" : "직원"} · ${esc(kst(r.created_at))} (${esc(ago(r.created_at))})</div></div>
+      ${r.urgent ? '<span class="tag red">급함</span>' : ''}${isDone(r) ? '<span class="tag green">답변 완료</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
+    ${r.body ? `<p class="req-b">${esc(r.body)}</p>` : ""}
+    ${imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : ""}
+    <div class="reply">
+      ${isDone(r) && r.reply ? `<div class="done"><b>보낸 답 · ${esc(kst(r.replied_at))}</b>${esc(r.reply)}</div>` : ""}
+      ${isDone(r) ? `<div class="row-btns"><button class="btn sm" onclick="reqEdit('${esc(r.id)}')">답 고치기</button><button class="btn sm" onclick="reqReopen('${esc(r.id)}')">미답으로 되돌리기</button><button class="btn sm danger" onclick="reqDel('${esc(r.id)}')">삭제</button></div>`
+        : `<textarea id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea>
+           <div class="row-btns"><button class="btn sm danger" onclick="reqDel('${esc(r.id)}')">삭제</button><button class="btn sm primary" onclick="reqReply('${esc(r.id)}')">답변 보내기</button></div>`}
+    </div></div>`;
+}
+async function reqPatch(id, body, msg){
+  try{ await api("/rest/v1/dev_requests?id=eq." + encodeURIComponent(id), { method:"PATCH", body, prefer:"return=minimal" }); toast(msg); await loadReqs(); }
+  catch(e){ toast("저장하지 못했습니다 — " + e.message); }
+}
+function reqReply(id){
+  const t = (document.getElementById("rp-" + id) || {}).value || "";
+  if(!t.trim()){ toast("답을 적어 주세요"); return; }
+  reqPatch(id, { reply:t.trim(), status:"답변 완료", replied_at:new Date().toISOString() }, "답변을 보냈습니다");
+}
+function reqReopen(id){ reqPatch(id, { status:"접수" }, "미답으로 되돌렸습니다"); }
+function reqEdit(id){ const r = S.reqs.find(x => x.id === id); if(r){ r.status = "접수"; render(); const el = document.getElementById("rp-" + id); if(el) el.focus(); } }
+async function reqDel(id){
+  if(!confirm("이 글을 지울까요? 가게 화면에서도 사라집니다.")) return;
+  try{ await api("/rest/v1/dev_requests?id=eq." + encodeURIComponent(id), { method:"DELETE", prefer:"return=minimal" }); toast("지웠습니다"); await loadReqs(); }
+  catch(e){ toast("지우지 못했습니다 — " + e.message); }
+}
+function tabReq(){
+  if(!S.reqs) return '<p class="spin">불러오는 중…</p>';
+  const open = S.reqs.filter(r => !isDone(r)), list = S.reqFilter === "open" ? open.slice().sort((a, b) => (b.urgent - a.urgent) || b.created_at.localeCompare(a.created_at)) : S.reqs;
+  return `<div class="bar"><button class="chip${S.reqFilter === "open" ? " on" : ""}" onclick="S.reqFilter='open'; render()">답 안 한 것 ${open.length}</button>
+    <button class="chip${S.reqFilter === "all" ? " on" : ""}" onclick="S.reqFilter='all'; render()">전체 ${S.reqs.length}</button>
+    <span style="flex:1"></span><button class="btn sm" onclick="loadReqs()">새로고침</button></div>
+    ${list.length ? list.map(reqHtml).join("") : `<p class="empty">${S.reqFilter === "open" ? "답할 글이 없습니다" : "받은 글이 없습니다"}</p>`}`;
+}
+
+/* ---------- 점검 ---------- */
+async function timed(url){ const t0 = performance.now(); try{ const r = await fetch(url, { cache:"no-store" }); return { ok:r.ok, status:r.status, ms:Math.round(performance.now() - t0) }; }catch(e){ return { ok:false, status:0, ms:0 }; } }
+async function loadHealth(){
+  S.health = null; S.checks = null; render();
+  const t0 = performance.now();
+  try{
+    const h = await api("/rest/v1/rpc/dev_health", { method:"POST", body:{} });
+    const ms = Math.round(performance.now() - t0);
+    const [home, sys, tv] = await Promise.all([timed("/?nc=" + Date.now()), timed("/system/?nc=" + Date.now()), timed("/system/screen/?nc=" + Date.now())]);
+    S.health = h; S.checks = { ms, home, sys, tv };
+  }catch(e){ S.health = { error:e.message }; }
+  render();
+}
+function hc(state, k, v, s){ return `<div class="card hc"><span class="dot ${state}"></span><div class="k">${esc(k)}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`; }
+function tabHealth(){
+  const h = S.health, c = S.checks;
+  if(!h) return '<p class="spin">점검하는 중…</p>';
+  if(h.error) return `<div class="card"><b>점검하지 못했습니다</b><p class="muted">${esc(h.error)}</p><button class="btn" onclick="loadHealth()">다시</button></div>`;
+  const open = kstHour() >= 10 && kstHour() < 22;
+  const av = mins(h.avail_at), staff = (h.logins || []).find(x => /staff/.test(x.email)), admin = (h.logins || []).find(x => /admin/.test(x.email));
+  const rq = h.requests || {}, dq = h.devreq || {}, site = h.site || {}, st = h.store || {}, res = h.res || {}, sto = h.storage || {};
+  const pages = [c.home, c.sys, c.tv], pagesOk = pages.every(p => p.ok);
+  return `<div class="bar"><span class="muted">${esc(kst(h.now))} 기준</span><span style="flex:1"></span><button class="btn sm" onclick="loadHealth()">다시 점검</button></div>
+  <div class="grid">
+    ${hc(c.ms < 1500 ? "ok" : "warn", "서버(Supabase)", c.ms + "ms", "madang-hanok · 서울")}
+    ${hc(pagesOk ? "ok" : "bad", "홈페이지 · 시스템 · TV", pagesOk ? "모두 열림" : "안 열리는 곳 있음", pages.map((p, i) => ["홈", "시스템", "TV"][i] + " " + (p.ok ? p.ms + "ms" : "오류 " + p.status)).join(" · "))}
+    ${hc(av < 30 ? "ok" : (open && av > 120) ? "bad" : "warn", "카운터 동기화(남은 자리 올림)", esc(ago(h.avail_at)), open ? "영업 중엔 몇 분마다 갱신돼야 정상 — 오래되면 카운터 태블릿이 꺼졌거나 로그아웃" : "영업 전후라 멈춰 있어도 정상")}
+    ${hc(staff && mins(staff.last) < 60 * 24 * 7 ? "ok" : "warn", "가게 계정 마지막 로그인", "직원 " + esc(staff ? ago(staff.last) : "없음"), "사장 " + esc(admin ? ago(admin.last) : "없음"))}
+    ${hc(!site.booking ? "warn" : rq.waiting && mins(rq.oldest) > 12 * 60 ? "bad" : "ok", "홈페이지 예약", site.booking ? "켜짐" : "꺼짐", "대기 접수 " + (rq.waiting || 0) + "건" + (rq.waiting ? " · 가장 오래된 것 " + esc(ago(rq.oldest)) : "") + " · 마지막 접수 " + esc(ago(rq.last)))}
+    ${hc("ok", "예약", "오늘 " + (res.today || 0) + " · 앞으로 " + (res.future || 0), "전체 " + (res.all || 0) + "건 · 마지막 변경 " + esc(ago(res.last_change)))}
+    ${hc(dq.urgent ? "bad" : dq.open ? "warn" : "ok", "개발자에게", dq.open ? "답 안 한 글 " + dq.open : "모두 답함", dq.urgent ? "급함 " + dq.urgent + "건" : "")}
+    ${hc(h.db_bytes > 400 * 1048576 || sto.bytes > 800 * 1048576 ? "warn" : "ok", "용량(무료 한도)", "DB " + mb(h.db_bytes) + " / 500MB", "파일 " + (sto.files || 0) + "개 · " + mb(sto.bytes || 0) + " / 1GB")}
+    ${hc("ok", "홈페이지 판", esc(ago(site.apply_at)) + " 적용", esc((site.note || "") + (h.site_next ? " · 예정 판 " + kst(h.site_next) : "")))}
+    ${hc(st.temp_closed ? "warn" : "ok", "매장 상태", st.temp_closed ? "임시 휴업 켜짐" : "정상 영업", "설정 마지막 저장 " + esc(ago(st.updated_at)))}
+  </div>
+  <h2 class="sec">최근 기록 30</h2>
+  <table class="logs">${(h.logs || []).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="a">${esc(l.action)}</td><td class="d">${esc(l.detail)}${l.who ? ` <span class="muted">· ${esc(l.who)}</span>` : ""}</td></tr>`).join("") || '<tr><td class="muted">기록 없음</td></tr>'}</table>`;
+}
+
+/* ---------- 긴급 ---------- */
+async function act(name, ask){
+  if(ask && !confirm(ask)) return;
+  try{ const m = await api("/rest/v1/rpc/dev_action", { method:"POST", body:{ p_action:name } }); toast(m || "했습니다"); S.health = null; loadHealth(); }
+  catch(e){ toast("하지 못했습니다 — " + e.message); }
+}
+/* 전체 백업: 예약은 1,000행씩 이어 받음(PostgREST 한도). 파일은 이 브라우저로 내려받기만 — 어디에도 안 올림 */
+async function backup(){
+  const btn = document.getElementById("bk"); if(btn){ btn.disabled = true; btn.textContent = "모으는 중…"; }
+  try{
+    const out = { at:new Date().toISOString(), project:CFG.url };
+    const all = async (t, q) => { let rows = [], from = 0; for(;;){ const r = await api("/rest/v1/" + t + "?select=*" + (q || ""), { range:from + "-" + (from + 999) }); rows = rows.concat(r || []); if(!r || r.length < 1000) return rows; from += 1000; } };
+    for(const [t, q] of [["stores"], ["reservations", "&order=date,time,id"], ["requests", "&order=created_at"], ["customers"], ["staff"], ["attendance"], ["hr_settings"], ["site_posts"], ["site_draft"], ["dev_requests"], ["thanks_sms"]]) {
+      try{ out[t] = await all(t, q); }catch(e){ out[t] = { error:e.message }; }
+    }
+    try{ out.site_versions = await api("/rest/v1/site_versions?select=*&order=apply_at.desc&limit=20"); }catch(e){ out.site_versions = { error:e.message }; }
+    const blob = new Blob([JSON.stringify(out, null, 1)], { type:"application/json" }), a = document.createElement("a");
+    const d = new Date(), p = n => String(n).padStart(2, "0");
+    a.href = URL.createObjectURL(blob); a.download = `hanok-backup-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("백업을 내려받았습니다 · 예약 " + (Array.isArray(out.reservations) ? out.reservations.length : "?") + "건 · " + mb(blob.size));
+  }catch(e){ toast("백업하지 못했습니다 — " + e.message); }
+  if(btn){ btn.disabled = false; btn.textContent = "백업 내려받기"; }
+}
+function tabEm(){
+  const site = S.health && S.health.site, on = site ? site.booking : null;
+  return `<div class="card em"><div class="tx"><h3>모든 기기 새로고침</h3><p>고친 판을 올린 뒤 카운터 태블릿·사장님 폰·TV 가 옛 화면을 붙들고 있을 때. 켜져 있는 기기가 10초~1분 안에 못 보낸 것을 보내고 다시 읽습니다.</p></div>
+      <button class="btn primary" onclick="act('reload', '켜져 있는 가게 기기를 모두 새로고침할까요?')">새로고침 보내기</button></div>
+    <div class="card em"><div class="tx"><h3>홈페이지 예약 ${on === false ? "다시 켜기" : "긴급 끄기"}</h3><p>${on === false ? "지금 꺼져 있습니다. 켜면 손님이 다시 홈페이지에서 예약을 넣을 수 있습니다." : "접수가 잘못 들어오거나 남은 자리가 틀릴 때. 끄면 예약 창이 전화 안내만 보여 줍니다. 사장님 초안에도 꺼짐으로 남습니다."}${on == null ? ' <span class="muted">(지금 상태는 점검 탭에서 확인)</span>' : ""}</p></div>
+      ${on === false ? `<button class="btn primary" onclick="act('booking_on', '홈페이지 예약을 다시 켤까요?')">다시 켜기</button>` : `<button class="btn danger fill" onclick="act('booking_off', '홈페이지 예약을 지금 끌까요? 손님에게 바로 전화 안내만 보입니다.')">예약 끄기</button>`}</div>
+    <div class="card em"><div class="tx"><h3>전체 백업</h3><p>예약·설정·손님·직원·근무·홈페이지·요청을 JSON 한 파일로 이 기기에 내려받습니다. 큰 작업 전에, 또는 서버가 이상할 때.</p></div>
+      <button class="btn" id="bk" onclick="backup()">백업 내려받기</button></div>
+    <h2 class="sec">바로가기</h2>
+    <div class="links">
+      <a class="btn sm" href="/system/" target="_blank" rel="noopener">가게 시스템</a>
+      <a class="btn sm" href="/system/dev/" target="_blank" rel="noopener">개발용 시스템(dev 서버)</a>
+      <a class="btn sm" href="/system/screen/" target="_blank" rel="noopener">손님 TV</a>
+      <a class="btn sm" href="https://supabase.com/dashboard/project/jgjrpzjbvptgvrgreibe" target="_blank" rel="noopener">Supabase</a>
+      <a class="btn sm" href="https://github.com/madang-kr/hanok" target="_blank" rel="noopener">GitHub</a>
+    </div>`;
+}
+
+/* ---------- 틀 ---------- */
+function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "em" && !S.health) loadHealth(); }
+function go(t){ S.tab = t; loadTab(); render(); }
+function render(){
+  if(!CFG.url){ $app.innerHTML = '<p class="spin">접속 설정(js/config.js)을 못 읽었습니다</p>'; return; }
+  if(!S.sess){
+    $app.innerHTML = `<header><h1>마당 <span>· 개발자</span></h1></header>
+      <form class="card login" onsubmit="login(event)"><h2>개발자 로그인</h2><p>재아 계정만 들어옵니다.</p>
+        <label class="f"><span>아이디</span><input id="id" type="text" autocomplete="username" value="${DEV_ID}" autocapitalize="off" spellcheck="false"></label>
+        <label class="f"><span>비밀번호</span><input id="pw" type="password" autocomplete="current-password" autofocus></label>
+        <div class="err">${esc(S.err)}</div>
+        <button class="btn primary" ${S.busy ? "disabled" : ""}>${S.busy ? "확인 중…" : "들어가기"}</button></form>`;
+    const pw = document.getElementById("pw"); if(pw && !S.busy) pw.focus();
+    return;
+  }
+  const open = S.reqs ? S.reqs.filter(r => !isDone(r)) : [], urg = open.filter(r => r.urgent).length;
+  $app.innerHTML = `<header><h1>마당 <span>· 개발자 · 한옥반점</span></h1><span class="sp"></span><button class="btn sm" onclick="logout()">로그아웃</button></header>
+    <nav class="tabs">
+      <button class="${S.tab === "req" ? "on" : ""}" onclick="go('req')">개발자에게${open.length ? `<span class="badge${urg ? " red" : ""}">${open.length}</span>` : ""}</button>
+      <button class="${S.tab === "health" ? "on" : ""}" onclick="go('health')">점검</button>
+      <button class="${S.tab === "em" ? "on" : ""}" onclick="go('em')">긴급</button>
+    </nav>
+    ${S.tab === "req" ? tabReq() : S.tab === "health" ? tabHealth() : tabEm()}`;
+}
+S.sess = loadSess();
+render();
+if(S.sess) ensureSess().then(ok => { if(ok) loadTab(); render(); });
+</script>
+</body>
+</html>

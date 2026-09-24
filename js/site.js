@@ -58,7 +58,7 @@ window.SITE_READY.then(function(){
     <div class="foot-copy"><span>© ${new Date().getFullYear()} 한옥반점</span><span>대표 ${esc(INFO.owner)} · 사업자등록번호 ${esc(INFO.bizno)}</span></div>`;
   document.body.append(foot);
 
-  /* ---------- 팝업창: 여러 개가 왼쪽 위에 겹쳐 뜸. '오늘 하루 보지 않기' 는 그 팝업만 하루 숨김. ?notice=1 이면 무조건 ---------- */
+  /* ---------- 팝업창: 여러 개면 왼쪽 위부터 나란히(겹치지 않게). '오늘 하루 보지 않기' 는 그 팝업만 하루 숨김. ?notice=1 이면 무조건 ---------- */
   (function popups(){
     const list = (window.NOTICES || []).filter(n => n && n.title);
     if(!list.length) return;
@@ -75,8 +75,9 @@ window.SITE_READY.then(function(){
     const show = only ? list.filter(n => n.id === decodeURIComponent(only)) : list.filter(n => (!n.from || ymd >= n.from) && (!n.until || ymd <= n.until) && (force || !hidden(n.id)));   /* 시작일 전·마감일 뒤는 안 뜸 */
     if(!show.length) return;
     const wrap = document.createElement("div"); wrap.className = "pops";
-    wrap.innerHTML = show.map((n, i) => `<div class="pop" style="left:${40 + 32*i}px; top:${110 + 32*i}px; width:${n.img ? 420 : 380}px; z-index:${10+i}" role="dialog" aria-label="${esc(n.title)}">
-        <div class="pop-b">
+    /* 09-24 재아: 두 장 이상이면 겹치지 말고 나란히(PC 는 옆 자리가 넉넉함). 줄이 넘치면 다음 줄로 — 배치는 CSS(.pops 가 flex) */
+    wrap.innerHTML = show.map((n, i) => `<div class="pop${n.img ? " has-img" : ""}" style="width:${n.img ? 420 : 380}px; z-index:${10+i}" role="dialog" aria-label="${esc(n.title)}">
+        <div class="pop-b${n.img && !n.button ? " only-img" : ""}">
           ${n.img ? `<img src="${esc(imgUrl(n.img))}" alt="${esc(n.title)}">` : `<h3>${esc(n.title)}</h3>${(n.lines||[]).map(l=>`<p>${esc(l)}</p>`).join("")}`}
           ${n.button ? `<button type="button" class="btn fill sm" data-reserve>${esc(n.button)}</button>` : ""}
         </div>

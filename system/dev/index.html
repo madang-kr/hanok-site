@@ -1631,6 +1631,8 @@ label.chk span{width:auto}
 /* 문자 설정 안의 두 묶음 제목(예약 문자 안내 / 감사 문자) */
 .set-part-h{font-size:var(--fs-title); font-weight:700; margin:var(--s16) 0 var(--s8); padding-top:var(--s12); border-top:1px solid var(--border)}
 .set-part-h:first-child{margin-top:0; padding-top:0; border-top:none}
+/* 광고 영상 첨부 칸 아래 여백 — 바로 밑 'TV 전용 주소' 상자에 붙어 보였음(09-24) */
+.set-up{margin-bottom:var(--s12)}
 /* ---------- 홈페이지 관리 (14b-site-admin.js) ----------
    설정 화면과 같은 부품(.f .lb .in-sm .btn .tag .card)을 쓰고, 여기서는 배치만. 태블릿(820)이 기준, 폰은 한 단으로 */
 .sa-top{display:flex; flex-wrap:wrap; align-items:center; gap:var(--s12); padding:var(--s12) var(--s16); margin:-8px 0 var(--s12); background:var(--surface-2); border-radius:var(--r-sm)}
@@ -1820,8 +1822,8 @@ button.sa-card:hover{border-color:var(--text-3)}
 .sa-body .sa-rowbtns .btn{width:38px; min-width:38px; padding:0}
 .sa-x{width:38px; height:38px}
 .sa-row > .sa-f{margin-bottom:0}
-/* 사진 줄의 ↑↓× 는 입력칸과 같은 높이에 — 사진 미리보기(54px) 가운데에 칸이 놓이므로 (54-38)/2 = 8px 올림 */
-.sa-body .sa-row > .sa-rowbtns{margin-bottom:8px}
+/* 사진 줄의 ↑↓× — 예전엔 미리보기가 54px 라 8px 올렸는데, 첨부 칸 통일(09-24)로 미리보기도 38px 이 되어 바닥 맞춤 그대로 */
+.sa-body .sa-row > .sa-rowbtns{margin-bottom:0}
 
 /* ================= 09-24 3차: 위 띠 — 수정사항 있으면 노란 상자, 없으면 상자 없이 단추만 ================= */
 .sa-top2{display:flex; align-items:center; flex-wrap:wrap; gap:var(--s8); margin:-8px 0 var(--s12); min-height:38px}
@@ -1835,6 +1837,17 @@ button.sa-card:hover{border-color:var(--text-3)}
 .sa-apply-chk input{width:20px; height:20px; min-height:0; margin:0; accent-color:var(--text)}
 .sa-apply-at{margin-bottom:var(--s8)}
 @media (max-width:640px){ .sa-top2 .sa-acts{width:100%; margin-left:0} .sa-top2 .sa-acts .btn{flex:1 1 auto} }
+
+/* 첨부 칸 하나(saUpRow, 09-24) — [보기] 파일 이름 · 열기 · 올리기/바꾸기 · ×. 주소 입력창은 없앰(사장님이 볼 일 없음).
+   홈페이지 관리·소식 첨부·TV 광고 영상이 모두 이 모양. 이름 칸은 회색 '읽기 전용' 칸 — 입력창처럼 보이면 눌러서 고치려 함.
+   보기·이름·단추·× 전부 38px — 옆에 ↑↓× 가 붙는 줄(첫 화면 사진)과도 높이가 같게(audit_rows) */
+.sa-up{display:flex; align-items:center; gap:var(--s8); min-width:0; flex:1 1 auto}
+.sa-up + .sa-up{margin-top:var(--s8)}
+.sa-up .sa-thumb{flex:0 0 52px; width:52px; height:38px}
+.sa-up-name{flex:1 1 auto; min-width:0; height:38px; line-height:36px; padding:0 var(--s12); border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-body); cursor:default}
+.sa-up-name.muted{color:var(--text-3)}
+.sa-up .btn{flex:0 0 auto; height:38px; min-height:38px; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center}
+.sa-up .sa-x{width:38px; height:38px}
 /* ============================================================
    07c. 직원 근태(14d) · 손님 관리(14e) — 15차
    ============================================================ */
@@ -3518,11 +3531,28 @@ function resToRow(rec, storeKey){
            people:pplOf(rec), room_id:rec.roomId || null, data:data, deleted_at:rec.deletedAt || null };
 }
 
+/* ---------- 개발자 페이지의 '모든 기기 새로고침'(23차, 09-24) ----------
+   개발자가 누르면 서버 매장 설정 _reloadAt 이 바뀜 → 이 기기가 켤 때 본 값과 달라지면 못 보낸 것을 보내고 새로고침.
+   고친 판을 올린 뒤 카운터 태블릿·폰·TV 가 옛 화면을 붙들고 있을 때 씀. 기기 시계는 안 믿고 '값이 바뀌었나' 만 봄.
+   여러 기기가 한꺼번에 다시 읽지 않게 0.3~3초 흩뜨림 */
+var RELOAD_SEEN = null;
+function reloadWatch(v){
+  v = v || "";
+  if(RELOAD_SEEN === null){ RELOAD_SEEN = v; return; }
+  if(v === RELOAD_SEEN) return;
+  RELOAD_SEEN = v;
+  setTimeout(function(){
+    var p = (SESSION && !OFFLINE) ? flush() : null;
+    Promise.resolve(p).catch(function(){}).then(function(){ location.reload(); });
+  }, 300 + Math.random() * 2700);
+}
+
 /* ---------- 읽기 ---------- */
 /* 1년치만 읽습니다. 1년 넘은 노쇼 이력은 안 보이는 것을 감수(지시서 6장) */
 async function loadFromServer(){
   var from = shiftDate(todayStr(), -365), trashFrom = shiftDate(todayStr(), -30);
   var rows = await sb("/rest/v1/stores?select=*");
+  var hk = rows.find(function(r){ return r.key === "hanok"; }); reloadWatch(hk && hk.settings && hk.settings._reloadAt);
   var d = { _logs: [] }, keys = Object.keys(DEFAULT_DATA), i, k, srow;
   for(i = 0; i < keys.length; i++){
     k = keys[i]; srow = rows.find(function(r){ return r.key === k; }) || {};
@@ -3634,6 +3664,7 @@ async function reloadFromStore(){
     var srow = stores.find(function(r){ return r.key === k; });
     if(srow && srow.updated_at !== SYNC.storeUpd[k]){
       srow = (await sb("/rest/v1/stores?key=eq." + k + "&select=key,name,settings,snapshots,updated_at"))[0] || srow;
+      if(k === "hanok") reloadWatch(srow.settings && srow.settings._reloadAt);
       if(JSON.stringify(st.settings) === SYNC.settings[k]){ var mg = {}; mg[k] = { settings: srow.settings || {} }; st.settings = migrate(mg)[k].settings; SYNC.settings[k] = JSON.stringify(st.settings); changed = true; }
       if(JSON.stringify(st.snapshots || {}) === SYNC.snapshots[k]){ st.snapshots = srow.snapshots || {}; SYNC.snapshots[k] = JSON.stringify(st.snapshots); }
       SYNC.storeUpd[k] = srow.updated_at;
@@ -3761,6 +3792,7 @@ async function loadPublic(){
   var d = {};
   Object.keys(DEFAULT_DATA).forEach(function(k){
     var row = st.find(function(r){ return r.store === k; }) || {}, sset = {}, key;
+    if(k === "hanok") reloadWatch(row.settings && row.settings.reloadAt);   /* TV — 공개 뷰가 reloadAt 을 같이 줌(23차) */
     /* 뷰는 없는 키를 null 로 줍니다(settings->'rooms'). null 을 그대로 넘기면 migrate 의 기본값을 덮어 화면이 죽습니다 */
     for(key in (row.settings || {})) if(row.settings[key] != null) sset[key] = row.settings[key];
     d[k] = { name: row.name || DEFAULT_DATA[k].name, settings: sset, reservations: [] };
@@ -7937,11 +7969,7 @@ function renderSettings(){
     <p class="f-note">오늘 남은 예약이 하나도 없으면(30분 넘게 지난 것은 빼고) 목록·좌석표 대신 광고 영상만 화면 가득 틉니다. 예약이 생기면 다음 갱신(1분) 때 목록으로 돌아옵니다.</p>
 
     <div class="subhead">광고 영상 <span>목록 화면 왼쪽에 나옵니다</span></div>
-    <div class="ub-row">
-      <span class="grow" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${st.tvAd ? `<a href="${esc(adUrl(st.tvAd))}" target="_blank" rel="noopener">${esc(st.tvAd.replace(/^.*\//, ""))}</a>` : `<span class="muted">영상 없음 — 매장 사진이 넘어갑니다</span>`}</span>
-      <button class="btn sm" onclick="saPickFile('video', function(url){ setPolicy('tvAd', url); })">영상 올리기</button>
-      ${st.tvAd ? `<button class="btn sm ghost" onclick="setPolicy('tvAd', '')">비우기</button>` : ``}
-    </div>
+    <div class="set-up">${saUpRow({ v:st.tvAd || "", kind:"video", open:true, href:st.tvAd ? adUrl(st.tvAd) : "", pick:"setPolicy('tvAd', u);", clear:"setPolicy('tvAd', '')", empty:"영상 없음 — 매장 사진이 넘어갑니다" })}</div>
     <p class="f-note">
       태블릿·PC 에서 영상 파일을 고르면 서버에 올라가고 TV 가 그걸 틉니다(적용하기를 눌러야 바뀜).<br>
       · <b>H.264 (MP4)</b> 로 만드세요. 다른 형식은 구형 TV에서 안 나옵니다. 50MB 까지.<br>
@@ -8074,7 +8102,7 @@ function renderSettings(){
     ${sec("sms","문자 설정",
       sm.on===false ? "예약 문자 안 보냄"
         : `${offsetLabel(sm.remindOffset)} ${hm(pad(sm.remindHour)+":00")}`,
-      `<div class="set-part-h">예약 문자 안내</div>` + smsBodyUI + `<div class="set-part-h">감사 문자</div>` + (typeof thSettingsBody === "function" ? thSettingsBody(st) : ""))}   /* 문자 안내 + 감사 문자 AI 를 한 구역으로(09-24 재아) */
+      `<div class="set-part-h">예약 문자 안내</div>` + smsBodyUI + `<div class="set-part-h">감사 문자</div>` + (typeof thSettingsBody === "function" ? thSettingsBody(st) : ""))}
     ${sec("disp","디스플레이",`${tvType()==="grid"?"좌석표":"목록"} · 광고 영상`, dispBody)}
     ${sec("policy","운영 판단",
       `정원 ${st.minCountAdultsOnly===false?"총원":"성인"} · 임박 ${st.loSoon!=null?st.loSoon:120}분`,
@@ -8594,13 +8622,40 @@ function saD(path, label, note){   /* 날짜 — 기기 달력으로 */
   var v = saGet(path); if(v == null) v = "";
   return '<label class="f sa-f"><div class="lb">' + esc(label) + '</div><input type="date" class="in-sm" value="' + esc(v) + '" onchange="saSet(\'' + path + '\', this.value); render()">' + (note ? '<div class="f-note">' + note + '</div>' : '') + '</label>';
 }
-function saI(path, label, note){   /* 사진: 작은 보기 + 파일명/주소 + 올리기 */
-  var v = saGet(path); if(v == null) v = "";
-  return '<div class="f sa-f sa-img"><div class="lb">' + esc(label) + '</div><div class="sa-imgrow"><div class="sa-thumb">' + (v ? '<img src="' + esc(saImg(v)) + '" alt="" onerror="this.parentNode.classList.add(\'bad\')">' : '') + '</div><input type="text" class="in-sm" value="' + esc(v) + '" placeholder="img/ 파일명 또는 https:// 주소" oninput="saSet(\'' + path + '\', this.value)" onchange="render()"><button class="btn sm" onclick="saPickFile(\'image\', function(u){ saSet(\'' + path + '\', u); render(); })">올리기</button></div>' + (note ? '<div class="f-note">' + note + '</div>' : '') + '</div>';
+/* ---------- 파일 칸 하나 (09-24 재아: 첨부 양식 통일) ----------
+   예전엔 주소(https://…)가 입력창에 그대로 보여 고칠 수 있었음 — 사장님이 주소를 볼 일도, 손댈 일도 없음.
+   이제 [작은 보기] 파일 이름 · 올리기/바꾸기 · × 만. 이름은 올린 파일의 원래 이름(saFileLabel).
+   o = { v:값, kind:"image"|"pdf"|"video"|"file", pick:"u 를 받는 JS 문장", clear:"지우는 JS 문장"(없으면 × 안 보임), thumb:true, empty:"비었을 때 문구", name:"보일 이름"(없으면 주소에서) } */
+function saUpRow(o){
+  var v = o.v || "", name = o.name || saFileLabel(v);
+  return '<div class="sa-up">' +
+    (o.thumb ? '<div class="sa-thumb">' + (v ? '<img src="' + esc(saImg(v)) + '" alt="" onerror="this.parentNode.classList.add(\'bad\')">' : '') + '</div>' : '') +
+    '<span class="sa-up-name' + (v ? '' : ' muted') + '" title="' + esc(name) + '">' + esc(v ? name : (o.empty || "없음")) + '</span>' +
+    (v && o.open ? '<a class="btn sm ghost" href="' + esc(o.href || (o.kind === "image" ? saImg(v) : v)) + '" target="_blank" rel="noopener">열기</a>' : '') +
+    '<button type="button" class="btn sm" onclick="saPickFile(\'' + o.kind + '\', function(u, n){ ' + o.pick + ' })">' + (v ? "바꾸기" : "올리기") + '</button>' +
+    (v && o.clear ? '<button type="button" class="sa-x" onclick="' + o.clear + '" aria-label="빼기">×</button>' : '') +
+  '</div>';
 }
-function saFile(path, label, note){   /* PDF 같은 파일: 주소 + 올리기 */
+/* 보이는 파일 이름: 올릴 때 원래 이름을 경로에 담아 둠(_x-<base64url>, saFileChosen) → 풀어서 '가을 메뉴.jpg'.
+   그 전에 올린 것은 '시각_이름' 에서 시각을 떼고, img/ 파일(bg2.jpg)은 그대로 */
+function saFileLabel(v){
+  if(!v) return "";
+  var seg = String(v).split("?")[0].split("/").pop(), m = seg.match(/^[0-9a-z]+_x-([A-Za-z0-9_-]+)\.([A-Za-z0-9]+)$/);
+  if(m){ try{ var b = m[1].replace(/-/g, "+").replace(/_/g, "/"); while(b.length % 4) b += "="; var nm = decodeURIComponent(escape(atob(b))); if(nm && !/[\u0000-\u001f]/.test(nm)) return nm + "." + m[2]; }catch(e){} }
+  if(/\/storage\//.test(v)){ var m2 = seg.match(/^[0-9a-z]{6,10}_(.+)$/); if(m2) seg = m2[1]; }
+  try{ return decodeURIComponent(seg); }catch(e){ return seg; }
+}
+function saI(path, label, note, clearable){   /* 사진: 작은 보기 + 파일 이름 + 올리기(바꾸기) [+ ×] */
   var v = saGet(path); if(v == null) v = "";
-  return '<div class="f sa-f"><div class="lb">' + esc(label) + '</div><div class="sa-imgrow"><input type="text" class="in-sm" value="' + esc(v) + '" oninput="saSet(\'' + path + '\', this.value)"><button class="btn sm" onclick="saPickFile(\'pdf\', function(u){ saSet(\'' + path + '\', u); render(); })">올리기</button></div>' + (note ? '<div class="f-note">' + note + '</div>' : '') + '</div>';
+  return '<div class="f sa-f sa-img"><div class="lb">' + esc(label) + '</div>' +
+    saUpRow({ v:v, kind:"image", thumb:true, pick:"saSet('" + path + "', u); render();", clear:clearable ? "saSet('" + path + "', ''); render()" : "", empty:"사진 없음" }) +
+    (note ? '<div class="f-note">' + note + '</div>' : '') + '</div>';
+}
+function saFile(path, label, note){   /* PDF 같은 파일: 파일 이름 + 열기 + 올리기(바꾸기) */
+  var v = saGet(path); if(v == null) v = "";
+  return '<div class="f sa-f"><div class="lb">' + esc(label) + '</div>' +
+    saUpRow({ v:v, kind:"pdf", open:true, pick:"saSet('" + path + "', u); render();", empty:"파일 없음" }) +
+    (note ? '<div class="f-note">' + note + '</div>' : '') + '</div>';
 }
 
 /* ---------- 파일 올리기 (Storage 'site' 버킷, 공개 읽기·직원만 쓰기) ----------
@@ -8625,7 +8680,10 @@ async function saFileChosen(e){
     else if(p.kind === "video"){ if(!/mp4|quicktime|video\//.test(type) && ext !== "mp4") throw new Error("MP4 영상만 올릴 수 있습니다"); if(ext !== "mp4") throw new Error("MP4(H.264) 로 바꿔서 올려 주세요 — 구형 TV 는 다른 형식을 못 틉니다"); type = "video/mp4"; }
     else if(p.kind === "file"){ if(!type) type = "application/octet-stream"; if(!ext) ext = "bin"; }   /* 한글(hwp) 같은 건 브라우저가 종류를 모름 → 그냥 파일 */
     if(blob.size > 50 * 1024 * 1024) throw new Error("50MB 를 넘습니다 (" + Math.round(blob.size / 1048576) + "MB)");
-    var safe = f.name.replace(/\.[^.]+$/, "").replace(/[^0-9A-Za-z_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "file";   /* Storage 는 한글 키를 거부합니다("Invalid key") — 영문·숫자만 */
+    /* Storage 는 한글 키를 거부합니다("Invalid key") → 원래 이름을 base64url 로 담아 둠(_x-…). 화면에는 saFileLabel 이 풀어서 '가을 메뉴.jpg' 로(09-24) */
+    var base = f.name.replace(/\.[^.]+$/, "").slice(0, 60) || "file", safe;
+    try{ safe = "x-" + btoa(unescape(encodeURIComponent(base))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+    catch(x){ safe = base.replace(/[^0-9A-Za-z_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "file"; }
     var path = (view.storeKey || "hanok") + "/" + p.kind + "/" + Date.now().toString(36) + "_" + safe + "." + ext;
     var res = await fetch(SUPA_CFG.url + "/storage/v1/object/site/" + path, { method:"POST", headers:{ "apikey":SUPA_CFG.anonKey, "Authorization":"Bearer " + SESSION.access_token, "Content-Type":type, "x-upsert":"true", "Cache-Control":"max-age=31536000" }, body:blob });
     if(!res.ok){ var t = ""; try{ t = (await res.json()).message || ""; }catch(x){} throw new Error("올리기 실패 " + res.status + (t ? " · " + t : "")); }
@@ -8761,7 +8819,7 @@ function saNtCard(n, i, total){
     '<div class="grid2">' + saF(p + "title", "제목") + saField("기간", saRangeBtn(p + "from", p + "until", "팝업 기간", {openEnd:true, ph:"바로부터 계속"})) + '</div>' +
     saL(p + "lines", "내용", "", 4) +
     saSwHtml(!!n.button, "saSet('" + p + "button', " + (n.button ? "''" : "'예약하기'") + "); render()", "예약 버튼 추가") +
-    saI(p + "img", "그림 팝업", "그림을 넣으면 글 대신 그림 한 장이 뜹니다") +
+    saI(p + "img", "그림 팝업", "그림을 넣으면 글 대신 그림 한 장이 뜹니다", true) +
     '<div class="sa-card-f">' +
       '<button class="btn sm ghost danger" onclick="saNtDel(' + i + ')">삭제</button>' +
       (total > 1 ? '<button class="btn sm ghost" onclick="saNtMove(' + i + ', -1)" aria-label="위로"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn sm ghost" onclick="saNtMove(' + i + ', 1)" aria-label="아래로"' + (i === total - 1 ? ' disabled' : '') + '>↓</button>' : '') +
@@ -8920,7 +8978,6 @@ function saPostImgDel(i){ SA.post.images.splice(i, 1); render(); }
 function saPostImgMove(i, d){ var a = SA.post.images, j = i + d; if(j < 0 || j >= a.length) return; var t = a[i]; a[i] = a[j]; a[j] = t; render(); }
 function saPostFileAdd(){ saPickFile("file", function(u, name){ SA.post.files.push({name:name || u.split("/").pop(), url:u}); render(); }); }
 function saPostFileDel(i){ SA.post.files.splice(i, 1); render(); }
-function saPostFileName(i, v){ SA.post.files[i].name = v; saPostHeader(); }
 /* 저장 = 바로 게시(또는 초안). 새 글은 POST, 있던 글은 같은 id 로 upsert */
 async function saPostSave(status){
   var p = SA.post; if(!p) return;
@@ -8972,8 +9029,8 @@ function saPostEditor(){
       '<button class="btn sm ghost" onclick="saPostImgDel(' + i + ')">×</button></div></div>';
   }).join("");
   var files = (p.files || []).map(function(f, i){
-    return '<div class="sa-row"><input type="text" class="in-sm" value="' + esc(f.name || "") + '" placeholder="보이는 이름" oninput="saPostFileName(' + i + ', this.value)">' +
-      '<a class="btn sm ghost" href="' + esc(f.url) + '" target="_blank" rel="noopener">열기</a><button class="btn sm ghost" onclick="saPostFileDel(' + i + ')">×</button></div>';
+    /* 09-24: 이름 입력칸 대신 파일 이름만 — 다른 첨부 칸과 같은 모양(saUpRow). 이름은 올린 파일의 원래 이름 */
+    return saUpRow({ v:f.url, name:f.name, kind:"file", open:true, pick:"SA.post.files[" + i + "] = {name:n || saFileLabel(u), url:u}; render();", clear:"saPostFileDel(" + i + ")" });
   }).join("");
   return saBox(p._new ? "새 글" : "글 고치기",
       '<label class="f sa-f"><div class="lb">제목</div><input type="text" class="in-sm" value="' + esc(p.title) + '" placeholder="예: 추석 연휴 정상 영업" oninput="saPostSet(\'title\', this.value)"></label>' +
@@ -9948,6 +10005,17 @@ function thPrompt(r, kw){
   ]);
   return lines.filter(Boolean).join("\n");
 }
+/* 구글 오류를 사장님이 읽을 말로(09-24 재아: 'HTTP 402 · Your prepayment credits…' 가 그대로 떠서 무슨 뜻인지 모름).
+   숫자·영어 원문은 안 보임 — 재아가 볼 땐 개발자 도구 콘솔(console.warn)에. "MODEL" = 그 모델만 없음 → 다음 모델로 */
+function thErrKo(status, msg){
+  console.warn("Gemini 오류", status, msg);
+  if(/API key|API_KEY/i.test(msg) || status === 401 || status === 403) return "AI 키가 맞지 않습니다 — 설정 → 문자 설정 → 감사 문자에서 키를 확인하세요";
+  if(status === 402 || /prepayment|billing|credit/i.test(msg)) return "구글 AI 충전 잔액이 떨어졌습니다 — AI Studio 결제에서 충전하면 바로 됩니다";
+  if(status === 429) return "구글 AI 사용 한도를 넘었습니다 — 잠시 뒤 다시 눌러 주세요";
+  if(status === 404 || (status === 400 && /model/i.test(msg))) return "MODEL";
+  if(status >= 500) return "구글 AI 서버가 잠시 응답하지 않습니다 — 잠시 뒤 다시 눌러 주세요";
+  return "AI 글을 만들지 못했습니다(오류 " + status + ") — 기본 양식으로 보냅니다";
+}
 async function thGemini(prompt){
   var cfg = thCfg(); if(!cfg.key) throw new Error("NOKEY");
   var models = [cfg.model].concat(TH_MODELS.filter(function(m){ return m !== cfg.model; })), lastErr = null;
@@ -9959,23 +10027,19 @@ async function thGemini(prompt){
         body: JSON.stringify({ contents:[{ role:"user", parts:[{ text:prompt }] }], generationConfig:thGenCfg(model) }) });
     }catch(e){ clearTimeout(t); throw e; }
     clearTimeout(t);
-    if(res.status === 404 || res.status === 400){ var m0 = ""; try{ m0 = (await res.json()).error.message || ""; }catch(e){} lastErr = new Error("HTTP " + res.status + " · " + model + (m0 ? " · " + m0.slice(0, 80) : "")); continue; }   /* 그 모델이 없으면 다음 모델 */
     if(!res.ok){
       var m = ""; try{ m = (await res.json()).error.message || ""; }catch(e){}
-      /* 사장님이 읽을 말로 — 영어 원문만 뜨면 '키가 안 먹는다'로 보임(09-24: 새 키는 맞았는데 선불 잔액이 0 이라 402) */
-      var ko = res.status === 402 || /prepayment|billing/i.test(m) ? "구글 AI 결제 잔액이 없음 — AI Studio → 결제에서 충전하세요"
-             : res.status === 429 ? "구글 AI 사용 한도 초과 — 잠시 뒤 다시"
-             : res.status === 401 || res.status === 403 ? "Gemini 키가 거부됨 — 키가 맞는지, 키의 웹사이트 제한에 hanokbanjeom.com 이 있는지 확인"
-             : "";
-      throw new Error((ko ? ko + " · " : "") + "HTTP " + res.status + (m && !ko ? " · " + m.slice(0, 120) : ""));
+      var ko = thErrKo(res.status, m);
+      if(ko === "MODEL"){ lastErr = new Error("구글 AI 모델(" + model + ")을 쓸 수 없음 — 다른 모델로 시도했지만 모두 안 됨"); continue; }   /* 그 모델이 없으면 다음 모델 */
+      throw new Error(ko);
     }
     var j = await res.json(), text = "";
     try{ text = j.candidates[0].content.parts.filter(function(p){ return p.text && !p.thought; }).map(function(p){ return p.text; }).join("").trim(); }catch(e){}   /* 생각(thought) 조각은 뺌 */
-    if(!text){ lastErr = new Error("빈 응답 · " + model); continue; }
+    if(!text){ lastErr = new Error("AI 가 빈 글을 돌려줬습니다 — 다시 눌러 주세요"); continue; }
     if(cfg.model !== model) thSaveCfg({model:model});   /* 되는 모델을 기억 */
     return text.replace(/^```[\s\S]*?\n|```$/g, "").trim();
   }
-  throw lastErr || new Error("쓸 수 있는 모델이 없음");
+  throw lastErr || new Error("구글 AI 모델을 쓸 수 없음");
 }
 async function thMake(resId, force){
   var r = store().reservations.find(function(x){ return x.id === resId; }); if(!r) return;
@@ -9992,7 +10056,7 @@ async function thMake(resId, force){
     it.text = t; it.made = "ai"; it.err = ""; it.manual = false;
   }catch(e){
     if(e.message === "STOP"){ TH.busy[resId] = false; return; }
-    var why = e.name === "AbortError" ? "응답이 25초 안에 안 옴" : e.message === "NOKEY" ? "Gemini 키가 없음 — 설정 → 문자 설정 → 감사 문자에서 넣으세요" : e.message;
+    var why = e.name === "AbortError" ? "AI 응답이 25초 안에 오지 않았습니다 — 다시 눌러 주세요" : e instanceof TypeError ? "인터넷 연결을 확인해 주세요" : e.message === "NOKEY" ? "Gemini 키가 없음 — 설정 → 문자 설정 → 감사 문자에서 넣으세요" : e.message;
     it.err = why; if(!it.text || force){ it.text = thTemplate(r, thKw(it)); it.made = "template"; }
   }
   TH.busy[resId] = false; render();
@@ -10109,7 +10173,7 @@ function thMakeHtml(){
       '<div class="th-kwrow"><div class="chips"><input id="th-kw-' + r.id + '" type="text" class="chip-in" placeholder="키워드 — 예: 아버님 팔순 (Enter)" onkeydown="thKwKey(event, \'' + r.id + '\')"><button class="btn sm ghost" onclick="var el=document.getElementById(\'th-kw-' + r.id + '\'); thAddKw(\'' + r.id + '\', el.value); el.value=\'\'">등록</button></div>' +
         (presets ? '<div class="chips presets">' + presets + '</div>' : '') + '</div>' +
       (showText ? '<textarea id="th-ta-' + r.id + '" class="th-text grow" rows="2" placeholder="문자 내용" oninput="thSetText(\'' + r.id + '\', this.value, this)" maxlength="' + cfg.maxLen + '">' + esc(it.text) + '</textarea>' : '') +
-      '<div class="th-meta"><span>' + (it.err ? '<span class="rust">AI 실패: ' + esc(it.err) + '</span> · ' : '') + (showText ? (it.text.length + '자 / ' + cfg.maxLen + '자' + (thMadeLabel(it) ? ' · ' + thMadeLabel(it) : '')) : '아직 글이 없습니다') + '</span>' +
+      '<div class="th-meta"><span>' + (it.err ? '<span class="rust">' + esc(it.err) + '</span> · ' : '') + (showText ? (it.text.length + '자 / ' + cfg.maxLen + '자' + (thMadeLabel(it) ? ' · ' + thMadeLabel(it) : '')) : '아직 글이 없습니다') + '</span>' +
         (it.manual ? '<label class="chk th-tpl"><input type="checkbox" ' + (it.made === "template" ? "checked" : "") + ' onchange="thToggleTemplate(\'' + r.id + '\', this.checked)"> 기본양식 적용하기</label>' : '') + '</div>' +
       '</div>';
   }).join("");
