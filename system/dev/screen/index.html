@@ -1848,6 +1848,16 @@ button.sa-card:hover{border-color:var(--text-3)}
 .sa-up-name.muted{color:var(--text-3)}
 .sa-up .btn{flex:0 0 auto; height:38px; min-height:38px; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center}
 .sa-up .sa-x{width:38px; height:38px}
+
+/* 소식 목록 작은 사진(09-24 재아) — 첫 장만, 여러 장이면 위에 겹친 네모 표시. 사진 없는 글도 같은 자리를 비워 제목 줄이 맞게 */
+.sa-post-row{gap:var(--s12); align-items:center}
+.sa-post-th{position:relative; flex:0 0 56px; width:56px; height:56px; border-radius:var(--r-sm); overflow:hidden; background:var(--surface-2)}
+.sa-post-th.none{background:transparent; border:1px dashed var(--border)}
+.sa-post-th img{width:100%; height:100%; object-fit:cover; display:block}
+.sa-post-th .many{position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:4px; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center}
+.sa-post-th .many svg{width:12px; height:12px; fill:none; stroke:#fff; stroke-width:1.5}
+.sa-post-row.off .sa-post-th img{opacity:.45}
+.sa-post-row.off .sa-post-n{color:var(--text-3)}
 /* ============================================================
    07c. 직원 근태(14d) · 손님 관리(14e) — 15차
    ============================================================ */
@@ -9062,6 +9072,8 @@ async function saPostsLoad(){
   try{
     var key = view.storeKey || "hanok";
     SA.posts = await sb("/rest/v1/site_posts?store=eq." + key + "&status=neq.%EC%82%AD%EC%A0%9C&select=id,title,body,date,images,files,pinned,status,updated_at,by&order=pinned.desc,date.desc,created_at.desc&limit=300");
+    /* 지운 글 — 목록 아래 접어서, 되살리기(09-24 재아: 글이 날아가면 안 됨). 지운 건 status '삭제' 일 뿐 서버에 그대로 있음 */
+    SA.postsDel = await sb("/rest/v1/site_posts?store=eq." + key + "&status=eq.%EC%82%AD%EC%A0%9C&select=id,title,date,images,updated_at&order=updated_at.desc&limit=100");
     SA.postsErr = null;
   }catch(e){ SA.posts = SA.posts || []; SA.postsErr = e.message || String(e); }
   SA.postsLoading = false; render();
@@ -9097,19 +9109,31 @@ async function saPostSave(status){
               images:p.images || [], files:p.files || [], pinned:!!p.pinned, status:status || p.status || "게시", by:(SESSION && SESSION.who) || "" };
   try{
     await sb("/rest/v1/site_posts?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
-    logEvent("소식 " + (row.status === "게시" ? "게시" : "초안 저장"), row.title);
-    showToast(row.status === "게시" ? "게시했습니다 — 홈페이지 소식에 바로 나옵니다" : "초안으로 저장했습니다");
+    logEvent("소식 " + ({"게시":"게시", "초안":"초안 저장", "비공개":"비공개"})[row.status], row.title);
+    showToast(row.status === "게시" ? "게시했습니다 — 홈페이지 소식에 바로 나옵니다" : row.status === "비공개" ? "비공개로 내렸습니다 — 홈페이지에서 안 보이고, 여기엔 그대로 있습니다" : "초안으로 저장했습니다");
     SA.post = null; await saPostsLoad();
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
 async function saPostDelete(){
   var p = SA.post; if(!p || p._new){ SA.post = null; render(); return; }
-  if(!await uiConfirm("이 글을 지울까요?", "홈페이지에서 사라집니다. 지운 글은 되살릴 수 없습니다(사진·파일은 남음).", {ok:"지우기", cancel:"취소"})) return;
+  if(!await uiConfirm("이 글을 지울까요?", "홈페이지에서 사라집니다. 목록 맨 아래 '지운 글' 에서 다시 되살릴 수 있습니다. 잠깐 내리기만 하려면 '비공개' 를 쓰세요.", {ok:"지우기", cancel:"취소"})) return;
   try{
     await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(p.id), { method:"PATCH", body:{status:"삭제"}, prefer:"return=minimal" });
     logEvent("소식 삭제", p.title);
     SA.post = null; await saPostsLoad();
   }catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
+}
+async function saPostRestore(id){
+  try{
+    await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(id), { method:"PATCH", body:{status:"비공개"}, prefer:"return=minimal" });
+    logEvent("소식 되살림", id); showToast("되살렸습니다 — 비공개로 두었으니 확인하고 게시하세요"); await saPostsLoad();
+  }catch(e){ await uiAlert("되살리지 못했습니다", e.message || String(e), "warn"); }
+}
+/* 목록 작은 사진 — 첫 장. 여러 장이면 위에 겹친 네모 표시(몇 장인지는 옆 글자에) */
+function saPostThumb(imgs){
+  if(!imgs || !imgs.length) return '<span class="sa-post-th none"></span>';
+  return '<span class="sa-post-th"><img src="' + esc(imgs[0]) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+    (imgs.length > 1 ? '<i class="many" aria-label="사진 ' + imgs.length + '장"><svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="10" height="10" rx="1.5"/><path d="M11.5 14.5h-8.5a1.5 1.5 0 0 1-1.5-1.5v-8.5"/></svg></i>' : '') + '</span>';
 }
 function saPostWhen(iso){ var d = new Date(iso); return isNaN(d) ? "" : (d.getMonth()+1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
 
@@ -9123,12 +9147,17 @@ function saTabPosts(){
     : !list.length ? '<div class="empty">아직 글이 없습니다. "새 글" 로 첫 소식을 올려 보세요.</div>'
     : list.map(function(p){
         var imgs = (p.images || []).length, files = (p.files || []).length;
-        return '<button class="rowitem tap" onclick="saPostEdit(\'' + p.id + '\')">' +
-          '<span class="grow"><span class="t sa-post-t"><span class="sa-post-n">' + esc(p.title) + '</span>' + (p.pinned ? '<span class="tag pine sm">고정</span>' : '') + (p.status === "초안" ? '<span class="tag amber sm">임시 저장</span>' : '') + '</span>' +
+        return '<button class="rowitem tap sa-post-row' + (p.status === "비공개" ? ' off' : '') + '" onclick="saPostEdit(\'' + p.id + '\')">' + saPostThumb(p.images) +
+          '<span class="grow"><span class="t sa-post-t"><span class="sa-post-n">' + esc(p.title) + '</span>' + (p.pinned ? '<span class="tag pine sm">고정</span>' : '') + (p.status === "초안" ? '<span class="tag amber sm">임시 저장</span>' : '') + (p.status === "비공개" ? '<span class="tag sm">비공개</span>' : '') + '</span>' +
           '<span class="s">' + esc(dateLabel(p.date)) + (imgs ? ' · 사진 ' + imgs : '') + (files ? ' · 파일 ' + files : '') + (p.updated_at ? ' · 고침 ' + saPostWhen(p.updated_at) : '') + '</span></span></button>';
       }).join("");
+  var del = (SA.postsDel || []).map(function(p){
+    return '<div class="rowitem sa-post-row">' + saPostThumb(p.images) + '<span class="grow"><span class="t">' + esc(p.title) + '</span><span class="s">' + esc(dateLabel(p.date)) + (p.updated_at ? ' · 지움 ' + saPostWhen(p.updated_at) : '') + '</span></span>' +
+      '<button class="btn sm" onclick="saPostRestore(\'' + p.id + '\')">되살리기</button></div>';
+  });
   return saBox("소식 글", '<div class="card searchbox" style="margin-bottom:12px">' + rows + '</div>' +
-      '<div class="btn-row"><button class="btn sm primary" onclick="saPostNew()">＋ 새 글</button></div>');
+      '<div class="btn-row"><button class="btn sm primary" onclick="saPostNew()">＋ 새 글</button></div>' +
+      saPast("postsDel", "지운 글", del));
 }
 function saPostEditor(){
   var p = SA.post;
@@ -9156,10 +9185,14 @@ function saPostEditor(){
         (p._new ? '' : '<button class="btn sm ghost danger" onclick="saPostDelete()">지우기</button>') +
         '<button class="btn sm" onclick="SA.postPreview=true; render()">미리보기</button>' +
         '<span id="sa-post-state" class="muted" style="margin-left:auto; font-size:var(--fs-label)">' + (saPostDirty() ? "고친 내용이 있습니다" : "") + '</span>' +
-        '<button class="btn sm" onclick="saPostSave(\'초안\')">임시 저장</button>' +
-        '<button class="btn sm primary" onclick="saPostSave(\'게시\')">' + (p.status === "게시" && !p._new ? "고친 것 게시" : "게시") + '</button>' +
+        (p.status === "게시" && !p._new
+          ? '<button class="btn sm" onclick="saPostSave(\'비공개\')" title="홈페이지에서 내리기 — 지우지 않고 여기 그대로 둠">비공개로 내리기</button>'
+          : p.status === "비공개" ? '' : '<button class="btn sm" onclick="saPostSave(\'초안\')">임시 저장</button>') +
+        (p.status === "비공개"
+          ? '<button class="btn sm" onclick="saPostSave(\'비공개\')">비공개로 저장</button><button class="btn sm primary" onclick="saPostSave(\'게시\')">다시 게시</button>'
+          : '<button class="btn sm primary" onclick="saPostSave(\'게시\')">' + (p.status === "게시" && !p._new ? "고친 것 게시" : "게시") + '</button>') +
       '</div>',
-      p.status === "초안" ? '<span class="tag amber sm" style="margin-left:auto">임시 저장 — 홈페이지에 안 보임</span>' : '') +
+      p.status === "초안" ? '<span class="tag amber sm" style="margin-left:auto">임시 저장 — 홈페이지에 안 보임</span>' : p.status === "비공개" ? '<span class="tag sm" style="margin-left:auto">비공개 — 홈페이지에서 내린 글</span>' : '') +
     (SA.postPreview ? saPostPreviewHtml() : '') + (SA.postZoom != null ? saPostZoomHtml() : '');
 }
 /* 사진 크게 보기(관리 화면) */
