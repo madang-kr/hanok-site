@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E0D0C">
+<title>한옥반점 — 분당 새마을로</title>
+<meta name="description" content="서현동과 율동공원을 잇는 골목의 분당 중식당. 점심 세트부터 가족 모임·상견례·비즈니스 자리를 위한 프라이빗 룸 코스까지, 한옥에서 즐기는 중식. 룸 여덟 곳, 예약.">
+<meta property="og:title" content="한옥반점">
+<meta property="og:description" content="한옥에서 즐기는 중식 · 경기 성남시 분당구 새마을로51번길 2">
+<meta property="og:image" content="img/hanok.jpg">
+<link rel="icon" href="img/logo.png" type="image/png">
+<link rel="stylesheet" href="css/site.css">
+<script>document.documentElement.className += " pending";</script><!-- 내용이 정해질 때까지 잠깐 숨김(js/content.js 가 풂) -->
+</head>
+<body data-page="home">
+
+<main id="main-content">
+
+<!-- 첫 화면: 화면 가득한 사진 세 장이 천천히 바뀝니다. 제목 하나 -->
+<section class="hero">
+  <div class="slides">
+    <div class="slide on" style="background-image:url(img/hanok.jpg)"></div>
+    <div class="slide" style="background-image:url(img/bg5.jpg)"></div>
+    <div class="slide" style="background-image:url(img/bg1.jpg)"></div>
+  </div>
+  <div class="hero-t">
+    <h1 data-t="home.heroTitle">한옥에서 즐기는 중식</h1>
+    <p data-t="home.heroSub">경기 성남시 분당구 새마을로51번길 2</p>
+  </div>
+  <button type="button" class="arr prev" aria-label="이전 사진"><svg viewBox="0 0 30 56"><path d="M24 4 4 28l20 24"/></svg></button>
+  <button type="button" class="arr next" aria-label="다음 사진"><svg viewBox="0 0 30 56"><path d="m6 4 20 24L6 52"/></svg></button>
+  <div class="dots"></div>
+</section>
+
+<!-- 소개: 사진 크게 + 글 -->
+<section class="s">
+  <div class="wrap two">
+    <figure><img src="img/bg7.jpg" alt="1층 테이블" data-img="home.intro.img" data-alt="home.intro.imgAlt"></figure>
+    <div class="t">
+      <h2 data-t="home.intro.title">한옥을 지어<br>문을 열었습니다</h2>
+      <div data-paras="home.intro.paras"><p>2020년 분당 새마을로에 한옥을 새로 지어 문을 열었습니다. 나무로 기둥을 세우고 기와를 올렸습니다. 창호를 지난 빛이 부드럽고, 문을 닫으면 방이 조용해집니다.</p>
+      <p>부담 없는 점심 세트부터, 부모님 생신·상견례·가족 모임과 비즈니스 자리에 어울리는 프라이빗 룸 코스까지 준비합니다. 만두는 매일 매장에서 빚습니다.</p>
+      <p>프라이빗 룸은 여덟 곳. 아이와 함께 오시는 가족도, 조용한 식사를 원하시는 분도 편하게 이용하실 수 있습니다. 테이블은 두 층에 있습니다.</p></div>
+      <ul class="facts" data-list="info.services"></ul>
+      <a class="more" href="about.html" data-t="home.intro.more">이야기 전체</a>
+    </div>
+  </div>
+</section>
+
+<!-- 차림: 코스 목록 + 사진 -->
+<section class="s">
+  <div class="wrap">
+    <div class="hd"><div><h2 data-t="home.menuSec.title">차림</h2><p data-t="home.menuSec.lead">우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다</p></div><a class="more" href="menu.html" data-t="home.menuSec.more">차림 전체</a></div>
+    <div class="two rev">
+      <div class="t">
+        <div class="clist" id="home-courses"></div>
+      </div>
+      <figure><img src="img/bg1.jpg" alt="관우 룸의 원탁" data-img="home.menuSec.img" data-alt="home.menuSec.imgAlt"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 공간 -->
+<section class="s">
+  <div class="wrap">
+    <div class="hd"><div><h2 data-t="home.spaceSec.title">공간</h2><p data-t="home.spaceSec.lead">나무와 창호가 만드는 조용한 자리. 문을 닫으면 방 하나가 온전히 손님의 것이 됩니다</p></div><a class="more" href="space.html" data-t="home.spaceSec.more">공간 전체</a></div>
+    <div class="tiles" id="home-tiles">
+      <figure class="wide"><img src="img/bg2.jpg" alt="저층 테이블"></figure>
+      <figure><img src="img/bg4.jpg" alt="유비 룸"></figure>
+      <figure><img src="img/bg5.jpg" alt="조조 룸"></figure>
+      <figure><img src="img/bg3.jpg" alt="장비 룸"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 오시는 길·영업시간·연락 -->
+<section class="s">
+  <div class="wrap">
+    <div class="info">
+      <div>
+        <h3>오시는 길</h3>
+        <div class="v" data-t="info.addr2">경기 성남시 분당구<br>새마을로51번길 2</div>
+        <p data-t="info.parking">주차비 1,000원 · 발렛 무료</p>
+        <div class="lk"><a class="more" href="visit.html" data-t="home.infoSec.visitMore">오시는 길 전체</a></div>
+      </div>
+      <div>
+        <h3>영업시간</h3>
+        <div id="home-hours"></div>
+      </div>
+      <div>
+        <h3>연락</h3>
+        <div class="v"><a href="tel:031-724-1004" data-tel>031-724-1004</a></div>
+        <p data-t="home.infoSec.telNote">예약과 문의는 언제든 편하게 전화 주세요</p>
+        <div class="lk"><a class="more insta" target="_blank" rel="noopener">인스타그램</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 예약: 마지막 띠 -->
+<section class="band">
+  <img src="img/bg6.jpg" alt="" data-img="home.band.img">
+  <div class="in">
+    <h2 data-t="home.band.title">예약</h2>
+    <p>원하시는 날짜와 인원을 선택해 예약해 주세요.</p>
+    <button type="button" class="btn" data-reserve data-t="home.band.button">예약하기</button>
+  </div>
+</section>
+
+</main>
+
+<script src="data/site.js"></script>
+<script src="js/config.js"></script>
+<script src="js/content.js"></script>
+<script src="js/site.js"></script>
+<script src="js/reserve.js"></script>
+</body>
+</html>

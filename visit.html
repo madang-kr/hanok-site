@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E0D0C">
+<title>오시는 길 — 한옥반점</title>
+<meta name="description" content="경기 성남시 분당구 새마을로51번길 2. 영업시간, 주차(1,000원 · 발렛 무료), 약도.">
+<link rel="icon" href="img/logo.png" type="image/png">
+<link rel="stylesheet" href="css/site.css">
+<script>document.documentElement.className += " pending";</script><!-- 내용이 정해질 때까지 잠깐 숨김(js/content.js 가 풂) -->
+</head>
+<body data-page="visit">
+
+<main id="main-content">
+
+<section class="page-head"><img class="pic" src="img/hanok.jpg" alt="" data-img="visit.head.img"><div class="wrap"><h1 data-t="visit.head.title">오시는 길</h1><p data-t="visit.head.sub">서현동과 율동공원을 잇는 새마을로 골목 초입에 위치하고 있습니다.</p></div></section>
+
+<section class="sec">
+  <div class="wrap visit">
+    <div class="visit-l">
+      <address><b data-t="info.addr2">경기 성남시 분당구<br>새마을로51번길 2</b>전화 <a href="tel:031-724-1004" class="num" data-tel>031-724-1004</a></address>
+      <div class="map-links"><a class="btn" id="lnk-naver" target="_blank" rel="noopener">네이버 지도</a><a class="btn" id="lnk-kakao" target="_blank" rel="noopener">카카오맵</a></div>
+
+      <h3 data-t="visit.hoursTitle">영업시간</h3>
+      <div class="hours" id="hours"></div>
+
+    </div>
+    <div class="sketch">
+      <!-- 약도: 새마을로(아래 큰길) → 새마을로51번길(오른쪽 위). 점 찍은 면이 주차장 -->
+      <svg viewBox="0 0 600 420" role="img" aria-label="약도">
+        <!-- 재아 스케치(09-20)를 약도로 정리한 것. 비율보다 관계: 새마을로에서 새마을로51번길로 꺾어 들어가면
+             왼편에 주차장과 안집, 오른편(두 길 사이)에 한옥반점. 볼보는 새마을로에서 갈림길 못 미쳐 왼쪽.
+             도형 좌표는 51번길 기울기(-37.7°, 갈림점 (190, 318))에 맞춰 미리 계산한 숫자. 글자는 돌리지 않음(길 이름만 길 따라) -->
+        <rect x="0" y="0" width="600" height="420" fill="#161412"/>
+        <!-- 새마을로 -->
+        <rect x="0" y="318" width="600" height="72" fill="#2A2622"/>
+        <line x1="0" y1="354" x2="600" y2="354" stroke="#4A443C" stroke-width="1.5" stroke-dasharray="12 12"/>
+        <text x="300" y="410" class="road" text-anchor="middle">새마을로</text>
+        <!-- 새마을로51번길 -->
+        <polygon points="150.9,323.0 889.9,-248.2 914.3,-216.5 175.3,354.6" fill="#2A2622"/>
+        <text x="429.1" y="87.7" class="road" text-anchor="middle" transform="rotate(-37.7 429.1 87.7)">새마을로51번길</text>
+        <!-- 볼보 — 실제로 좌우로 아주 긴 건물이라 왼쪽 끝은 화면 밖으로 내보냅니다(09-22 재아) -->
+        <rect x="-80" y="240" width="242" height="58" rx="6" fill="none" stroke="#8A8177" stroke-width="1.5"/>
+        <text x="52" y="274" class="lbl" text-anchor="middle">볼보</text>
+        <!-- 주차장 둘 -->
+        <polygon points="144.7,203.8 222.3,143.9 274.9,212.0 197.3,271.9" fill="#242019" stroke="#7A7268" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <polygon points="267.3,293.7 316.3,255.8 335.9,281.1 286.8,319.0" fill="#242019" stroke="#7A7268" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="209.8" y="212.9" class="lbl mute" text-anchor="middle">주차장</text>
+        <text x="301.6" y="291.4" class="lbl mute" text-anchor="middle" font-size="11">주차장</text>
+        <!-- 가게 둘 -->
+        <polygon points="230.2,137.8 301.4,82.8 351.5,147.6 280.3,202.7" fill="#3A3530" stroke="#9A9186" stroke-width="1.2"/>
+        <text x="290.9" y="148.7" class="lbl" style="fill:#FFFFFF" text-anchor="middle">안집</text>
+        <polygon points="327.0,250.0 406.2,188.9 445.3,239.5 366.2,300.6" fill="#FFFFFF" stroke="#9A9186" stroke-width="1.2"/>
+        <text x="386.2" y="250.8" class="lbl" style="fill:#0E0D0C" text-anchor="middle">한옥반점</text>
+      </svg>
+      <p class="cap" style="margin-top:10px" data-t="visit.mapCaption">약도는 실제 축적과 다를 수 있습니다.</p>
+
+      <h3 data-t="visit.parkingTitle">주차</h3>
+      <div class="prose-s" data-paras="visit.parking">
+        <p>주차장은 맞은편 음식점 '안집'과 함께 사용하고 있습니다.</p>
+        <p>골목 초입이라 혼잡한 구간이므로 주차 관리요원의 안내에 따라 주세요.</p>
+        <p>발렛 및 주차장 이용 요금은 한 대당 1,000원입니다.</p>
+      </div>
+
+      <h3>이용 안내</h3>
+      <ul class="facts" data-list="info.services"></ul>
+
+      <h3 data-t="visit.transitTitle">대중교통</h3>
+      <ul class="plain" data-list="visit.transit">
+        <li>버스 — 통로골 또는 서현중학교 정류장</li>
+        <li>지하철 — 수인분당선 서현역</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script src="data/site.js"></script>
+<script src="js/config.js"></script>
+<script src="js/content.js"></script>
+<script src="js/site.js"></script>
+<script src="js/reserve.js"></script>
+</body>
+</html>

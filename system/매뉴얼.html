@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한옥반점 예약 시스템 — 직원 안내서</title>
+<style>
+/* A4 세로로 인쇄하는 안내서. 화면에서도 종이 모양 그대로 보입니다.
+   한 장(.sheet)이 A4 한 페이지. 장 안에서는 넘치지 않게 내용을 맞춰 두었습니다. */
+:root{--ink:#1a1714; --sub:#6b645c; --line:#cfc8bd; --soft:#f4f1ec; --warn:#b23e28; --ok:#2f6b4f}
+*{box-sizing:border-box}
+html{background:#e9e6e1}
+body{margin:0; padding:28px 0 60px; color:var(--ink); font:10.6pt/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif; word-break:keep-all}
+.sheet{width:210mm; min-height:297mm; margin:0 auto 18px; background:#fff; padding:14mm 16mm 14mm; position:relative; box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.sheet .pg{position:absolute; bottom:7mm; left:16mm; right:16mm; display:flex; justify-content:space-between; font-size:8.5pt; color:var(--sub); border-top:1px solid var(--line); padding-top:5px}
+h1{font-size:22pt; margin:0 0 4px; letter-spacing:-.01em}
+.lead{color:var(--sub); font-size:10pt; margin:0 0 14px}
+h2{font-size:14pt; margin:0 0 8px; padding-bottom:5px; border-bottom:2px solid var(--ink); display:flex; align-items:baseline; gap:10px}
+h2 .n{font-size:11pt; color:var(--sub); font-weight:600}
+h3{font-size:11pt; margin:11px 0 4px; color:var(--ink)}
+p{margin:0 0 7px}
+b{font-weight:700}
+ol,ul{margin:0 0 8px; padding-left:20px}
+li{margin-bottom:3px}
+.btn{display:inline-block; border:1px solid var(--ink); padding:0 6px; border-radius:4px; font-size:10pt; font-weight:700; line-height:19px; vertical-align:1px; background:#fff; white-space:nowrap}
+.btn.dark{background:var(--ink); color:#fff}
+.say{background:#eaf3ee; border-left:3px solid var(--ok); padding:4px 10px; margin:4px 0 5px; font-size:11pt; font-weight:600; color:#1e3b2c}
+.warn{background:#fbefea; border-left:3px solid var(--warn); padding:6px 11px; margin:7px 0; font-weight:600}
+.note{background:var(--soft); border-radius:6px; padding:6px 11px; margin:7px 0; color:#3d3630; font-size:10.5pt}
+.row{display:grid; grid-template-columns:112px 1fr; gap:10px; padding:4px 0; border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row b{color:var(--ink)}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:6px 22px}
+.tag{display:inline-block; font-size:9pt; padding:0 6px; border-radius:3px; background:#eee; color:#333; font-weight:600; vertical-align:1px}
+.tag.pine{background:#dfeee6; color:#1f4d3a} .tag.rust{background:#f7dcd6; color:#8a2a1a} .tag.blue{background:#dce7f5; color:#1f3f6b}
+.practice{background:#fffbea; border:1px dashed #d9c98a; border-radius:8px; padding:6px 11px; margin:6px 0 8px; font-size:10pt}
+.step{display:grid; grid-template-columns:26px 1fr; gap:8px; padding:5px 0; border-top:1px solid var(--line)}
+.step:first-child{border-top:0}
+.step .k{width:22px; height:22px; border-radius:50%; background:var(--ink); color:#fff; font-size:9.5pt; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px}
+.step .t{font-size:10.6pt}
+.step .t small{display:block; color:var(--sub); font-size:9.5pt; margin-top:0}
+.remember{background:var(--ink); color:#fff; border-radius:10px; padding:14px 18px; margin:14px 0 0}
+.remember h3{color:#fff; margin:0 0 8px; font-size:12pt}
+.remember ol{margin:0; padding-left:20px; font-size:11pt}
+.remember li{margin-bottom:4px}
+.toc{list-style:none; padding:0; margin:0; columns:2; column-gap:30px; font-size:11pt}
+.toc li{display:flex; gap:10px; padding:5px 0; border-bottom:1px solid var(--line); break-inside:avoid}
+.toc li b{color:var(--sub); width:22px; font-weight:600}
+.print{position:fixed; right:20px; top:20px; padding:10px 16px; background:var(--ink); color:#fff; border:0; font:600 14px inherit; cursor:pointer; border-radius:6px; z-index:9}
+@media print{
+  @page{size:A4; margin:0}
+  html{background:#fff} body{padding:0}
+  .print{display:none}
+  /* 한 장 = 정확히 A4. 0.5px 넘쳐서 빈 페이지가 생기는 일이 없게 높이를 고정하고 넘침을 자릅니다(내용은 화면에서 맞춰 둠) */
+  .sheet{box-shadow:none; margin:0; page-break-after:always; height:297mm; min-height:0; overflow:hidden}
+  .sheet:last-child{page-break-after:auto}
+}
+</style>
+</head>
+<body>
+<button class="print" onclick="print()">인쇄</button>
+
+<!-- ======================= 1쪽: 표지 · 차례 · 첫 화면 ======================= -->
+<div class="sheet">
+<h1>한옥반점 예약 시스템<br>직원 안내서</h1>
+<p class="lead">카운터 태블릿·사장님 폰·PC 공용 · 2026년 9월 판 · 처음이면 1~4쪽을 순서대로, 익숙해지면 필요한 쪽만.</p>
+
+<ul class="toc">
+  <li><b>1</b> 시작하기 · 화면 보는 법</li>
+  <li><b>2</b> 전화 예약 받기 — 따라 하기</li>
+  <li><b>3</b> 손님이 오셨을 때 · 안 오셨을 때</li>
+  <li><b>4</b> 찾기 · 고치기 · 홈페이지 예약</li>
+  <li><b>5</b> 빨간 표시 · 하루 흐름</li>
+  <li><b>6</b> 시스템이 안 될 때 · 이럴 땐</li>
+</ul>
+
+<h2 style="margin-top:22px"><span class="n">1</span>시작하기</h2>
+<div class="two">
+  <div>
+    <h3>들어가기</h3>
+    <ol>
+      <li>태블릿의 <b>한옥반점 예약</b> 아이콘</li>
+      <li><b>한옥반점</b> 선택</li>
+      <li><b>내 PIN 4자리</b> 입력</li>
+      <li>“어서오세요” 뒤에 <b>오늘 화면</b></li>
+    </ol>
+    <p class="note">PIN 은 사장님께 받습니다. 세 번 틀리면 잠깐 기다립니다.</p>
+  </div>
+  <div>
+    <h3>나가기</h3>
+    <p>오른쪽 위 <span class="btn">⋮</span> → <b>로그아웃</b>.<br>잠깐 자리 비울 때는 그냥 두어도 됩니다.</p>
+    <h3>다른 기기</h3>
+    <p>폰에서도 같은 주소로 들어갑니다. 화면만 세로 목록으로 바뀝니다.</p>
+  </div>
+</div>
+
+<h3>맨 위 줄</h3>
+<div class="row"><b>HANOK</b><span>오늘 화면으로 돌아갑니다.</span></div>
+<div class="row"><b>날짜</b><span>누르면 달력. <b>다른 날을 보고 있으면 화면이 검게</b> 바뀝니다 — “오늘이 아니다” 표시. <span class="btn">오늘</span> 으로 돌아옵니다.</span></div>
+<div class="row"><b>⟳</b><span>새로고침. 다른 태블릿에서 넣은 예약을 바로 가져옵니다. (1분마다 자동으로도 됨)</span></div>
+<div class="row"><b>예약 검색</b><span>이름이나 전화 뒷자리 한 글자부터.</span></div>
+<div class="row"><b>예약 대기 <span class="tag blue">2</span></b><span>홈페이지로 들어온 예약. 파란 숫자가 있으면 4쪽.</span></div>
+<div class="row"><b>＋ 예약 등록</b><span>전화 예약 받을 때. 2쪽.</span></div>
+<div class="row"><b>⋮</b><span>영업시간 · TV 화면 · 전체화면 · 화면 보정 · 설정(사장님) · 로그아웃</span></div>
+
+<h3>가운데</h3>
+<p><b>타임라인</b> — 세로가 방(조조~동탁)과 테이블 층, 가로가 시간. <b>막대 하나 = 예약 하나.</b> 막대를 누르면 그 예약이 열리고, 빈 칸을 누르면 그 시각으로 등록이 열립니다.</p>
+<p>막대 색 &nbsp;<span class="tag pine">초록 확정</span> <span class="tag">회색 자리 아직 안 정함</span> <span class="tag rust">빨강 뭔가 걸림</span> <span class="tag blue">파랑 오늘 바뀜</span> &nbsp; 회색 빗금은 휴무·막힌 시간.</p>
+<p><b>숫자 칸</b> — 확정 · 예약률 · 미배정 · 경고 · <b>확인</b>. 숫자를 누르면 그 목록이 열립니다. 아침엔 ‘확인’부터.</p>
+<p><b>예약 목록</b> — 아래에 접혀 있습니다. 제목을 누르면 펼쳐지고 예정/방문/취소/노쇼로 거를 수 있습니다.</p>
+<div class="pg"><span>한옥반점 예약 시스템 · 직원 안내서</span><span>1 / 6</span></div>
+</div>
+
+<!-- ======================= 2쪽: 전화 예약 받기 ======================= -->
+<div class="sheet">
+<h2><span class="n">2</span>전화 예약 받기 — 따라 하기</h2>
+<p><span class="btn dark">＋ 예약 등록</span> → 질문이 <b>한 번에 하나씩</b>. <b>초록 상자의 말은 손님께 그대로 읽으면 됩니다.</b> 고른 뒤 <span class="btn">다음</span>, 잘못 눌렀으면 <span class="btn">‹ 이전</span>.</p>
+<div class="practice"><b>처음이면 이 손님으로 한 번 해 보세요.</b> 이름 <b>연습</b> · 010-0000-0000 · 내일 저녁 6시 · 4명(어린이 1) · 룸 · 촉 코스 · 알러지 없음. 끝나면 예약 검색 → ‘연습’ → 삭제.</div>
+
+<div class="step"><span class="k">1</span><div class="t"><b>경로</b> — <b>전화 예약</b> 을 누른다.<small>네이버·방문·기타는 그런 경우에만.</small></div></div>
+
+<div class="step"><span class="k">2</span><div class="t"><b>날짜·시간</b>
+<div class="say">“날짜와 시간은 언제로 해 드릴까요?”</div>
+달력에서 날짜 → 오른쪽에서 시각. 시각 칸에 <b>룸 3 · 테이블 가능</b> 처럼 남은 자리가 적혀 있으니 손님이 물으면 그대로 읽어 줍니다.<small>회색 시각 = 접수 마감·브레이크. 그래도 받아야 하면 아래 ‘접수 시간 밖 시각 보기’ — 사장님 판단.</small></div></div>
+
+<div class="step"><span class="k">3</span><div class="t"><b>인원</b>
+<div class="say">“몇 분이서 오세요?”</div>
+총 인원 숫자를 누르고, <b>어린이가 있으면 아래 ‘어린이’ 를 올린다.</b><small>총 인원에 어린이가 들어 있습니다. 유아용 의자는 6단계에서.</small></div></div>
+
+<div class="step"><span class="k">4</span><div class="t"><b>자리</b>
+<div class="say">“룸과 테이블 중 어디로 해 드릴까요?”</div>
+<b>룸</b> — 방을 골라도 되고, <b>안 고르고 다음</b>을 눌러도 됩니다(‘룸 미정’, 사장님이 당일 정함). <b>테이블</b> — 1층/저층만 고릅니다.<small>12명 넘는 모임은 ‘룸 합침’. 원탁 방은 상이 나뉜다고 미리 말씀드립니다.</small></div></div>
+
+<div class="step"><span class="k">5</span><div class="t"><b>식사</b>
+<div class="say">“식사는 코스나 세트로 준비해 드릴까요?”</div>
+<b>코스·세트</b> → 종류를 한 번 누르면 성인 수만큼 채워집니다. 못 정하셨으면 <b>코스·세트 미정</b>. 테이블 단품이면 <b>해당 없음</b>.<small>룸은 코스·세트가 원칙. 룸인데 ‘해당 없음’이면 빨간 표시.</small></div></div>
+
+<div class="step"><span class="k">6</span><div class="t"><b>예약자</b>
+<div class="say">“예약자 성함과 연락처 부탁드립니다.”</div>
+이름 · 전화. 유아용 의자가 필요하면 여기서 개수.<small>노쇼 이력 번호면 빨갛게 알려 줍니다.</small></div></div>
+
+<div class="step"><span class="k">7</span><div class="t"><b>요청사항</b>
+<div class="say">“알러지나 따로 요청하실 사항 있으세요?”</div>
+<b>알러지 없음</b> 또는 <b>있음(내용)</b> 을 꼭 누릅니다. 창가·기념일 같은 부탁은 요청사항에.</div></div>
+
+<div class="step"><span class="k">8</span><div class="t"><b>등록</b> — 맨 아래 <span class="btn dark">예약 등록</span>. 완료 화면의 문장을 손님께 읽어 주고 끊습니다.
+<div class="say">“9월 20일 토요일 저녁 6시, 4분, 룸으로 예약됐습니다. 감사합니다.”</div></div></div>
+<div class="pg"><span>한옥반점 예약 시스템 · 직원 안내서</span><span>2 / 6</span></div>
+</div>
+
+<!-- ======================= 3쪽: 오셨을 때 · 안 오셨을 때 ======================= -->
+<div class="sheet">
+<h2><span class="n">3</span>손님이 오셨을 때 · 안 오셨을 때</h2>
+
+<h3>오셨을 때</h3>
+<ol>
+  <li>타임라인이나 목록에서 <b>그 예약을 누른다.</b></li>
+  <li>위 버튼 중 <span class="btn">방문</span> 을 누른다.</li>
+  <li>‘룸 미정’이었으면 아래 <b>배정 후보</b>에서 방을 눌러 정한다.</li>
+</ol>
+<p class="note">예약 시각 전에는 ‘방문’이 안 눌립니다. 일찍 오셨으면 시각이 되고 나서 누르세요.</p>
+
+<h3>전화로 취소하실 때</h3>
+<ol>
+  <li>예약을 누른다 → <span class="btn">취소</span>.</li>
+  <li>“예약을 취소할까요?” → <b>예약 취소</b>. 당일이면 “노쇼로 볼까요?” 도 한 번 묻습니다 — 사장님 기준대로.</li>
+</ol>
+
+<h3>연락 없이 안 오셨을 때</h3>
+<ol>
+  <li>예약을 누른다 → <span class="btn">노쇼</span> → <b>노쇼 처리</b>.</li>
+  <li>그 번호는 <b>노쇼 관리</b>에 남고, 다음 예약 때 빨갛게 알려 줍니다.</li>
+</ol>
+<div class="warn">삭제는 잘못 넣은 예약에만. 진짜 취소는 꼭 ‘취소’ 버튼 — 기록이 남아야 합니다.</div>
+<p class="note">아무것도 안 누른 예약은 다음 날 자동으로 ‘방문’이 됩니다. 실제로 안 왔다면 다음 날 확인 목록의 <b>‘어제 예약 자동 방문 처리’</b>에서 고칩니다.</p>
+
+<h3>상태 네 가지</h3>
+<div class="row"><b>확정</b><span>기본. 아직 안 오심.</span></div>
+<div class="row"><b>방문</b><span>오셨음.</span></div>
+<div class="row"><b>취소</b><span>손님이 미리 취소. 자리가 비고 기록에 남음.</span></div>
+<div class="row"><b>노쇼</b><span>연락 없이 안 오심. 번호가 노쇼 관리에 쌓임.</span></div>
+
+<h3>실수했을 때</h3>
+<div class="row"><b>노쇼를 잘못 눌렀다</b><span>예약을 열고 다시 <b>방문</b> 이나 <b>확정</b>. 노쇼 관리 목록에서도 지울 수 있습니다.</span></div>
+<div class="row"><b>취소를 잘못 눌렀다</b><span>예약을 열고 <b>확정</b>. 자리는 다시 잡힙니다(겹치면 빨간 표시).</span></div>
+<div class="row"><b>방을 잘못 정했다</b><span>예약을 열고 배정 후보에서 다른 방, 또는 <b>예약 내용 수정</b>에서 좌석.</span></div>
+<div class="pg"><span>한옥반점 예약 시스템 · 직원 안내서</span><span>3 / 6</span></div>
+</div>
+
+<!-- ======================= 4쪽: 찾기 · 고치기 · 홈페이지 ======================= -->
+<div class="sheet">
+<h2><span class="n">4</span>찾기 · 고치기 · 홈페이지 예약</h2>
+
+<h3>“지난주에 예약한 OOO인데요”</h3>
+<ol>
+  <li>위 <span class="btn">예약 검색</span>.</li>
+  <li>이름이나 전화 뒷자리를 친다. 한 글자부터 찾아 줍니다. 지난 예약도 나옵니다.</li>
+  <li>눌러서 연다.</li>
+</ol>
+
+<h3>시간·인원·자리를 바꿔 달라고 하면</h3>
+<ol>
+  <li>예약을 연다 → <span class="btn">예약 내용 수정</span>.</li>
+  <li>바꾸고 <span class="btn dark">저장</span>.</li>
+</ol>
+<p class="note">오늘 예약을 고치면 막대에 <span class="tag blue">파란 표시</span>가 붙습니다 — “주방에 말했나?” 확인용. 알렸으면 신경 안 써도 됩니다.</p>
+
+<h3>같은 손님이 두 번 들어가 있으면</h3>
+<p>예약 검색에 번호 뒷자리 → 하나를 <b>취소</b>로(삭제 말고).</p>
+
+<h2 style="margin-top:22px"><span class="n">4-2</span>홈페이지 예약 대기</h2>
+<p>홈페이지로 넣은 예약은 <b>바로 확정이 아닙니다.</b> 직원이 승인해야 손님께 확정 문자가 갑니다.</p>
+<ol>
+  <li>위 <span class="btn">예약 대기 <span class="tag blue">2</span></span> 를 누른다. (확인 목록 맨 위에도 뜹니다)</li>
+  <li>요청을 누르면 날짜·인원·자리·메뉴·연락처·요청사항이 보입니다. <span class="tag rust">빨간 꼬리표</span>가 있으면 먼저 읽습니다 — 인원 미달, 룸인데 성인 5명 미만, 같은 번호 예약 있음.</li>
+  <li><span class="btn dark">승인 → 예약 등록</span> — 내용이 채워진 채 예약 등록이 열립니다. <b>자리와 알러지만</b> 고르고 등록하면 끝. 손님께 확정 문자가 나갑니다.</li>
+  <li>못 받으면 <span class="btn">거절</span> → 이유를 고르면 거절 문자가 나갑니다.</li>
+</ol>
+<p class="note">홈페이지는 성인 2명부터 · 룸은 성인 5명부터 · 최대 12명 · 내일부터 30일 안만 받습니다. 그 밖은 손님이 전화로 오십니다.</p>
+
+<h3>네이버 예약을 옮겨 넣을 때</h3>
+<ol>
+  <li>네이버 파트너센터에서 예약 엑셀을 열어 표 전체 복사(Ctrl+A, Ctrl+C).</li>
+  <li><span class="btn dark">＋ 예약 등록</span> → 경로에서 <b>네이버 예약</b> 옆 <b>Excel 등록</b>.</li>
+  <li>붙여넣고 <span class="btn">읽기</span> → 새 예약만 뜨면 확인 후 <span class="btn">등록</span>.</li>
+</ol>
+<div class="pg"><span>한옥반점 예약 시스템 · 직원 안내서</span><span>4 / 6</span></div>
+</div>
+
+<!-- ======================= 5쪽: 빨간 표시 · 하루 흐름 · 문제 ======================= -->
+<div class="sheet">
+<h2><span class="n">5</span>빨간 표시 · 하루 흐름</h2>
+
+<h3>빨간 표시가 보이면</h3>
+<p><b>시스템은 막지 않습니다. 알려 주기만 합니다.</b> 빨간 것이 있어도 등록은 되니, 본 뒤에 사장님께 말씀드리면 됩니다.</p>
+<div class="two">
+  <div>
+    <div class="row"><b>자리 없음</b><span>앉힐 자리가 없음. 시간 조정.</span></div>
+    <div class="row"><b>겹침</b><span>같은 방에 두 팀.</span></div>
+    <div class="row"><b>정원 초과</b><span>방보다 사람이 많음.</span></div>
+    <div class="row"><b>인원 부족</b><span>방 최소 인원 미달.</span></div>
+  </div>
+  <div>
+    <div class="row"><b>코스·세트 부족</b><span>코스 수 &lt; 성인 수.</span></div>
+    <div class="row"><b>노쇼 이력</b><span>전에 안 온 번호. 전날 확인 전화.</span></div>
+    <div class="row"><b>알러지</b><span>주방에 꼭 전달.</span></div>
+    <div class="row"><b>접수 시간 밖</b><span>마감 뒤 시각. 사장님 판단.</span></div>
+  </div>
+</div>
+
+<h3>하루 흐름</h3>
+<div class="two">
+  <div>
+    <p><b>오픈 전 5분</b></p>
+    <ol>
+      <li><span class="btn">⟳</span> 새로고침</li>
+      <li>숫자 칸 <b>확인</b> 열기</li>
+      <li>알러지 · 유아용 의자 · 단체 → 주방·홀에</li>
+      <li>‘룸 미정’이 있으면 사장님께</li>
+      <li>예약 대기가 있으면 처리</li>
+    </ol>
+  </div>
+  <div>
+    <p><b>마감 전</b></p>
+    <ol>
+      <li>오늘 예약 목록 펼치기</li>
+      <li>오신 분 <b>방문</b>, 안 오신 분 <b>노쇼</b> 확인</li>
+      <li>종이에 적어 둔 예약 넣기</li>
+      <li>내일 예약 대기 남았는지 보기</li>
+    </ol>
+  </div>
+</div>
+
+<div class="pg"><span>한옥반점 예약 시스템 · 직원 안내서</span><span>5 / 6</span></div>
+</div>
+
+<!-- ======================= 6쪽: 안 될 때 · 이럴 땐 · 기억 ======================= -->
+<div class="sheet">
+<h2><span class="n">6</span>시스템이 안 될 때 · 이럴 땐</h2>
+<h3>시스템이 안 될 때</h3>
+<div class="warn">“서버와 연결이 끊겼습니다” 가 뜨면 볼 수만 있고 저장은 안 됩니다.</div>
+<ol>
+  <li>전화 예약은 <b>수기 예약지</b>(카운터 서랍)에 손으로 적는다.</li>
+  <li><span class="btn">⟳</span> 를 눌러 본다. 와이파이 확인. 폰으로도 열어 본다.</li>
+  <li>연결되면 종이의 예약을 <span class="btn dark">＋ 예약 등록</span> 으로 넣고 종이에 ✓.</li>
+  <li>30분 넘게 안 되면 사장님께.</li>
+</ol>
+
+<h3>이럴 땐</h3>
+<div class="row"><b>화면이 검어요</b><span>다른 날짜를 보고 있는 것. 위 <span class="btn">오늘</span>.</span></div>
+<div class="row"><b>다른 태블릿엔 없어요</b><span>그 태블릿에서 <span class="btn">⟳</span>.</span></div>
+<div class="row"><b>룸이 찼는데 받아 달래요</b><span>회색 칸도 눌러집니다. 빨간 표시가 붙으니 사장님께.</span></div>
+<div class="row"><b>글씨가 작아요</b><span><span class="btn">⋮</span> → 화면 보정. 그 기기에만.</span></div>
+<div class="row"><b>설정을 바꾸고 싶어요</b><span>사장님 비밀번호가 필요합니다. 사장님께.</span></div>
+
+<div class="remember">
+  <h3>이것만 기억하세요</h3>
+  <ol>
+    <li>화면이 <b>검으면</b> 위 <b>오늘</b>.</li>
+    <li>전화 오면 <b>＋ 예약 등록</b>, 초록 글씨를 그대로 읽는다.</li>
+    <li>손님 오시면 막대 누르고 <b>방문</b>. 안 오시면 <b>노쇼</b>.</li>
+    <li><b>빨간 것</b>은 막지 않는다. 대신 사장님께 말한다.</li>
+    <li>아침에 <b>확인</b> 칸을 연다.</li>
+    <li>“연결이 끊겼습니다” 면 <b>종이</b>에 적고, 되면 넣는다.</li>
+  </ol>
+</div>
+<div class="pg"><span>한옥반점 예약 시스템 · 직원 안내서 · 2026년 9월</span><span>6 / 6</span></div>
+</div>
+</body>
+</html>

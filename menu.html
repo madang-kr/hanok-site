@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E0D0C">
+<title>차림 — 한옥반점</title>
+<meta name="description" content="저녁 코스 오·촉·한·위, 점심 세트, 요리, 직접 빚는 만두, 주류. 가격은 메뉴판 PDF에서.">
+<link rel="icon" href="img/logo.png" type="image/png">
+<link rel="stylesheet" href="css/site.css">
+<script>document.documentElement.className += " pending";</script><!-- 내용이 정해질 때까지 잠깐 숨김(js/content.js 가 풂) -->
+</head>
+<body data-page="menu">
+
+<main id="main-content">
+
+<section class="page-head">
+  <img class="pic" src="img/bg1.jpg" alt="" data-img="menuPage.head.img">
+  <div class="wrap">
+    <h1 data-t="menuPage.head.title">차림</h1>
+    <p data-t="menuPage.head.sub">고객님의 소중한 시간을 위해 정성을 담아 조리합니다. 만두는 매일 아침 빚고, 튀김은 주문을 받은 뒤에 합니다.</p>
+    <div class="acts"><a class="btn pdf" target="_blank" rel="noopener" data-t="menuPage.pdfLabel">메뉴판 PDF</a></div>
+  </div>
+</section>
+
+<section class="chef-band">
+  <div class="wrap">
+    <img src="img/chef.png" alt="" data-img="menuPage.chefBand.img">
+    <div class="t"><span data-t="menuPage.chefBand.who">총주방장 박수일 · 중식 경력 35년</span><b data-t="menuPage.chefBand.quote">"정성을 담습니다. 최고만을 대접하기 위해."</b></div>
+  </div>
+</section>
+
+<section class="sec" id="courses">
+  <div class="wrap ed">
+    <div class="eh"><h2 data-t="menuPage.courses.title">저녁 코스</h2><p data-t="menuPage.courses.sub">종일 주문 가능</p></div>
+    <div id="courses-body"></div>
+  </div>
+</section>
+
+<section class="sec" id="lunch">
+  <div class="wrap ed">
+    <div class="eh"><h2 data-t="menuPage.lunch.title">점심 세트</h2><p data-t="menuPage.lunch.sub">오전 11:00 – 오후 3:30</p></div>
+    <div id="lunch-body"></div>
+  </div>
+</section>
+
+<section class="sec" id="dishes">
+  <div class="wrap ed">
+    <div class="eh"><h2 data-t="menuPage.dishes.title">요리</h2></div>
+    <div class="dish-cols" id="dishes-body"></div>
+  </div>
+</section>
+
+<section class="sec" id="dumplings">
+  <div class="wrap ed">
+    <div class="eh"><h2 data-t="menuPage.dumplings.title">만두</h2></div>
+    <div id="dumplings-body" style="max-width:640px"></div>
+  </div>
+</section>
+
+<section class="sec" id="drinks">
+  <div class="wrap ed">
+    <div class="eh"><h2 data-t="menuPage.drinks.title">주류</h2></div>
+    <div class="drink-cols" id="drinks-body"></div>
+  </div>
+</section>
+
+</main>
+
+<script src="data/site.js"></script>
+<script src="js/config.js"></script>
+<script src="js/content.js"></script>
+<script src="js/site.js"></script>
+<script src="js/reserve.js"></script>
+</body>
+</html>

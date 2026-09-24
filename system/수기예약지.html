@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>한옥반점 수기 예약지</title>
+<style>
+/* A4 한 장에 두 장(2행, 가로로 길게). 09-20 재아: '비상' → '수기' — 시스템이 안 될 때가 아니라,
+   직원은 예약 등록을 못 하므로 직원이 전화를 받으면 여기에 적고 사장님이 시스템에 넣는 종이입니다.
+   알러지·유아의자 칸은 없앰(요청사항에 적는 것으로 통합). 순서는 마법사와 같습니다(경로 → 날짜·시각 → 인원 → 좌석 → 식사 → 예약자 → 요청).
+   09-24 재아 손질: 고르는 줄은 알약마다 앞에 네모 칸(체크용) · 좌석은 룸( )/테이블( )/미정 · 요청사항 옆에 메모 ·
+   받은 사람 → 접수 직원, 받은 날짜·시각 → 접수 일시 · 안내 문구와 1/2 번호 삭제 · 흑백만(가게 프린터가 흑백).
+   손으로 쓰는 칸은 글자를 밑줄 바로 위에 붙입니다 — 칸 가운데·위에 떠 있으면 제목 글자와 높이가 안 맞아 보였음.
+   인쇄: 크롬에서 Ctrl+P → 여백 '없음' 또는 '최소'. 점선을 따라 잘라 카운터에 비치 */
+@page{size:A4; margin:8mm}
+*{box-sizing:border-box}
+body{margin:0; font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:#111}
+.sheet{width:194mm; margin:0 auto; display:grid; grid-template-columns:1fr; grid-template-rows:repeat(2,140mm)}
+.slip{border-bottom:1px dashed #888; padding:5mm 5mm 4mm; display:grid; grid-template-rows:auto auto 1fr auto; row-gap:3mm; font-size:10.5pt; break-inside:avoid}
+.slip:last-child{border-bottom:none}
+.slip h2{margin:0; font-size:13pt; border-bottom:2px solid #111; padding-bottom:1.5mm; letter-spacing:.02em; display:flex; justify-content:space-between; align-items:baseline}
+.slip h2 .shop{font-size:11pt; font-weight:700; letter-spacing:.12em}   /* 오른쪽에 가게 이름(09-24 재아) */
+
+/* 한 줄 = 이름(k) + 값. 쓰는 줄은 밑줄에 맞춰 아래로 붙임(align-items:flex-end) */
+.row{display:flex; align-items:flex-end; gap:3mm; min-height:9mm}
+.row .k{flex:none; width:20mm; font-weight:700; color:#333; white-space:nowrap; padding-bottom:1mm}
+.row .v{flex:1 1 0; min-height:9mm; border-bottom:1px solid #777; display:flex; align-items:flex-end; padding:0 1mm 1mm; white-space:nowrap; font-size:10pt; color:#444}
+.row.pickrow{align-items:center}   /* 고르는 줄(알약)은 가운데 */
+.row.pickrow .k{padding-bottom:0}
+
+.opts{display:flex; gap:2mm; flex-wrap:wrap}
+.opt{display:inline-flex; align-items:center; border:1px solid #777; border-radius:3mm; padding:0.9mm 3mm 0.9mm 2mm; font-size:10pt; white-space:nowrap}
+.opt i{display:inline-block; width:3.6mm; height:3.6mm; border:1.2px solid #222; margin-right:1.6mm; flex:none}   /* 체크 칸 */
+.gap{display:inline-block; width:22mm}   /* 괄호 안 쓰는 자리 */
+.pick{display:flex; flex-direction:column; gap:2mm}
+
+.write{display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto 1fr; column-gap:6mm; row-gap:2mm}
+.write .box2{display:flex; flex-direction:column; min-height:0; margin-top:2mm}   /* 예약자 밑줄과 붙어 보이지 않게 */
+.write .box2 .k{font-weight:700; color:#333; margin-bottom:1.5mm}
+.write .box2 .area{flex:1; border:1px solid #777; border-radius:1.5mm; min-height:24mm}
+
+.foot{border-top:1px solid #111; padding-top:2mm; display:flex; justify-content:space-between; align-items:flex-end; gap:4mm; font-size:9.5pt; white-space:nowrap; color:#333}
+.foot .v{display:inline-block; border-bottom:1px solid #777; min-width:34mm; height:6mm; vertical-align:bottom; margin:0 1mm}
+.foot .v.s{min-width:9mm}   /* 접수 일시: __월 __일 __:__ */
+.foot .done{display:inline-flex; align-items:flex-end; font-weight:700; color:#111}
+.foot .done i{display:inline-block; width:4.2mm; height:4.2mm; border:1.4px solid #111; margin-right:1.5mm}
+@media screen{ body{background:#eee; padding:10mm 0} .sheet{background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.15)} }
+</style>
+</head>
+<body>
+<div class="sheet">
+<script>
+function opt(t){ return '<span class="opt"><i></i>' + t + '</span>'; }
+var GAP = '<span class="gap"></span>';
+function slip(){
+  return '<div class="slip">' +
+  '<h2><span>수기 예약지</span><span class="shop">한옥반점</span></h2>' +
+  '<div class="pick">' +
+    '<div class="row pickrow"><span class="k">경로</span><span class="opts">' + opt("전화") + opt("네이버") + opt("방문") + opt("기타 (" + GAP + ")") + '</span></div>' +
+    '<div class="row"><span class="k">날짜·시각</span><span class="v">20&nbsp;&nbsp;&nbsp;&nbsp;년 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;월 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;일 (&nbsp;&nbsp;&nbsp;&nbsp;요일)</span><span class="v">오전 · 오후 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;시 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;분</span></div>' +
+    '<div class="row"><span class="k">인원</span><span class="v">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명 (어린이 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명 포함)</span><span style="flex:1 1 0"></span></div>' +
+    '<div class="row pickrow"><span class="k">좌석</span><span class="opts">' + opt("룸 (" + GAP + GAP + ")") + opt("테이블 (" + GAP + ")") + opt("미정") + '</span></div>' +
+    '<div class="row pickrow"><span class="k">식사</span><span class="opts">' + opt("코스 (" + GAP + ")") + opt("세트 (" + GAP + ")") + opt("단품") + opt("미정") + '</span></div>' +
+  '</div>' +
+  '<div class="write">' +
+    '<div class="row"><span class="k">예약자</span><span class="v"></span></div>' +
+    '<div class="row"><span class="k">전화</span><span class="v"></span></div>' +
+    '<div class="box2"><span class="k">요청사항</span><span class="area"></span></div>' +
+    '<div class="box2"><span class="k">메모</span><span class="area"></span></div>' +
+  '</div>' +
+  '<div class="foot"><span>접수 직원 <span class="v"></span> &nbsp;·&nbsp; 접수 일시 <span class="v s"></span>월 <span class="v s"></span>일 &nbsp;<span class="v s"></span>:<span class="v s"></span></span><span class="done"><i></i>시스템 입력 완료</span></div>' +
+  '</div>';
+}
+document.write(slip() + slip());
+</script>
+</div>
+</body>
+</html>
