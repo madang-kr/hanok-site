@@ -60,7 +60,8 @@ window.SITE_READY.then(function(){
 
   /* ---------- 팝업창: 여러 개면 왼쪽 위부터 나란히(겹치지 않게). '오늘 하루 보지 않기' 는 그 팝업만 하루 숨김. ?notice=1 이면 무조건 ---------- */
   (function popups(){
-    const list = (window.NOTICES || []).filter(n => n && n.title);
+    /* 사진 팝업인데 사진을 아직 안 올렸으면 띄우지 않음(빈 틀이 뜨지 않게) */
+    const list = (window.NOTICES || []).filter(n => n && n.title && !(n.kind === "img" && !n.img));
     if(!list.length) return;
     const force = /[?&]notice=1/.test(location.search);
     if(!force && /[?&]shot(?!=notice)/.test(location.search)) return;
@@ -77,9 +78,9 @@ window.SITE_READY.then(function(){
     const wrap = document.createElement("div"); wrap.className = "pops";
     /* 09-24 재아: 두 장 이상이면 겹치지 말고 나란히(PC 는 옆 자리가 넉넉함). 줄이 넘치면 다음 줄로 — 배치는 CSS(.pops 가 flex) */
     wrap.innerHTML = show.map((n, i) => `<div class="pop${n.img ? " has-img" : ""}" style="width:${n.img ? 420 : 380}px; z-index:${10+i}" role="dialog" aria-label="${esc(n.title)}">
-        <div class="pop-b${n.img && !n.button ? " only-img" : ""}">
+        <div class="pop-b${n.img ? " only-img" : ""}">
           ${n.img ? `<img src="${esc(imgUrl(n.img))}" alt="${esc(n.title)}">` : `<h3>${esc(n.title)}</h3>${(n.lines||[]).map(l=>`<p>${esc(l)}</p>`).join("")}`}
-          ${n.button ? `<button type="button" class="btn fill sm" data-reserve>${esc(n.button)}</button>` : ""}
+          ${n.button && !n.img ? `<button type="button" class="btn fill sm" data-reserve>${esc(n.button)}</button>` : ""}
         </div>
         <div class="pop-f"><label><input type="checkbox" data-day="${esc(n.id)}"> 오늘 하루 보지 않기</label><button type="button" class="x" data-close>닫기</button></div>
       </div>`).join("");
@@ -172,3 +173,26 @@ window.SITE_READY.then(function(){
   }
   if(page === "menu") document.querySelectorAll("a.pdf").forEach(a => a.href = INFO.menuPdf);   /* 파일명(menu.pdf) 또는 올린 파일의 전체 주소 */
 });
+
+/* ---------- 방문 세기 (09-24 재아: 개발자 페이지 통계) ----------
+   장을 열 때 한 줄: 어느 장 · 이 브라우저의 무작위 번호(하루 방문자 수를 세려고, 이름·IP 같은 건 없음) · 어디서 왔나(도메인만) · 폰/태블릿/PC.
+   예약 창 열림·접수도 같은 표에 'ev:' 로. 미리보기(?preview)·화면 캡처(?shot)·로봇·내 PC(localhost)는 안 셈. 실패해도 조용히 */
+window.hanokHit = (function(){
+  const S = window.SUPA;
+  const skip = !S || !S.url || /localhost|127\.0\.0\.1/.test(location.hostname) || /[?&](preview|shot|only)=/.test(location.search) ||
+               navigator.webdriver || /bot|crawl|spider|slurp|preview|headless/i.test(navigator.userAgent);
+  let vid = "";
+  try{ vid = localStorage.getItem("hanok-vid") || ""; if(!vid){ vid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); localStorage.setItem("hanok-vid", vid); } }
+  catch(e){ vid = "x" + Math.random().toString(36).slice(2, 12); }
+  const dev = innerWidth < 760 ? "mobile" : innerWidth < 1100 ? "tablet" : "pc";
+  let ref = ""; try{ const h = document.referrer ? new URL(document.referrer).hostname : ""; ref = h && h !== location.hostname ? h.replace(/^www\./, "").slice(0, 80) : ""; }catch(e){}
+  return function(page){
+    if(skip) return;
+    try{
+      fetch(S.url + "/rest/v1/site_hits", { method:"POST", keepalive:true,
+        headers:{ apikey:S.anonKey, Authorization:"Bearer " + S.anonKey, "Content-Type":"application/json", Prefer:"return=minimal" },
+        body:JSON.stringify({ store:S.store || "hanok", page:String(page).slice(0, 40), vid:vid, ref:ref, dev:dev }) }).catch(() => {});
+    }catch(e){}
+  };
+})();
+window.hanokHit(document.body.dataset.page || location.pathname.replace(/^\/|\.html$/g, "") || "home");

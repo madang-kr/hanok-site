@@ -92,7 +92,7 @@
         date:p.date, time:p.time, adults:p.adults, kids:p.kids, people:p.people, seat:p.seat, course:p.course, course_label:p.courseLabel,
         name:p.name, phone:String(p.phone).replace(/\D/g,""), request:p.request||"", allergy:p.allergy||"", status:"대기" };
       const r = await fetch(SUPA.url + "/rest/v1/requests", { method:"POST", headers:Object.assign({"Prefer":"return=minimal"}, H), body:JSON.stringify(body) });
-      if(r.ok) return {ok:true, id:body.id};
+      if(r.ok){ if(window.hanokHit) window.hanokHit("ev:예약 접수"); return {ok:true, id:body.id}; }
       let msg = ""; try{ msg = (await r.json()).message || ""; }catch(e){}
       if(/RATE_PHONE/.test(msg)) return {ok:false, msg:"이 번호로 오늘 접수한 예약이 이미 5건입니다. 전화로 문의해 주세요."};
       if(/RATE_ALL/.test(msg)) return {ok:false, msg:"지금 접수가 몰려 있습니다. 잠시 뒤 다시 시도해 주세요."};
@@ -114,6 +114,7 @@
   /* ---------- 창 ---------- */
   function open(){
     if(ov) return;
+    if(window.hanokHit) window.hanokHit("ev:예약창 열림");   /* 통계(개발자 페이지) — 창을 연 사람 대비 접수한 사람 */
     reset();
     ov = document.createElement("div"); ov.className = "rv-ov";
     ov.innerHTML = `<div class="rv" role="dialog" aria-modal="true" aria-label="예약">

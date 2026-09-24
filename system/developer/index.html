@@ -11,7 +11,9 @@
   그래서 구형 TV 문법 제한도 없음(재아의 PC·폰에서만 엶). 서버 권한은 system/supabase/patch_23차_개발자페이지.sql.
     · 요청   : 사장님·직원이 '개발자에게' 로 보낸 글 보기·답하기(답하면 '답변 완료' — 가게 화면에 답이 보임)
     · 점검   : 서버·홈페이지·카운터 동기화·로그인·접수·용량·최근 기록을 한눈에(dev_health)
-    · 긴급   : 모든 기기 새로고침 · 홈페이지 예약 끄기/켜기(dev_action) · 전체 백업 내려받기
+    · 통계   : 홈페이지 방문·예약 창 → 접수·많이 쓴 기능·예약 경로·감사 문자·화면 오류(dev_stats, 24차)
+    · 긴급   : 모든 기기 새로고침 · 홈페이지 예약 끄기/켜기(dev_action) · 전체 백업 내려받기 · 텔레그램 시험 · 용량 점검
+    · 점검 위 게이지: DB·파일 무료 한도 — 매일 10시 서버가 같은 기준으로 70·80·90% 넘으면 텔레그램(24차 hanok_usage_check)
   접속 정보는 홈페이지와 같은 js/config.js(anon 키 — 공개용). 로그인 세션은 이 브라우저 localStorage 에만.
 -->
 <style>
@@ -102,11 +104,41 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 .links{display:flex; gap:8px; flex-wrap:wrap}
 .toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 18px; border-radius:12px; font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); z-index:50; max-width:calc(100vw - 32px)}
 .spin{color:var(--text-3); padding:40px 0; text-align:center}
+/* 용량 게이지(24차) — 70% 넘으면 노랑, 90% 넘으면 빨강. 같은 기준으로 매일 10시 텔레그램 */
+.gauges{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; margin-bottom:12px}
+.gauge .k{display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); font-weight:600}
+.gauge .v{font-size:22px; font-weight:700; margin:4px 0 8px; letter-spacing:-.01em}
+.gauge .v small{font-size:13px; color:var(--text-3); font-weight:600; margin-left:6px}
+.bar-o{height:10px; border-radius:5px; background:var(--surface-2); overflow:hidden}
+.bar-i{height:100%; border-radius:5px; background:#3BA86B}
+.bar-i.warn{background:#E0A030} .bar-i.bad{background:var(--rust)}
+.gauge .s{font-size:12px; color:var(--text-3); margin-top:8px; line-height:1.7}
+.tsz{font-size:12px; color:var(--text-2); margin-top:10px; display:grid; grid-template-columns:1fr auto; gap:2px 12px}
+/* 통계 */
+.kpis{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:12px}   /* 6칸 = 3×2 — 자동 채우기면 5+1 로 하나가 외톨이였음 */
+.kpi .k{font-size:13px; color:var(--text-2); font-weight:600}
+.kpi .v{font-size:24px; font-weight:700; letter-spacing:-.01em; margin-top:2px}
+.kpi .s{font-size:12px; color:var(--text-3); margin-top:2px}
+.chart{display:flex; align-items:flex-end; gap:2px; height:140px; padding-top:8px}
+.chart .c{flex:1 1 0; display:flex; flex-direction:column; justify-content:flex-end; align-items:stretch; height:100%; min-width:3px}
+.chart .c i{display:block; background:#C9D8E8; border-radius:2px 2px 0 0}
+.chart .c b{display:block; background:var(--ink); border-radius:2px 2px 0 0; margin-top:1px}
+.chart .c:hover i{background:#9DB9D6}
+.chart-x{display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-top:6px}
+.legend{display:flex; gap:14px; font-size:12px; color:var(--text-2); margin-bottom:4px}
+.legend span::before{content:""; display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; background:#C9D8E8}
+.legend span.dark::before{background:var(--ink)}
+.cols{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; margin-top:12px}
+.hbar{display:grid; grid-template-columns:minmax(80px, 38%) 1fr auto; gap:8px; align-items:center; font-size:13px; margin:6px 0}
+.hbar .l{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2)}
+.hbar .n{font-weight:700; font-variant-numeric:tabular-nums}
+.card h4{margin:0 0 8px; font-size:14px}
 @media (max-width:640px){
   .wrap{padding:0 16px 48px}
   .em{flex-direction:column; align-items:stretch}
   .em .btn{justify-content:center}
   table.logs td.t{white-space:normal}
+  .kpis{grid-template-columns:repeat(2, 1fr)}
 }
 </style>
 </head>
@@ -118,7 +150,7 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 const CFG = window.SUPA || {};
 const DEV_ID = "madang-dev", DEV_EMAIL = "madang-dev@jaealee.com";   // 서버 hanok_is_dev() 와 같아야 함
 const SKEY = "madang.dev.session";
-const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, busy:false, err:"" };
+const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, stats:null, statDays:30, busy:false, err:"" };
 const $app = document.getElementById("app");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -171,7 +203,7 @@ async function login(ev){
 }
 function logout(){
   if(S.sess) fetch(CFG.url + "/auth/v1/logout", { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token } }).catch(() => {});
-  saveSess(null); S.reqs = null; S.health = null; render();
+  saveSess(null); S.reqs = null; S.health = null; S.stats = null; render();
 }
 function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
 
@@ -244,7 +276,23 @@ function tabHealth(){
   const av = mins(h.avail_at), staff = (h.logins || []).find(x => /staff/.test(x.email)), admin = (h.logins || []).find(x => /admin/.test(x.email));
   const rq = h.requests || {}, dq = h.devreq || {}, site = h.site || {}, st = h.store || {}, res = h.res || {}, sto = h.storage || {};
   const pages = [c.home, c.sys, c.tv], pagesOk = pages.every(p => p.ok);
+  const u = h.usage || {}, pct = (a, b) => b ? Math.round(a * 1000 / b) / 10 : 0, lv = p => p >= 90 ? "bad" : p >= 70 ? "warn" : "";
+  const dbp = pct(u.db_bytes || 0, u.db_limit), fip = pct(u.file_bytes || 0, u.file_limit);
+  const gauge = (k, p, used, lim, sub, extra) => `<div class="card gauge"><div class="k"><span>${k}</span><span>${p}%</span></div>
+      <div class="v">${used}<small>/ ${lim}</small></div><div class="bar-o"><div class="bar-i ${lv(p)}" style="width:${Math.min(100, Math.max(p, 1))}%"></div></div>
+      <div class="s">${sub}</div>${extra || ""}</div>`;
+  const tsz = (u.tables || []).map(t => `<span>${esc(t.name)}</span><span>${mb(t.bytes)}</span>`).join("");
+  const tg = h.telegram, cr = h.cron_ok, la = h.last_alert;
   return `<div class="bar"><span class="muted">${esc(kst(h.now))} 기준</span><span style="flex:1"></span><button class="btn sm" onclick="loadHealth()">다시 점검</button></div>
+  <div class="gauges">
+    ${gauge("DB (무료 한도)", dbp, mb(u.db_bytes || 0), "500MB", "예약·설정·기록이 여기. 70% 넘으면 오래된 기록 정리를 생각할 때", `<div class="tsz">${tsz}</div>`)}
+    ${gauge("파일 (사진·PDF·영상)", fip, mb(u.file_bytes || 0), "1GB", (u.file_count || 0) + "개 · 홈페이지 관리·소식·개발자에게에서 올린 것")}
+    <div class="card gauge"><div class="k"><span>전송량 (월 5GB)</span><span>—</span></div><div class="v" style="font-size:16px">서버에서 못 읽음</div>
+      <div class="s">사진·영상을 손님이 받아 갈 때 쌓임. <a href="https://supabase.com/dashboard/project/jgjrpzjbvptgvrgreibe/usage" target="_blank" rel="noopener">Supabase Usage 에서 보기</a></div>
+      <div class="k" style="margin-top:14px"><span>자동 경고</span><span></span></div>
+      <div class="s">매일 10시 점검 ${cr ? '<span class="tag green">켜짐</span>' : '<span class="tag amber">꺼짐</span>'} · 텔레그램 ${tg ? '<span class="tag green">연결됨</span>' : '<span class="tag amber">Vault 값 없음</span>'}<br>
+        ${la ? "마지막 경고 " + esc(kst(la.at)) + " · " + esc(la.msg) : "보낸 경고 없음"} — 70·80·90% 에서 한 번씩(달마다)</div></div>
+  </div>
   <div class="grid">
     ${hc(c.ms < 1500 ? "ok" : "warn", "서버(Supabase)", c.ms + "ms", "madang-hanok · 서울")}
     ${hc(pagesOk ? "ok" : "bad", "홈페이지 · 시스템 · TV", pagesOk ? "모두 열림" : "안 열리는 곳 있음", pages.map((p, i) => ["홈", "시스템", "TV"][i] + " " + (p.ok ? p.ms + "ms" : "오류 " + p.status)).join(" · "))}
@@ -253,12 +301,62 @@ function tabHealth(){
     ${hc(!site.booking ? "warn" : rq.waiting && mins(rq.oldest) > 12 * 60 ? "bad" : "ok", "홈페이지 예약", site.booking ? "켜짐" : "꺼짐", "대기 접수 " + (rq.waiting || 0) + "건" + (rq.waiting ? " · 가장 오래된 것 " + esc(ago(rq.oldest)) : "") + " · 마지막 접수 " + esc(ago(rq.last)))}
     ${hc("ok", "예약", "오늘 " + (res.today || 0) + " · 앞으로 " + (res.future || 0), "전체 " + (res.all || 0) + "건 · 마지막 변경 " + esc(ago(res.last_change)))}
     ${hc(dq.urgent ? "bad" : dq.open ? "warn" : "ok", "개발자에게", dq.open ? "답 안 한 글 " + dq.open : "모두 답함", dq.urgent ? "급함 " + dq.urgent + "건" : "")}
-    ${hc(h.db_bytes > 400 * 1048576 || sto.bytes > 800 * 1048576 ? "warn" : "ok", "용량(무료 한도)", "DB " + mb(h.db_bytes) + " / 500MB", "파일 " + (sto.files || 0) + "개 · " + mb(sto.bytes || 0) + " / 1GB")}
     ${hc("ok", "홈페이지 판", esc(ago(site.apply_at)) + " 적용", esc((site.note || "") + (h.site_next ? " · 예정 판 " + kst(h.site_next) : "")))}
+    ${hc("ok", "오늘 홈페이지", "방문 " + ((h.visits_today || {}).visitors || 0) + "명", "페이지 " + ((h.visits_today || {}).views || 0) + "번 열림 · 자세한 건 통계")}
+    ${hc(h.errors_7d ? "warn" : "ok", "화면 오류 (7일)", (h.errors_7d || 0) + "건", h.errors_7d ? "통계 탭 아래에 최근 오류" : "가게 기기에서 난 오류 없음")}
     ${hc(st.temp_closed ? "warn" : "ok", "매장 상태", st.temp_closed ? "임시 휴업 켜짐" : "정상 영업", "설정 마지막 저장 " + esc(ago(st.updated_at)))}
   </div>
   <h2 class="sec">최근 기록 30</h2>
   <table class="logs">${(h.logs || []).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="a">${esc(l.action)}</td><td class="d">${esc(l.detail)}${l.who ? ` <span class="muted">· ${esc(l.who)}</span>` : ""}</td></tr>`).join("") || '<tr><td class="muted">기록 없음</td></tr>'}</table>`;
+}
+
+/* ---------- 통계(24차) ----------
+   '잘 돌아가고 있나' — 홈페이지 방문(하루 방문자·장별·기기·유입), 예약 창 → 접수, 가게 시스템에서 많이 쓴 기능(기록 logs 의 동작별),
+   예약 등록·경로, 접수 처리, 감사 문자, 화면 오류. 기간 7·30·90일 */
+async function loadStats(){
+  S.stats = null; render();
+  try{ S.stats = await api("/rest/v1/rpc/dev_stats", { method:"POST", body:{ p_days:S.statDays } }); }
+  catch(e){ S.stats = { error:e.message }; }
+  render();
+}
+function hbars(list, fmt){
+  if(!list || !list.length) return '<p class="muted" style="margin:6px 0">아직 없음</p>';
+  const max = Math.max(...list.map(x => x.n)) || 1;
+  return list.map(x => `<div class="hbar"><span class="l" title="${esc(x.k)}">${esc(fmt ? fmt(x.k) : x.k)}</span><div class="bar-o"><div class="bar-i" style="width:${Math.max(2, x.n * 100 / max)}%; background:var(--ink)"></div></div><span class="n">${x.n}</span></div>`).join("");
+}
+function tabStats(){
+  const st = S.stats;
+  const chips = [7, 30, 90].map(d => `<button class="chip${S.statDays === d ? " on" : ""}" onclick="S.statDays=${d}; loadStats()">${d}일</button>`).join("");
+  const head = `<div class="bar">${chips}<span style="flex:1"></span><button class="btn sm" onclick="loadStats()">새로고침</button></div>`;
+  if(!st) return head + '<p class="spin">모으는 중…</p>';
+  if(st.error) return head + `<div class="card"><b>통계를 못 가져왔습니다</b><p class="muted">${esc(st.error)}</p></div>`;
+  const v = st.visits || {}, res = st.res || {}, th = st.thanks || {}, er = st.errors || {};
+  const rqList = st.requests || [], rqAll = rqList.reduce((a, x) => a + x.n, 0);
+  const conv = v.reserve_open_people ? Math.round((v.reserve_sent || 0) * 100 / v.reserve_open_people) : 0;
+  /* 날마다: 빈 날도 칸을 채워 막대 폭이 고르게 */
+  const byDay = Object.fromEntries((st.daily || []).map(x => [x.d, x])), days = [];
+  for(let i = S.statDays - 1; i >= 0; i--){ const d = new Date(Date.now() - i * 86400000); days.push(d.toLocaleDateString("sv-SE", {timeZone:"Asia/Seoul"})); }
+  const maxU = Math.max(1, ...days.map(d => (byDay[d] || {}).u || 0)), maxR = Math.max(1, ...days.map(d => ((byDay[d] || {}).res || 0) + ((byDay[d] || {}).rq || 0)));
+  const chart = days.map(d => { const x = byDay[d] || {}; return `<div class="c" title="${d} · 방문 ${x.u || 0}명(${x.v || 0}번) · 예약 등록 ${x.res || 0} · 홈페이지 접수 ${x.rq || 0}"><i style="height:${(x.u || 0) * 62 / maxU}%"></i><b style="height:${((x.res || 0) + (x.rq || 0)) * 34 / maxR}%"></b></div>`; }).join("");
+  const kpi = (k, val, sub) => `<div class="card kpi"><div class="k">${k}</div><div class="v">${val}</div>${sub ? `<div class="s">${sub}</div>` : ""}</div>`;
+  const pageName = k => ({home:"홈", about:"이야기", space:"공간", menu:"차림", news:"소식", visit:"오시는 길", reserve:"예약"})[k] || k;
+  const devName = k => ({pc:"PC", tablet:"태블릿", mobile:"폰", "":"모름"})[k] || k;
+  return head + `<div class="kpis">
+      ${kpi("홈페이지 방문자", (v.visitors || 0).toLocaleString() + "명", "페이지 " + (v.views || 0).toLocaleString() + "번 열림")}
+      ${kpi("예약 창 → 접수", (v.reserve_sent || 0) + "건", "창을 연 " + (v.reserve_open_people || 0) + "명 중 " + conv + "%")}
+      ${kpi("예약 등록(가게)", (res.created || 0) + "건", "방문 " + (res.visited || 0) + " · 노쇼 " + (res.noshow || 0) + " · 취소 " + (res.canceled || 0))}
+      ${kpi("홈페이지 접수 처리", rqAll + "건", rqList.map(x => esc(x.k) + " " + x.n).join(" · ") || "없음")}
+      ${kpi("감사 문자", (th.n || 0) + "건", "AI " + (th.ai || 0) + " · 기본 양식 " + (th.template || 0) + " · 직접 " + (th.manual || 0) + " · 보냄 " + (th.sent || 0))}
+      ${kpi("화면 오류", (er.n || 0) + "건", er.n ? "아래에 최근 것" : "잘 돌아가고 있음")}
+    </div>
+    <div class="card"><div class="legend"><span>하루 방문자</span><span class="dark">예약 등록 + 홈페이지 접수</span></div>
+      <div class="chart">${chart}</div><div class="chart-x"><span>${esc(days[0].slice(5))}</span><span>${esc(days[days.length - 1].slice(5))}</span></div></div>
+    <div class="cols">
+      <div class="card"><h4>많이 쓴 기능 (가게 시스템)</h4>${hbars((st.actions || []).slice(0, 15))}</div>
+      <div class="card"><h4>많이 본 장</h4>${hbars(st.pages, pageName)}<h4 style="margin-top:16px">기기</h4>${hbars(st.devices, devName)}</div>
+      <div class="card"><h4>어디서 왔나</h4>${hbars(st.refs)}<h4 style="margin-top:16px">예약 경로 (가게 등록)</h4>${hbars(res.by_source)}</div>
+    </div>
+    ${er.n ? `<h2 class="sec">최근 화면 오류</h2><table class="logs">${(er.recent || []).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="d">${esc(l.detail)}<br><span class="muted">${esc((l.ua || "").slice(0, 90))}</span></td></tr>`).join("")}</table>` : ""}`;
 }
 
 /* ---------- 긴급 ---------- */
@@ -293,6 +391,8 @@ function tabEm(){
       ${on === false ? `<button class="btn primary" onclick="act('booking_on', '홈페이지 예약을 다시 켤까요?')">다시 켜기</button>` : `<button class="btn danger fill" onclick="act('booking_off', '홈페이지 예약을 지금 끌까요? 손님에게 바로 전화 안내만 보입니다.')">예약 끄기</button>`}</div>
     <div class="card em"><div class="tx"><h3>전체 백업</h3><p>예약·설정·손님·직원·근무·홈페이지·요청을 JSON 한 파일로 이 기기에 내려받습니다. 큰 작업 전에, 또는 서버가 이상할 때.</p></div>
       <button class="btn" id="bk" onclick="backup()">백업 내려받기</button></div>
+    <div class="card em"><div class="tx"><h3>알림 시험 · 용량 점검</h3><p>텔레그램이 오는지 시험하거나, 매일 10시 용량 점검을 지금 한 번 돌립니다(70% 넘으면 그때 알림).</p></div>
+      <button class="btn" onclick="act('telegram_test')">텔레그램 시험</button><button class="btn" onclick="act('usage_check')">용량 점검 지금</button></div>
     <h2 class="sec">바로가기</h2>
     <div class="links">
       <a class="btn sm" href="/system/" target="_blank" rel="noopener">가게 시스템</a>
@@ -304,7 +404,7 @@ function tabEm(){
 }
 
 /* ---------- 틀 ---------- */
-function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "em" && !S.health) loadHealth(); }
+function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); }
 function go(t){ S.tab = t; loadTab(); render(); }
 function render(){
   if(!CFG.url){ $app.innerHTML = '<p class="spin">접속 설정(js/config.js)을 못 읽었습니다</p>'; return; }
@@ -323,9 +423,10 @@ function render(){
     <nav class="tabs">
       <button class="${S.tab === "req" ? "on" : ""}" onclick="go('req')">개발자에게${open.length ? `<span class="badge${urg ? " red" : ""}">${open.length}</span>` : ""}</button>
       <button class="${S.tab === "health" ? "on" : ""}" onclick="go('health')">점검</button>
+      <button class="${S.tab === "stats" ? "on" : ""}" onclick="go('stats')">통계</button>
       <button class="${S.tab === "em" ? "on" : ""}" onclick="go('em')">긴급</button>
     </nav>
-    ${S.tab === "req" ? tabReq() : S.tab === "health" ? tabHealth() : tabEm()}`;
+    ${S.tab === "req" ? tabReq() : S.tab === "health" ? tabHealth() : S.tab === "stats" ? tabStats() : tabEm()}`;
 }
 S.sess = loadSess();
 render();

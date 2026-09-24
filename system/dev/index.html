@@ -3240,6 +3240,24 @@ input.pk-in[type=time]::-webkit-calendar-picker-indicator{opacity:.45}
 
 /* 폰에서 키패드·단추를 빨리 두 번 누르면 화면이 확대(더블탭 줌)되던 것 — 두 번 눌러 확대만 끄고 두 손가락 확대는 그대로(09-24 재아) */
 html, body, button, a, input, label, .pkey{touch-action:manipulation}
+
+/* 달력 높이 고정(09-24 재아) — 요일 줄 24 + 6주 × 40 + 틈 5 × 2 = 274. 달 고르기 화면도 같은 높이 안에서 */
+.pk-area{height:274px}
+.pk-head span{height:24px; line-height:18px; box-sizing:border-box}
+.pk-pad{height:40px}
+.pk-nav .pk-title{width:auto; height:36px; padding:0 12px; border-radius:18px; font-size:var(--fs-body); font-weight:700; color:var(--text)}
+.pk-nav .pk-title i{font-style:normal; font-size:11px; color:var(--text-3); margin-left:2px}
+.pk-ymv{display:flex; flex-direction:column; padding:0 var(--s8)}
+.pk-mos{display:grid; grid-template-columns:repeat(4, 1fr); gap:6px}
+.pk-mo{height:44px; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); font:inherit; font-size:var(--fs-body); color:var(--text); cursor:pointer}
+.pk-mo:hover{border-color:var(--text-3)}
+.pk-mo.today{box-shadow:inset 0 0 0 1.5px var(--text)}
+.pk-mo.on{background:var(--text); border-color:var(--text); color:#fff}
+.pk-mo:disabled{color:var(--border-strong); cursor:default}
+.pk-type{display:flex; gap:var(--s8); margin-top:var(--s16)}
+.pk-type input{flex:1 1 auto; min-width:0; height:40px}
+.pk-type .btn{height:40px; min-height:40px; padding-top:0; padding-bottom:0}
+.pk-ymv .pk-err{text-align:left}
 /* ============================================================
    12. 구형 브라우저 폴백 — 반드시 @supports 안에 둡니다
    ============================================================ */
@@ -3269,7 +3287,9 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 
 <script>
 /* 오래된 브라우저에서 스크립트가 멈추면 흰 화면 대신 안내를 띄웁니다 */
-window.onerror = function(msg){
+window.onerror = function(msg, src, line, col){
+  /* 화면이 돌고 있는 중에 난 오류는 서버 기록으로(개발자 페이지 통계 '화면 오류', 09-24) — errReport 는 03-util */
+  try{ if(typeof errReport === "function") errReport(msg, src, line, col); }catch(e){}
   var app = document.getElementById("app");
   if(app && !app.getAttribute("data-ok")){
     app.innerHTML = '<div style="max-width:420px;margin:14vh auto;padding:28px;text-align:center;'+
@@ -4316,6 +4336,22 @@ function logEvent(action, detail){
   }
   saveData();
 }
+
+/* 화면 오류 알리기(09-24 재아: 개발자 페이지에서 '잘 돌아가는지') — 한 번 켤 때 최대 5건, 같은 오류는 한 번만.
+   인터넷 끊김 같은 흔한 건 뺌(오프라인 띠가 따로 알림). logEvent 를 안 쓰는 이유: saveData 를 부르며 또 오류가 나면 되풀이 */
+var ERR_SENT = {}, ERR_N = 0;
+function errReport(msg, src, line, col){
+  msg = String(msg && msg.message ? msg.message : msg || "");
+  if(!msg || /Failed to fetch|NetworkError|Load failed|AbortError|네트워크/i.test(msg)) return;
+  var key = msg.slice(0, 120) + ":" + (line || 0);
+  if(ERR_SENT[key] || ERR_N >= 5) return; ERR_SENT[key] = 1; ERR_N++;
+  if(!(typeof supaOn === "function" && supaOn() && SESSION && !OFFLINE)) return;
+  var where = (src ? String(src).split("/").pop().split("?")[0] : "") + (line ? ":" + line + ":" + (col || 0) : "");
+  var at = (view && (view.form ? view.form.type : view.display ? "display" : view.tab)) || "";
+  sb("/rest/v1/logs", { method:"POST", body:{ store:view.storeKey || "-", action:"화면 오류", detail:(msg.slice(0, 200) + (where ? " @" + where : "") + (at ? " · " + at : "")), ua:(navigator.userAgent || "").slice(0, 120) }, prefer:"return=minimal" })
+    .catch(function(){});
+}
+if(window.addEventListener) window.addEventListener("unhandledrejection", function(e){ try{ errReport(e && e.reason, "", 0, 0); }catch(x){} });
 
 /* 총 인원 — 어린이를 포함한 값. 옛 기록(성인+어린이 분리)도 함께 처리 */
 /* 총 인원. 옛 데이터는 people 없이 adults+infants 로 저장돼 있어 그때만 더해 씁니다.
@@ -5925,20 +5961,68 @@ function pkRangeOk(noEnd){
   MODAL = null; render(); m.res({from:m.a, to:b});
 }
 function pkClear(){ var m = MODAL; if(!m) return; MODAL = null; render(); m.res(m.mode === "range" ? {from:"", to:""} : ""); }
+/* 09-24 재아: ① 달마다 주 수(4~6)가 달라 높이가 바뀌면 ‹ › 위치가 움직여 여러 달 넘길 때 불편 → 늘 6주 칸(빈 칸으로 채움), 높이 고정.
+   ② 제목(2026년 9월)을 누르면 '달 고르기' — 해 ‹ › 와 1~12월, 그리고 날짜를 바로 치는 칸(20261003 · 10/3 · 2026-10-03). 같은 높이 안에서 바뀜 */
+function pkNav(n){
+  var m = MODAL; if(!m) return;
+  if(m.view === "ym"){ var p = m.month.split("-"); m.month = (Number(p[0]) + n) + "-" + p[1]; render(); return; }
+  pkMonth(n);
+}
+function pkYm(){ var m = MODAL; if(!m) return; m.view = m.view === "ym" ? "" : "ym"; m.err = ""; render(); if(m.view === "ym") setTimeout(function(){ var el = document.getElementById("pk-type"); if(el && !isMobile()) el.focus(); }, 30); }
+function pkYmPick(mo){ var m = MODAL; if(!m) return; m.month = m.month.slice(0, 4) + "-" + pad(mo); m.view = ""; render(); }
+/* 친 글자를 날짜로: 8자리(20261003) · 6자리(261003) · 3~4자리(1003 = 보고 있는 해) · 구분자(2026-10-03, 10/3, 10.3) */
+function pkParse(s, curY){
+  s = String(s || "").trim(); if(!s) return null;
+  var parts = s.split(/[^0-9]+/).filter(Boolean), d = s.replace(/[^0-9]/g, ""), y, mo, da;
+  if(parts.length >= 3){ y = +parts[0]; mo = +parts[1]; da = +parts[2]; if(y < 100) y += 2000; }
+  else if(parts.length === 2){ y = curY; mo = +parts[0]; da = +parts[1]; }
+  else if(d.length === 8){ y = +d.slice(0, 4); mo = +d.slice(4, 6); da = +d.slice(6); }
+  else if(d.length === 6){ y = 2000 + +d.slice(0, 2); mo = +d.slice(2, 4); da = +d.slice(4); }
+  else if(d.length === 3 || d.length === 4){ y = curY; mo = +d.slice(0, d.length - 2); da = +d.slice(-2); }
+  else return null;
+  var t = new Date(y, mo - 1, da);
+  if(isNaN(t.getTime()) || t.getFullYear() !== y || t.getMonth() !== mo - 1 || t.getDate() !== da) return null;
+  return pkYmd(t);
+}
+function pkTyped(){
+  var m = MODAL; if(!m) return;
+  var el = document.getElementById("pk-type"); if(el) m.typed = el.value;
+  var ds = pkParse(m.typed, Number(m.month.slice(0, 4)));
+  if(!ds){ m.err = "날짜를 못 알아들었습니다 — 예: 20261003, 10/3"; render(); return; }
+  if((m.min && ds < m.min) || (m.max && ds > m.max)){ m.err = pkShort(ds) + " 은 고를 수 없는 날입니다"; render(); return; }
+  m.month = ds.slice(0, 7); m.view = ""; m.typed = ""; m.err = "";
+  pkPick(ds);
+}
 function pkCalHtml(m){
-  var p = m.month.split("-").map(Number), y = p[0], mo = p[1];
-  var lead = new Date(y, mo - 1, 1).getDay(), last = new Date(y, mo, 0).getDate(), today = todayStr(), cells = "";
-  for(var i = 0; i < lead; i++) cells += '<span></span>';
+  var p = m.month.split("-").map(Number), y = p[0], mo = p[1], ym = m.view === "ym";
+  var nav = '<div class="pk-nav"><button type="button" onclick="pkNav(-1)" aria-label="' + (ym ? "이전 해" : "이전 달") + '">‹</button>' +
+    '<button type="button" class="pk-title" onclick="pkYm()" title="달 고르기 · 날짜 바로 입력">' + y + '년' + (ym ? '' : ' ' + mo + '월') + ' <i>' + (ym ? '▴' : '▾') + '</i></button>' +
+    '<button type="button" onclick="pkNav(1)" aria-label="' + (ym ? "다음 해" : "다음 달") + '">›</button></div>';
+  if(ym){
+    var cur = (m.a || "").slice(0, 7), months = "";
+    for(var k = 1; k <= 12; k++){
+      var key = y + "-" + pad(k), lastD = y + "-" + pad(k) + "-" + pad(new Date(y, k, 0).getDate());
+      var off = (m.min && lastD < m.min) || (m.max && key + "-01" > m.max);
+      months += '<button type="button" class="pk-mo' + (key === cur ? ' on' : '') + (key === todayStr().slice(0, 7) ? ' today' : '') + '"' + (off ? ' disabled' : '') + ' onclick="pkYmPick(' + k + ')">' + k + '월</button>';
+    }
+    return '<div class="pk-cal">' + nav + '<div class="pk-area pk-ymv"><div class="pk-mos">' + months + '</div>' +
+      '<div class="pk-type"><input id="pk-type" type="text" inputmode="numeric" autocomplete="off" placeholder="바로 입력 · 예: 20261003, 10/3" value="' + esc(m.typed || "") + '" oninput="MODAL.typed=this.value" onkeydown="if(event.key===\'Enter\'){event.preventDefault(); event.stopPropagation(); pkTyped();}"><button type="button" class="btn sm" onclick="pkTyped()">이동</button></div>' +
+      '<div class="pk-err">' + esc(m.err || "") + '</div></div></div>';
+  }
+  var lead = new Date(y, mo - 1, 1).getDay(), last = new Date(y, mo, 0).getDate(), today = todayStr(), cells = "", n = 0;
+  for(var i = 0; i < lead; i++){ cells += '<span></span>'; n++; }
   for(var d = 1; d <= last; d++){
     var ds = y + "-" + pad(mo) + "-" + pad(d), dow = (lead + d - 1) % 7;
-    var off = (m.min && ds < m.min) || (m.max && ds > m.max);
+    var off2 = (m.min && ds < m.min) || (m.max && ds > m.max);
     var sel = m.mode === "date" ? ds === m.a : (ds === m.a || ds === m.b);
     var inR = m.mode === "range" && m.a && m.b && ds > m.a && ds < m.b;
-    cells += '<button type="button" class="pk-d' + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + (ds === today ? ' today' : '') + (sel ? ' on' : '') + (inR ? ' in' : '') + '"' + (off ? ' disabled' : '') + ' onclick="pkPick(\'' + ds + '\')">' + d + '</button>';
+    cells += '<button type="button" class="pk-d' + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + (ds === today ? ' today' : '') + (sel ? ' on' : '') + (inR ? ' in' : '') + '"' + (off2 ? ' disabled' : '') + ' onclick="pkPick(\'' + ds + '\')">' + d + '</button>';
+    n++;
   }
-  return '<div class="pk-cal"><div class="pk-nav"><button type="button" onclick="pkMonth(-1)" aria-label="이전 달">‹</button><b>' + y + '년 ' + mo + '월</b><button type="button" onclick="pkMonth(1)" aria-label="다음 달">›</button></div>' +
+  for(; n < 42; n++) cells += '<span class="pk-pad"></span>';   /* 늘 6주 — 높이 고정 */
+  return '<div class="pk-cal">' + nav + '<div class="pk-area">' +
     '<div class="pk-grid pk-head">' + PK_WD.map(function(w, i){ return '<span class="' + (i === 0 ? 'sun' : i === 6 ? 'sat' : '') + '">' + w + '</span>'; }).join("") + '</div>' +
-    '<div class="pk-grid">' + cells + '</div></div>';
+    '<div class="pk-grid">' + cells + '</div></div></div>';
 }
 
 /* renderModal(06) 이 이 세 가지일 때 여기로 넘깁니다 */
@@ -7072,9 +7156,10 @@ function renderTimeline(date, compact){
           const nm  = {변경:"오늘 변동", 요청:"요청사항"};   /* 목록 제목·범례와 같은 말로(재아 09-17) */
           const act = {확정:"openPick('confirmed')", 경고:"openPick('warn')", 변경:"openPick('changed')", 요청:"openPick('request')", 메모:"openPick('memo')"};
           const chk = checkItems(date).length;
-          return Object.keys(cnt).filter(k=>cnt[k])
-            .map(k=>`<button class="tag tapchip ${cls[k]}" onclick="${act[k]}">${nm[k]||k} ${cnt[k]}건</button>`).join("")
-            + `<i class="chip-sep"></i><button class="tag tapchip ${chk?'amber':''}" onclick="openCheck()">확인 ${chk}건</button>`;
+          const shown = Object.keys(cnt).filter(k=>cnt[k]);
+          /* 앞 칩이 하나도 없으면(모두 0건) 구분점도 뺌 — 점 하나만 덩그러니 남았음(09-24 재아) */
+          return shown.map(k=>`<button class="tag tapchip ${cls[k]}" onclick="${act[k]}">${nm[k]||k} ${cnt[k]}건</button>`).join("")
+            + (shown.length ? `<i class="chip-sep"></i>` : "") + `<button class="tag tapchip ${chk?'amber':''}" onclick="openCheck()">확인 ${chk}건</button>`;
         })()}
         ${dh.closed ? "" : `<span class="tl-part ${part==="day"?"all":""}" role="group" aria-label="시간대">
           <button class="pt ${part!=="dinner"?"on":""}" onclick="tlToggle('lunch')" title="점심">${ICON.sun}</button>
@@ -8662,18 +8747,28 @@ function saFile(path, label, note){   /* PDF 같은 파일: 파일 이름 + 열�
    kind: image(축소해서 JPEG/PNG) · pdf · video(mp4 그대로) · file(소식 첨부 — 종류 안 가림, 14차). 올린 뒤 공개 주소(와 원래 파일 이름)를 cb 로 돌려줍니다.
    사진은 올리기 전에 긴 변 1600px 로 줄입니다 — 폰 사진 원본(4~8MB)을 그대로 두면 홈페이지가 느리고 무료 전송량(월 5GB)이 금방 찹니다 */
 var SA_PICK = null;
-function saPickFile(kind, cb){
+/* multi: true 면 여러 개를 한 번에 고름(소식 사진 — 09-24 재아). 하나씩 차례로 올리고 올릴 때마다 cb 를 부름 */
+function saPickFile(kind, cb, multi){
   if(!supaOn() || !SESSION){ uiAlert("서버 연결이 필요합니다", "", "warn"); return; }
   var inp = document.getElementById("sa-file");
   if(!inp){ inp = document.createElement("input"); inp.type = "file"; inp.id = "sa-file"; inp.style.display = "none"; document.body.appendChild(inp); inp.addEventListener("change", saFileChosen); }
   inp.accept = kind === "image" ? "image/*" : kind === "pdf" ? "application/pdf" : kind === "file" ? "" : "video/mp4,video/*";
+  inp.multiple = !!multi;
   inp.value = ""; SA_PICK = {kind:kind, cb:cb}; inp.click();
 }
 async function saFileChosen(e){
-  var f = e.target.files && e.target.files[0], p = SA_PICK; SA_PICK = null;
-  if(!f || !p) return;
-  try{
-    showToast("올리는 중… " + f.name);
+  var files = Array.prototype.slice.call((e.target.files) || []), p = SA_PICK; SA_PICK = null;
+  if(!files.length || !p) return;
+  var ok = 0, fails = [];
+  for(var i = 0; i < files.length; i++){
+    try{ await saUploadOne(files[i], p, files.length > 1 ? " (" + (i + 1) + "/" + files.length + ")" : ""); ok++; }
+    catch(err){ fails.push(files[i].name + " — " + (err.message || String(err))); }
+  }
+  if(fails.length) await uiAlert(fails.length === files.length ? "올리지 못했습니다" : ok + "개는 올렸고 " + fails.length + "개는 못 올렸습니다", fails.join(" / "), "warn");
+}
+async function saUploadOne(f, p, count){
+  {
+    showToast("올리는 중" + count + "… " + f.name);
     var blob = f, ext = (f.name.split(".").pop() || "").toLowerCase(), type = f.type || "";
     if(p.kind === "image"){ var r = await saShrink(f); blob = r.blob; ext = r.ext; type = r.type; }
     else if(p.kind === "pdf"){ if(type !== "application/pdf" && ext !== "pdf") throw new Error("PDF 파일만 올릴 수 있습니다"); type = "application/pdf"; ext = "pdf"; }
@@ -8689,9 +8784,9 @@ async function saFileChosen(e){
     if(!res.ok){ var t = ""; try{ t = (await res.json()).message || ""; }catch(x){} throw new Error("올리기 실패 " + res.status + (t ? " · " + t : "")); }
     var url = SUPA_CFG.url + "/storage/v1/object/public/site/" + path;
     logEvent("파일 올림", p.kind + " " + f.name + " → " + path);
-    showToast("올렸습니다 · " + Math.round(blob.size / 1024) + "KB");
+    showToast("올렸습니다" + count + " · " + Math.round(blob.size / 1024) + "KB");
     p.cb(url, f.name);
-  }catch(err){ await uiAlert("올리지 못했습니다", err.message || String(err), "warn"); }
+  }
 }
 /* 사진 줄이기: 긴 변 1600px, JPEG 0.85. PNG(투명 배경 — 주방장 사진 같은 것)는 PNG 로 둡니다 */
 function saShrink(file){
@@ -8720,7 +8815,7 @@ function sheetSite(){
   if(!SA || SA.loading) return saHead() + '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
   if(SA.err) return saHead() + '<div class="alert rust"><span class="ic">!</span><div><div class="a-t">불러오지 못했습니다</div><div class="a-s">' + esc(SA.err) + '</div></div></div><div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openSiteAdmin()">다시 시도</button></div>';
   /* 09-24 재아: 적용 기록 탭 삭제. 팝업 공지·소식은 저장하면 바로 올라가는 것들이라 선 뒤에 따로 — 그 두 탭에서는 위의 적용 띠를 숨김 */
-  var TABS = [["online","홈페이지 예약"],["hours","영업시간·연락처"],["texts","글"],["menu","차림"],["images","사진"],["notices","팝업 공지"],["posts","소식"]];
+  var TABS = [["online","홈페이지 예약"],["hours","영업시간·연락처"],["texts","글"],["menu","차림"],["images","사진"],["notices","팝업"],["posts","소식"]];
   var body = ({online:saTabOnline, notices:saTabNotices, posts:saTabPosts, hours:saTabHours, texts:saTabTexts, menu:saTabMenu, images:saTabImages}[SA.tab] || saTabOnline)();   /* posts 는 14c */
   var instant = SA.tab === "posts" || SA.tab === "notices";
   return saHead() +
@@ -8808,18 +8903,33 @@ async function saNtPublish(msg){
   }catch(e){ await uiAlert("저장 실패", e.message, "warn"); }
 }
 async function saNtDel(i){ if(!await uiConfirm("팝업 삭제", "지우면 홈페이지에서 바로 사라집니다.", {ok:"삭제", cancel:"취소"})) return; var a = saGet("notices") || []; a.splice(i, 1); saSet("notices", a); await saNtPublish("팝업을 지웠습니다"); }
+function saNtIsImg(n){ return n.kind ? n.kind === "img" : !!n.img; }
+/* 종류 바꾸기 — 글로 가면 사진을 비우고(홈페이지는 img 가 있으면 사진으로 띄움), 사진으로 가면 예약 버튼을 끔. 내용 글은 남겨 둠(다시 글로 오면 그대로) */
+function saNtKind(i, k){
+  var p = "notices." + i + ".";
+  saSet(p + "kind", k);
+  if(k === "text") saSet(p + "img", ""); else saSet(p + "button", "");
+  render();
+}
 async function saNtMove(i, d){ saArrMove("notices", i, d); await saNtPublish("순서를 바꿨습니다"); }
 async function saNtPreview(id){ clearTimeout(SA_AUTOSAVE); if(saDirty() && !await saSave(true)) return; view.saPreviewOnly = id; view.saPreview = "index"; render(); }
 function saNtCard(n, i, total){
   var p = "notices." + i + ".", soon = n.from && n.from > todayStr();
   var unsaved = saNtLive(n.id) !== JSON.stringify(n);
   var sum = '<span class="sa-card-t">' + esc(n.title || "(제목 없음)") + '</span><span class="sa-card-s">' + esc(pkRangeText(n.from, n.until) || "바로부터 계속") + '</span>' +
-    (unsaved ? '<span class="tag sm rust">저장 안 됨</span>' : '') + (soon ? '<span class="tag sm amber">예정</span>' : '') + (n.button ? '<span class="tag sm">예약 버튼</span>' : '') + (n.img ? '<span class="tag sm">그림</span>' : '');
+    (unsaved ? '<span class="tag sm rust">저장 안 됨</span>' : '') + (soon ? '<span class="tag sm amber">예정</span>' : '') + (n.button ? '<span class="tag sm">예약 버튼</span>' : '') + (saNtIsImg(n) ? '<span class="tag sm">사진</span>' + (n.img ? '' : '<span class="tag sm rust">사진 없음</span>') : '');
+  /* 09-24 재아: 글 팝업 / 사진 팝업을 처음부터 나눔 — 사진을 고르면 내용 칸·예약 버튼이 사라지고 사진 칸(1장)만.
+     예약 버튼이 사진 아래 붙으면 어색했음. 종류는 n.kind("text"|"img"), 옛 팝업은 img 가 있으면 사진으로 봄 */
+  var isImg = saNtIsImg(n);
   var edit =
-    '<div class="grid2">' + saF(p + "title", "제목") + saField("기간", saRangeBtn(p + "from", p + "until", "팝업 기간", {openEnd:true, ph:"바로부터 계속"})) + '</div>' +
-    saL(p + "lines", "내용", "", 4) +
-    saSwHtml(!!n.button, "saSet('" + p + "button', " + (n.button ? "''" : "'예약하기'") + "); render()", "예약 버튼 추가") +
-    saI(p + "img", "그림 팝업", "그림을 넣으면 글 대신 그림 한 장이 뜹니다", true) +
+    '<div class="f sa-f"><div class="lb">종류</div><div class="seg sa-nt-kind">' +
+      '<button type="button" class="' + (!isImg ? "on" : "") + '" onclick="saNtKind(' + i + ', \'text\')">글</button>' +
+      '<button type="button" class="' + (isImg ? "on" : "") + '" onclick="saNtKind(' + i + ', \'img\')">사진</button></div></div>' +
+    '<div class="grid2">' + saF(p + "title", isImg ? "제목 (사진 설명 · 관리용)" : "제목") + saField("기간", saRangeBtn(p + "from", p + "until", "팝업 기간", {openEnd:true, ph:"바로부터 계속"})) + '</div>' +
+    (isImg
+      ? saI(p + "img", "사진", "한 장만 올립니다. 가로 420px 에 맞춰 보이고 세로는 사진 비율 그대로입니다", true)
+      : saL(p + "lines", "내용", "", 4) +
+        saSwHtml(!!n.button, "saSet('" + p + "button', " + (n.button ? "''" : "'예약하기'") + "); render()", "예약 버튼 추가")) +
     '<div class="sa-card-f">' +
       '<button class="btn sm ghost danger" onclick="saNtDel(' + i + ')">삭제</button>' +
       (total > 1 ? '<button class="btn sm ghost" onclick="saNtMove(' + i + ', -1)" aria-label="위로"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn sm ghost" onclick="saNtMove(' + i + ', 1)" aria-label="아래로"' + (i === total - 1 ? ' disabled' : '') + '>↓</button>' : '') +
@@ -8973,7 +9083,7 @@ async function saPostBack(){
 function saPostSet(k, v){ if(SA.post) SA.post[k] = v; saPostHeader(); }
 /* 제목 줄 같은 작은 표시만 갈아 끼움 — 글자마다 render() 하면 입력 초점이 날아감 */
 function saPostHeader(){ var el = document.getElementById("sa-post-state"); if(el) el.textContent = saPostDirty() ? "고친 내용이 있습니다" : ""; }
-function saPostImgAdd(){ saPickFile("image", function(u){ SA.post.images.push(u); render(); }); }
+function saPostImgAdd(){ saPickFile("image", function(u){ if(SA.post){ SA.post.images.push(u); render(); } }, true); }   /* 여러 장 한 번에(09-24) */
 function saPostImgDel(i){ SA.post.images.splice(i, 1); render(); }
 function saPostImgMove(i, d){ var a = SA.post.images, j = i + d; if(j < 0 || j >= a.length) return; var t = a[i]; a[i] = a[j]; a[j] = t; render(); }
 function saPostFileAdd(){ saPickFile("file", function(u, name){ SA.post.files.push({name:name || u.split("/").pop(), url:u}); render(); }); }
@@ -9039,7 +9149,7 @@ function saPostEditor(){
         '<div class="f">' + saSwHtml(!!p.pinned, "saPostSet('pinned', " + (p.pinned ? "false" : "true") + "); render()", "맨 위 고정", "소식 목록 맨 위에 둡니다") + '</div>' +
       '</div>' +
       '<label class="f sa-f"><div class="lb">본문 <span class="lbl-note">빈 줄로 문단 · **굵게**</span></div><textarea class="in-sm" rows="10" placeholder="내용을 적어 주세요" oninput="saPostSet(\'body\', this.value)">' + esc(p.body || "") + '</textarea></label>' +
-      '<div class="f"><div class="lb">사진 <span class="lbl-note">여러 장 · 순서는 화살표</span></div><div class="sa-pimgs">' + imgs + '<button class="sa-pimg add" onclick="saPostImgAdd()">＋ 사진 올리기</button></div></div>' +
+      '<div class="f"><div class="lb">사진 <span class="lbl-note">여러 장을 한 번에 고를 수 있음 · 순서는 화살표</span></div><div class="sa-pimgs">' + imgs + '<button class="sa-pimg add" onclick="saPostImgAdd()">＋ 사진 올리기</button></div></div>' +
       '<div class="f"><div class="lb">첨부 파일 <span class="lbl-note">PDF·한글·워드·엑셀·zip 등, 50MB 까지</span></div>' + files + '<div class="btn-row"><button class="btn sm" onclick="saPostFileAdd()">＋ 파일 올리기</button></div></div>' +
       '<div class="btn-row" style="margin-top:16px; align-items:center">' +
         '<button class="btn sm ghost" onclick="saPostBack()">← 목록</button>' +
