@@ -1,7 +1,0 @@
-{
-  "url": "https://xxxxxxxxxxxx.supabase.co",
-  "anonKey": "eyJ... (Project Settings → API → anon public. service_role 은 절대 넣지 마세요)",
-  "staffEmail": "staff@jaealee.com",
-  "adminEmail": "admin@jaealee.com",
-  "demo": true
-}
