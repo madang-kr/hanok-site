@@ -12063,7 +12063,7 @@ async function savePin(){
   if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
   if(!/^\d{4}$/.test(cur)){ await uiAlert2("현재 PIN을 입력하세요."); return; }
   try{
-    try{ await authToken(SUPA_CFG.adminEmail, /^\d{6}$/.test(adminPw) ? adminToPassword(adminPw) : adminPw); }
+    try{ await adminAuth(adminPw); }
     catch(e){ if(e.status === 400){ logEvent("PIN 변경 실패", "2차 비밀번호 불일치"); await uiAlert2("사장님 2차 비밀번호가 맞지 않습니다."); return; } throw e; }
     var staffTok;
     try{ staffTok = await authToken(SUPA_CFG.staffEmail, pinToPassword(cur)); }
@@ -12103,12 +12103,8 @@ async function saveAdminPw(){
   if(a !== b){ await uiAlert2("새 2차 비밀번호가 서로 다릅니다."); return; }
   try{
     var tok;
-    try{ tok = await authToken(SUPA_CFG.adminEmail, /^\d{6}$/.test(cur) ? adminToPassword(cur) : cur); }
-    catch(e){
-      var ok2 = false;
-      if(/^\d{6}$/.test(cur)){ try{ tok = await authToken(SUPA_CFG.adminEmail, cur); ok2 = true; }catch(e2){} }   /* 옛 비밀번호가 우연히 6자리였던 경우 */
-      if(!ok2){ if(e.status === 400){ logEvent("2차 비밀번호 변경 실패", "현재 비밀번호 불일치"); await uiAlert2("현재 2차 비밀번호가 맞지 않습니다."); return; } throw e; }
-    }
+    try{ tok = await adminAuth(cur); }
+    catch(e){ if(e.status === 400){ logEvent("2차 비밀번호 변경 실패", "현재 비밀번호 불일치"); await uiAlert2("현재 2차 비밀번호가 맞지 않습니다."); return; } throw e; }
     await setPassword(tok, adminToPassword(a));
   }catch(e){
     await uiAlert("비밀번호를 바꾸지 못했습니다", e.network ? "서버에 연결할 수 없습니다." : e.message, "warn"); return;
@@ -12130,11 +12126,15 @@ async function adminGate(what){
   if(r == null) return false;
   if(!r || !r.code) return false;   /* 바깥 누름·취소 */
   const pw = r.code;
-  try{ await authToken(SUPA_CFG.adminEmail, /^\d{6}$/.test(pw) ? adminToPassword(pw) : pw); logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
-  catch(e){
-    if(/^\d{6}$/.test(pw)){ try{ await authToken(SUPA_CFG.adminEmail, pw); logEvent("관리자 확인", what + " (옛 비밀번호)"); return true; }catch(e2){} }
-    await uiAlert("2차 비밀번호가 다릅니다", "", "warn"); return false;
-  }
+  try{ await adminAuth(pw); logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
+  catch(e){ await uiAlert("2차 비밀번호가 다릅니다", "", "warn"); return false; }
+}
+/* 사장님 계정 로그인 — 6자리면 '6자리+00' 먼저, 안 되면 친 그대로(6자리 자체를 비밀번호로 만든 서버도 있음 — 실서비스가 그렇게 만들어짐, 09-24 재아).
+   PIN 바꾸기·2차 비밀번호 바꾸기·관리자 확인이 모두 이걸 씀(예전엔 관리자 확인만 두 번 시도해서 PIN 바꾸기에서 막혔음) */
+async function adminAuth(pw){
+  if(!/^\d{6}$/.test(pw)) return authToken(SUPA_CFG.adminEmail, pw);
+  try{ return await authToken(SUPA_CFG.adminEmail, adminToPassword(pw)); }
+  catch(e){ if(e.status !== 400) throw e; return authToken(SUPA_CFG.adminEmail, pw); }
 }
 function sheetSetLog(){
   const log = (store().settings._setlog || []).slice().reverse();
