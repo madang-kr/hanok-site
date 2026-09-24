@@ -38,10 +38,16 @@
     box.innerHTML = rows.slice((cur - 1) * PER, cur * PER).map(p => {
       const first = String(p.body || "").split(/\n{2,}/).map(x => x.trim()).filter(Boolean)[0];
       const line = (first || "").split("\n")[0];
-      return `<a class="post-l" href="news.html?p=${encodeURIComponent(p.id)}">
-          ${metaHtml(p)}
-          <h2>${esc(p.title)}</h2>
-          ${line ? `<p class="post-first">${rich(line)}</p>` : ""}
+      /* 사진이 있으면 오른쪽에 첫 장 작게, 여러 장이면 위에 겹친 네모 표시(09-24 재아) */
+      const imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
+      const th = imgs.length ? `<span class="post-th"><img src="${esc(imgs[0])}" alt="" loading="lazy" onerror="this.parentNode.remove()">${imgs.length > 1 ? `<i class="many" aria-label="사진 ${imgs.length}장"><svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="10" height="10" rx="1.5"/><path d="M11.5 14.5h-8.5a1.5 1.5 0 0 1-1.5-1.5v-8.5"/></svg></i>` : ""}</span>` : "";
+      return `<a class="post-l${th ? " has-th" : ""}" href="news.html?p=${encodeURIComponent(p.id)}">
+          <span class="post-lt">
+            ${metaHtml(p)}
+            <h2>${esc(p.title)}</h2>
+            ${line ? `<p class="post-first">${rich(line)}</p>` : ""}
+          </span>
+          ${th}
           <i class="post-arrow"></i>
         </a>`;
     }).join("") + (pages > 1 ? pagerHtml(cur, pages) : "");

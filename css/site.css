@@ -577,6 +577,14 @@ body.has-preview .fab{bottom:56px}
 .post-arrow{position:absolute; right:6px; top:50%; width:9px; height:9px; margin-top:-5px; border-right:1px solid var(--sub); border-bottom:1px solid var(--sub); transform:rotate(-45deg); transition:transform .25s, border-color .2s}
 .post-l:hover .post-arrow{border-color:#fff}
 .post-l:hover h2{text-decoration:underline; text-underline-offset:4px; text-decoration-color:var(--line-2)}
+/* 목록 작은 사진(09-24) — 오른쪽에 첫 장, 여러 장이면 위에 겹친 네모. 글 쪽은 남은 너비를 다 씀 */
+.post-l.has-th{display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:28px}
+.post-lt{display:block; min-width:0}
+.post-th{position:relative; display:block; width:136px; height:96px; overflow:hidden; background:var(--bg-2)}
+.post-th img{display:block; width:100%; height:100%; object-fit:cover; transition:transform .4s ease}
+.post-l:hover .post-th img{transform:scale(1.04)}
+.post-th .many{position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center}
+.post-th .many svg{width:14px; height:14px; fill:none; stroke:#fff; stroke-width:1.5}
 /* 글 한 편 */
 .post-v{padding:8px 0 40px}
 .post-vh{padding-bottom:24px; margin-bottom:28px; border-bottom:1px solid var(--line)}
@@ -615,6 +623,8 @@ body.has-preview .fab{bottom:56px}
 @media (max-width:640px){
   .post-l{padding:22px 34px 22px 0}
   .post-l h2{font-size:19px}
+  .post-l.has-th{gap:16px}
+  .post-th{width:88px; height:66px}
   .post-vh h2{font-size:22px}
   .post-text p{font-size:15.5px}
 }
