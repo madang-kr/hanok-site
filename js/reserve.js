@@ -422,7 +422,8 @@
     const sp = specialOf(S.date);
     if(sp){
       /* 특별 기간도 점심·저녁 차림이 다를 수 있음(09-25 재아): 저녁 코스는 종일, 점심 메뉴는 점심 시간 예약에만 */
-      const row = (x, kind) => { const m = String(x).split("|"); const name = m[0].trim(); return {key:kind+":"+name, name, cn:(m[1]||"").trim()}; };
+      /* 09-25: 예약 시스템에서 온 것은 {name, cn, key}. 옛 홈페이지 자료는 "이름 | 한자" 글 */
+      const row = (x, kind) => { if(x && typeof x === "object") return {key:x.key || kind+":"+x.name, name:x.name, cn:x.cn || ""}; const m = String(x).split("|"); const name = m[0].trim(); return {key:kind+":"+name, name, cn:(m[1]||"").trim()}; };
       const spLunch = sp.lunchOff ? [] : (sp.lunch || []);   /* 점심 세트를 끈 특별 기간(09-25) */
       const dinner = sp.courses || [], lunch = mins(S.time) < LUNCH_END ? spLunch : [], both = spLunch.length > 0, t = sp.title || "특별";
       const g = [];
@@ -432,11 +433,12 @@
     }
     /* 묶음 이름은 홈페이지 관리 → 차림에서 정한 제목을 따름(09-25 — '저녁 코스' 를 '코스' 로 바꿀 수 있게). 비운 묶음은 안 나옴 */
     const MP = (window.SITE && SITE.menuPage) || {};
-    const out = (MENU.courses.items || []).length ? [{ title: ((MP.courses && MP.courses.title) || "저녁 코스") + ((MP.courses && MP.courses.sub) ? " · " + MP.courses.sub : ""), items: MENU.courses.items.map(c => ({key:"course:"+c.name, name:c.name, cn:c.cn})) }] : [];
+    const out = (MENU.courses.items || []).length ? [{ title: ((MP.courses && MP.courses.title) || "저녁 코스") + ((MP.courses && MP.courses.sub) ? " · " + MP.courses.sub : ""), items: MENU.courses.items.map(c => ({key:c.key || "course:"+c.name, name:c.name, cn:c.cn})) }] : [];
     if(mins(S.time) < LUNCH_END && (MENU.lunch || []).length){
       const want = isWeekend(S.date) ? "주말" : "평일";
-      const set = MENU.lunch.filter(g => g.title.indexOf(want) === 0)[0] || MENU.lunch[0];
-      if(set && (set.items || []).length) out.push({ title: set.title, items: set.items.map(x => ({key:"set:"+x.name, name:x.name, cn:""})) });
+      /* 예약 시스템 묶음은 when(평일점심·주말점심)으로, 옛 자료는 제목 앞글자로 */
+      const set = MENU.lunch.filter(g => (g.when || []).indexOf(want + "점심") >= 0)[0] || MENU.lunch.filter(g => !(g.when || []).length && g.title.indexOf(want) === 0)[0] || (MENU.lunch.some(g => (g.when || []).length) ? null : MENU.lunch[0]);
+      if(set && (set.items || []).length) out.push({ title: set.title, items: set.items.map(x => ({key:x.key || "set:"+x.name, name:x.name, cn:""})) });
     }
     return out;
   }
