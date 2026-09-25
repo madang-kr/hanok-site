@@ -2219,6 +2219,11 @@ button.cd-fin{border-color:var(--pine)!important; color:var(--pine)!important}
 .beta-t{font-size:10px; font-weight:800; letter-spacing:.04em; margin-left:3px; vertical-align:1px}
 .hr-pd{display:inline-flex; align-items:center; justify-content:center; text-decoration:none; opacity:.8; vertical-align:-2px}
 .hr-pd svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2}
+/* 손님 관리(09-25 재아): 지난 예약·취소는 흐리게, 메모 칸 크게 */
+.rowitem.gs-past{opacity:.5}
+.rowitem.gs-past:hover{opacity:.75}
+textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
+.searchbox.gs-hist{flex:none; overflow:visible; min-height:0}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -6300,7 +6305,19 @@ window.addEventListener("resize", function(){
   if(MOBILE_WAS !== null && m !== MOBILE_WAS && DATA) render();   /* 폰↔PC 경계를 넘을 때만 다시 그림 */
   MOBILE_WAS = m;
 });
+/* 09-25 재아: 손님 관리·노쇼 관리 같은 화면 위에서 예약을 열면 그 화면 위에 팝업(전엔 대시보드로 돌아가 떴음).
+   view.under = 밑에 깔린 화면. 팝업이 닫히면(view.form 이 비면) 그 화면으로 돌아감 */
 function renderStore(){
+  if(view.under && !view.form && !WZ){ view.form = view.under; view.under = null; }
+  if(view.under && view.form && view.form.page) view.under = null;
+  if(view.under && view.form && !WZ){
+    const top = view.form; view.form = view.under;
+    let html; try{ html = renderStoreCore(); } finally { view.form = top; }
+    return html.replace(/<\/div>\s*$/, renderSheet() + "</div>");
+  }
+  return renderStoreCore();
+}
+function renderStoreCore(){
   const s = store();
   MOBILE_WAS = isMobile();
   const stt = shopState(s.settings);
@@ -7912,7 +7929,7 @@ async function goHomeScreen(){
   if(view.form && view.form.type === "site" && typeof saLeaveGuard === "function" && saLeaveGuard()) return;
   if(view.form && view.form.type === "menu" && typeof mbBack === "function"){ await mbBack(); if(view.form && view.form.type === "menu") return; }
   if(WZ && typeof isEditingRes === "function" && isEditingRes() && !await uiConfirm("입력 중인 예약이 있습니다", "닫으면 입력한 내용이 사라집니다.", {ok:"닫기", cancel:"계속 입력"})) return;
-  WZ = null; tmpRes = null; view.form = null; OWNER_OK = false; view.calOpen = false; if(view.tab === "settings") return setTab("dash"); render();
+  WZ = null; tmpRes = null; view.form = null; view.under = null; OWNER_OK = false; view.calOpen = false; if(view.tab === "settings") return setTab("dash"); render();
 }
 function goToday(){ view.date = todayStr(); view.calMonth = monthStr(); render(); }
 /* '오늘이 아닌 날짜를 보는 중' — 상단바(.topbar.notoday)와 body.notoday 가 같은 조건을 써야 하므로 한 곳에.
@@ -9519,13 +9536,15 @@ function saSpAdd(){ var a = saGet("online.special") || []; a.push({title:"", fro
 function saSpToggle(i){ var p = "online.special." + i, sp = saGet(p); var v = !saSpOpen(sp); saSet(p + ".open", v); saSet(p + ".lock", !v); render(); }
 function saSpCard(sp, i){
   var p = "online.special." + i;
-  var sum = '<span class="sa-card-t">' + esc(sp.title || "(이름 없음)") + '</span><span class="sa-card-s">' + esc(pkRangeText(sp.from, sp.to) || "기간 없음") + ' · 저녁 ' + (sp.courses || []).length + ((sp.lunch || []).length ? ' · 점심 ' + sp.lunch.length : '') + '</span>' + saSpStatus(sp);
+  var sum = '<span class="sa-card-t">' + esc(sp.title || "(이름 없음)") + '</span><span class="sa-card-s">' + esc(pkRangeText(sp.from, sp.to) || "기간 없음") + ' · 저녁 ' + (sp.courses || []).length + (sp.lunchOff ? ' · 점심 세트 없음' : (sp.lunch || []).length ? ' · 점심 ' + sp.lunch.length : '') + '</span>' + saSpStatus(sp);
   var open = saSpOpen(sp);
   var edit =
     '<div class="grid2">' + saF(p + ".title", "기간 이름", "", {ph:"예: 추석 연휴"}) + saField("기간", saRangeBtn(p + ".from", p + ".to", "특별 기간")) + '</div>' +
     /* 09-25 재아: 특별 기간에도 점심·저녁 차림이 다를 수 있음 — 저녁 코스는 종일, 점심 메뉴는 점심 시간(15:30 전) 예약에만 보임 */
     '<label class="f sa-f"><div class="lb">저녁 코스 <span class="lbl-note">종일 · 한 줄에 한 코스 · "이름 | 한자" 또는 "이름"</span></div><textarea class="in-sm" rows="3" placeholder="추석 한상 코스 | 秋夕&#10;명절 가족 코스" oninput="saSetLines(\'' + p + '.courses\', this.value)">' + esc((sp.courses || []).join("\n")) + '</textarea></label>' +
-    '<label class="f sa-f"><div class="lb">점심 메뉴 <span class="lbl-note">점심 시간 예약에만 · 비우면 점심에도 저녁 코스만</span></div><textarea class="in-sm" rows="3" placeholder="명절 점심 세트 A&#10;명절 점심 세트 B" oninput="saSetLines(\'' + p + '.lunch\', this.value)">' + esc((sp.lunch || []).join("\n")) + '</textarea></label>' +
+    /* 09-25 재아: 점심 세트 없이 저녁 코스만 운영할 수도 — 끄면 점심 시간 예약에도 저녁 코스만 */
+    saSwHtml(!sp.lunchOff, "saSet('" + p + ".lunchOff', " + (sp.lunchOff ? "false" : "true") + "); render()", "점심 세트 운영", sp.lunchOff ? "끔 — 점심 시간 예약에도 저녁 코스만 나옵니다" : "") +
+    (sp.lunchOff ? '' : '<label class="f sa-f"><div class="lb">점심 세트 <span class="lbl-note">점심 시간 예약에만 · 비우면 점심에도 저녁 코스만</span></div><textarea class="in-sm" rows="3" placeholder="명절 점심 세트 A&#10;명절 점심 세트 B" oninput="saSetLines(\'' + p + '.lunch\', this.value)">' + esc((sp.lunch || []).join("\n")) + '</textarea></label>') +
     saF(p + ".note", "안내", "메뉴 선택 단계에 표시되는 문장입니다", {ph:"예: 연휴 기간에는 코스로만 예약을 받습니다"}) +
     saSwHtml(open, "saSpToggle(" + i + ")", "홈페이지 예약 활성화") +
     (open ? '<div class="sa-sub-in">' + saField("예약 받는 기간", saRangeBtn(p + ".openFrom", p + ".openTo", "예약 받는 기간", {openEnd:true, ph:"비우면 바로부터 계속"})) + '</div>' : "") +
@@ -10741,7 +10760,9 @@ function gsBuild(){
     var g = map[k], c = CUST && CUST[k];
     var best = "", n = 0; Object.keys(g.names).forEach(function(x){ if(g.names[x] > n){ n = g.names[x]; best = x; } });
     g.name = (c && c.name) || best || "(이름 없음)"; g.memo = (c && c.memo) || ""; g.aka = Object.keys(g.names).filter(function(x){ return x !== g.name; });
-    g.list.sort(function(a, b){ return (b.date + b.time).localeCompare(a.date + a.time); });
+    /* 09-25 재아: 앞으로 올 예약이 위(가까운 것부터), 그 아래 지난 예약(최근 것부터) */
+    var now = today + " " + nowHM();
+    g.list.sort(function(a, b){ var ak = a.date + " " + a.time, bk = b.date + " " + b.time, af = ak >= now, bf = bk >= now; if(af !== bf) return af ? -1 : 1; return af ? ak.localeCompare(bk) : bk.localeCompare(ak); });
   });
   return map;
 }
@@ -10800,18 +10821,20 @@ function sheetGuests(){
 function gsDetailHtml(){
   var g = gsBuild()[GS.open]; if(!g) return "";
   var c = CUST && CUST[GS.open];
+  var nowK = todayStr() + " " + nowHM();
   var hist = g.list.slice(0, 40).map(function(r){
-    return '<button class="rowitem tap" onclick="GS.open=null; openMark(\'' + r.id + '\')"><span class="time-col">' + esc(dateLabel(r.date).replace(/ \(.\)$/, "")) + '</span><span class="grow"><span class="t">' + esc(hm(r.time)) + ' · ' + pplText(r) + (r.status !== "확정" ? ' <span class="tag ' + (r.status === "노쇼" ? "rust" : r.status === "방문" ? "pine" : "") + ' sm">' + r.status + '</span>' : '') + '</span>' +
+    var past = (r.date + " " + r.time) < nowK || r.status === "취소" || r.status === "노쇼";   /* 지난 예약·취소는 흐리게(09-25) */
+    return '<button class="rowitem tap' + (past ? ' gs-past' : '') + '" onclick="openMark(\'' + r.id + '\')"><span class="time-col">' + esc(dateLabel(r.date).replace(/ \(.\)$/, "")) + '</span><span class="grow"><span class="t">' + esc(hm(r.time)) + ' · ' + pplText(r) + (r.status !== "확정" ? ' <span class="tag ' + (r.status === "노쇼" ? "rust" : r.status === "방문" ? "pine" : "") + ' sm">' + r.status + '</span>' : '') + '</span>' +
       '<span class="s">' + esc(resSeatLabel(r)) + (r.name !== g.name ? ' · ' + esc(r.name) : '') + (r.request ? ' · ' + esc(r.request) : '') + (r.allergy ? ' · 알러지 ' + esc(r.allergy) : '') + '</span></span></button>';
   }).join("");
   return '<div class="overlay" onclick="gsClose()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' +
     sheetHead(esc(g.name) + tierTagOf(tierOf(g.visit, g.noshow)) + ' <small class="muted">' + gsPhoneHtml(g.phone) + '</small>') +
     '<div class="gs-stats"><span><b>' + g.visit + '</b>방문</span><span><b>' + g.upcoming + '</b>예정</span><span class="' + (g.noshow ? "rust" : "") + '"><b>' + g.noshow + '</b>노쇼</span><span><b>' + g.cancel + '</b>취소</span><span><b>' + (g.total ? Math.round(g.people / g.total) : 0) + '</b>평균 인원</span></div>' +
     (g.aka.length ? '<p class="f-note">이 번호로 적힌 다른 이름: ' + esc(g.aka.join(", ")) + '</p>' : '') +
-    '<div class="grid2"><label class="f"><div class="lb">고정 이름 <span class="lbl-note">비우면 자동</span></div><input id="gs-name" type="text" value="' + esc(c ? c.name : "") + '" placeholder="' + esc(g.name) + '"></label>' +
-    '<label class="f"><div class="lb">메모</div><input id="gs-memo" type="text" value="' + esc(g.memo || "") + '" placeholder="예: 창가 선호, 매운 것 못 드심, 단골"></label></div>' +
+    '<div class="grid2"><label class="f"><div class="lb">고정 이름 <span class="lbl-note">공란 시 자동</span></div><input id="gs-name" type="text" value="' + esc(c ? c.name : "") + '" placeholder="' + esc(g.name) + '"></label>' +
+    '</div><label class="f"><div class="lb">메모</div><textarea id="gs-memo" class="gs-memo" rows="3" placeholder="예: 창가 선호, 매운 것 못 드심, 단골">' + esc(g.memo || "") + '</textarea></label>' +   /* 메모 칸 크게(09-25 재아) */
     '<div class="btn-row" style="margin:0 0 10px"><button class="btn sm primary" onclick="gsSave()">메모 저장</button></div>' +
-    '<div class="subhead">예약 기록 ' + g.total + '건</div><div class="card searchbox">' + hist + '</div>' +
+    '<div class="subhead">예약 기록 ' + g.total + '건</div><div class="card searchbox gs-hist">' + hist + '</div>' +   /* 창 전체가 스크롤 — 메모 칸을 키우니 기록 칸이 두 줄로 줄었음(09-25) */
     '<div class="sheet-actions"><button class="btn primary" onclick="gsClose()">닫기</button></div></div></div>';
 }
 function gsEsc(){ if(GS && view.form && view.form.type === "guests" && GS.open){ GS.open = null; render(); return true; } return false; }
@@ -12136,7 +12159,7 @@ var MB_SEED = { bg:"", pages:[
    입력 시트 (예약 / 직원 / 근태)
    ============================================================ */
 function openRes(id){ if(readonlyBlock()) return; histPush(); view.form={type:"res", id}; render(); }
-function openMark(id){ view.form={type:"mark", id}; view.pickSeat=null; render(); }
+function openMark(id){ if(view.form && view.form.page) view.under = view.form; view.form={type:"mark", id}; view.pickSeat=null; render(); }   /* 화면 위에서 열면 그 화면 위에 팝업(09-25) */
 /* 누르면 바로 배정되던 것을 '고르기 → 확정하기' 두 단계로 나눴습니다.
    태블릿에서 손이 스쳐 엉뚱한 방에 배정되는 사고를 막습니다. */
 function pickSeatCand(resId, seatId){ view.pickSeat = seatId || null; render(); }
@@ -12440,6 +12463,7 @@ function closeSheet(){
   view.cdStaff = false; view.cdThanks = false;
   if(view.form && view.form.type === "owner") OWNER_OK = false;   /* 사장님 메뉴를 닫고 나감 — 다음엔 다시 물음 */
   if(view.form && view.form.type === "menu"){ mbBack(); return; }   /* 메뉴판 편집 → 저장하고 목록으로 */
+  if(view.form && view.form.page) view.under = null;
   if(view.form && view.form.page && view.form.back === "owner"){ view.form = {type:"owner", page:true}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "messages"){ view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "guests"){ view.form = {type:"guests", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }

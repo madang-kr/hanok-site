@@ -423,17 +423,20 @@
     if(sp){
       /* 특별 기간도 점심·저녁 차림이 다를 수 있음(09-25 재아): 저녁 코스는 종일, 점심 메뉴는 점심 시간 예약에만 */
       const row = (x, kind) => { const m = String(x).split("|"); const name = m[0].trim(); return {key:kind+":"+name, name, cn:(m[1]||"").trim()}; };
-      const dinner = sp.courses || [], lunch = mins(S.time) < LUNCH_END ? (sp.lunch || []) : [], both = (sp.lunch || []).length > 0, t = sp.title || "특별";
+      const spLunch = sp.lunchOff ? [] : (sp.lunch || []);   /* 점심 세트를 끈 특별 기간(09-25) */
+      const dinner = sp.courses || [], lunch = mins(S.time) < LUNCH_END ? spLunch : [], both = spLunch.length > 0, t = sp.title || "특별";
       const g = [];
       if(dinner.length) g.push({ title: both ? t + " · 저녁 코스" : (sp.title || "특별 코스"), items: dinner.map(x => row(x, "course")) });
-      if(lunch.length) g.push({ title: t + " · 점심 메뉴", items: lunch.map(x => row(x, "set")) });
+      if(lunch.length) g.push({ title: t + " · 점심 세트", items: lunch.map(x => row(x, "set")) });
       if(g.length){ g[0].note = sp.note || ""; return g; }
     }
-    const out = [{ title: "저녁 코스 · 종일 주문 가능", items: MENU.courses.items.map(c => ({key:"course:"+c.name, name:c.name, cn:c.cn})) }];
-    if(mins(S.time) < LUNCH_END){
+    /* 묶음 이름은 홈페이지 관리 → 차림에서 정한 제목을 따름(09-25 — '저녁 코스' 를 '코스' 로 바꿀 수 있게). 비운 묶음은 안 나옴 */
+    const MP = (window.SITE && SITE.menuPage) || {};
+    const out = (MENU.courses.items || []).length ? [{ title: ((MP.courses && MP.courses.title) || "저녁 코스") + ((MP.courses && MP.courses.sub) ? " · " + MP.courses.sub : ""), items: MENU.courses.items.map(c => ({key:"course:"+c.name, name:c.name, cn:c.cn})) }] : [];
+    if(mins(S.time) < LUNCH_END && (MENU.lunch || []).length){
       const want = isWeekend(S.date) ? "주말" : "평일";
       const set = MENU.lunch.filter(g => g.title.indexOf(want) === 0)[0] || MENU.lunch[0];
-      out.push({ title: set.title, items: set.items.map(x => ({key:"set:"+x.name, name:x.name, cn:""})) });
+      if(set && (set.items || []).length) out.push({ title: set.title, items: set.items.map(x => ({key:"set:"+x.name, name:x.name, cn:""})) });
     }
     return out;
   }
