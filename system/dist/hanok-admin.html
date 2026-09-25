@@ -3456,6 +3456,17 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 .set-one .fold-b .btn-row > .btn, .set-one .fold-b .sch-h .btn{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
 /* 좌석 줄은 ▲▼ · 층 칸과 한 줄이라 원래 높이(38px) 그대로 — audit_rows */
 .set-one .fold-b .rowitem.seat .numbtn{height:38px!important; min-height:38px!important; padding:0 10px!important; border-radius:var(--r-sm)!important; font-size:14px!important}
+
+/* 사장님·관리 화면(화면형 .page-wrap — 홈페이지 관리·워크시프트·손님 관리·문자·메뉴판 …)의 알약과 작은 단추도
+   설정의 작은 알약(운영 판단 '룸 정원 기준')과 같은 크기로(09-25 재아: 화면마다 제각각, 알약이 너무 컸음).
+   큰 단추(저장·적용 같은 .btn, .btn.primary)는 그대로 — 누르기 쉬워야 해서 */
+.page-wrap .seg button{height:auto!important; min-height:0!important; padding:4px 12px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
+.page-wrap .btn.sm{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
+/* 위 규칙과 한 줄에 입력칸이 있는 곳은 높이 맞춤(audit_rows 09-25) */
+.page-wrap .gs-top input{height:30px!important; min-height:30px!important; padding:0 14px!important; font-size:14px!important; border-radius:980px!important}
+.page-wrap .th-ctl .btn{height:44px!important; min-height:44px!important; padding-top:0!important; padding-bottom:0!important}
+.page-wrap .mb-top .btn, .page-wrap .mb-top .mb-name{height:34px!important; min-height:34px!important; padding-top:0!important; padding-bottom:0!important}
+.page-wrap .mb-sw input[type=color]{height:28px!important; min-height:28px!important; width:34px!important; padding:0!important}
 </style>
 </head>
 <body>
