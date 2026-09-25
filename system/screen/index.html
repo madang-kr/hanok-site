@@ -11221,11 +11221,9 @@ async function thDeliver(q){
 async function thanksTick(){
   if(!supaOn() || !SESSION || !AUTHED || OFFLINE || view.display) return;
   try{ await thCountMissing(); }catch(e){}
-  try{
-    var due = await sb("/rest/v1/thanks_sms?store=eq." + (view.storeKey || "hanok") + "&status=eq.%EB%8C%80%EA%B8%B0&send_at=lte." + encodeURIComponent(new Date().toISOString()) + "&select=*&limit=50");
-    for(var i = 0; i < due.length; i++) await thDeliver(due[i]);
-    if(due.length && TH){ await thLoadQueue(); if(view.form && view.form.type === "thanks") render(); }
-  }catch(e){}
+  /* 09-25 재아: 보낼 시각이 된 것은 이제 서버(37차 pg_cron, 1분마다)가 보냄 — 기기가 켜져 있지 않아도 나감.
+     앱은 목록만 새로 읽어 '발송 대기 → 발송 완료' 가 화면에 바로 보이게 */
+  try{ if(TH && view.form && view.form.type === "thanks"){ await thLoadQueue(); render(); } }catch(e){}
 }
 
 /* ---------- 화면 ---------- */
