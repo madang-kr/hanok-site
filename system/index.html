@@ -1417,6 +1417,12 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .dr-in input:disabled{background:var(--surface-2); color:var(--text-3)}
 /* 세션 표 (8차) — 요일 칸 안, 한 줄에 이름·시작·접수 마감·점유·끝 */
 .sch-s{display:block; color:var(--text-3); font-size:var(--fs-label); margin-top:2px}
+/* 운영시간 목록(09-25): 현재가 아니면 접힌 한 줄 — 제목을 누르면 펼침(하나씩) */
+.schrow.fold .sch-h{margin-bottom:0}
+.sch-t{display:inline-flex; align-items:center; gap:8px; padding:0; border:none; background:none; font:inherit; color:var(--text); cursor:pointer; text-align:left}
+.sch-t i{font-style:normal; font-size:11px; color:var(--text-3)}
+/* 운영시간 수정: '없음' 체크를 풀면 그 아래에 드러나는 시각 칸 — 살짝 들여 씀 */
+.dr-in label.dr-sub{padding-left:26px}
 .sess{margin-top:var(--s8); border-top:1px dashed var(--border); padding-top:var(--s8)}
 .sess-r{display:grid; grid-template-columns:1fr 1fr 1fr 34px; gap:var(--s4) var(--s8); align-items:end; padding:var(--s8); margin-bottom:var(--s8); background:var(--surface-2); border-radius:var(--r-sm)}
 .sess-r > .sf{display:flex; flex-direction:column; gap:2px; min-width:0}
@@ -3004,7 +3010,7 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 
 @media (min-width:700px){
   /* 8차-X(재아): 월·금 / 화·토 / 수·일 / 목·공휴 — 한 열에 네 칸씩 세로로 채웁니다(8칸 고정) */
-  .sch-days{grid-template-columns:1fr 1fr; grid-auto-flow:column; grid-template-rows:repeat(4,auto)}
+  /* .sch-days 두 칸(4줄×2) 은 뺌 — 09-25 같은 요일을 한 줄로 묶어 줄 수가 들쭉날쭉해서 한 칸으로 */
 }
 
 @media (max-height:760px){
@@ -5604,7 +5610,8 @@ function schedWhenHtml(g){
 function schedAtSet(g, v){ view.schedAt = view.schedAt || {}; if(v) view.schedAt[g] = v; else delete view.schedAt[g]; render(); }
 async function schedAtPick(g){
   const cur = (view.schedAt || {})[g] || {};
-  const r = await uiRange("언제부터 적용할까요? (끝을 정하면 그 날까지만)", cur.from || shiftDate(todayStr(), 1), cur.to || "", {openEnd:true});
+  /* 09-25 재아: 시작일이 중요하고 보통 끝까지 — 비운 채로 시작일부터 고르게, 시작만 고르면 '끝까지'(endless) */
+  const r = await uiRange("언제부터 적용할까요?", cur.from || "", cur.to || "", {openEnd:true, endless:true});
   if(!r || !r.from) return;
   if(r.from <= todayStr()){ await uiAlert("내일부터 정할 수 있습니다", "오늘부터면 체크하지 않고 '적용하기' 를 누르세요.", "warn"); return; }
   schedAtSet(g, {from:r.from, to:r.to || null, note:cur.note || ""});
@@ -6503,7 +6510,7 @@ function uiRange(title, from, to, opt){
   opt = opt || {};
   var m = (from || to || todayStr()).slice(0, 7);
   /* openStart: '시작 없이'(처음부터) 가능 · noEnd: 끝 없이로 골라 둔 상태(09-25 재아, 예약 내보내기) */
-  return new Promise(function(res){ modalReplace({mode:"range", title:title, tone:"ok", a:from || "", b:to || "", pickB:!!from || (!!opt.openStart && !from), noEnd:!!opt.openEnd && !!from && !to, month:m, min:opt.min || "", openEnd:!!opt.openEnd, openStart:!!opt.openStart, clear:!!opt.clear, res:res}); });
+  return new Promise(function(res){ modalReplace({mode:"range", title:title, tone:"ok", a:from || "", b:to || "", pickB:!!from || (!!opt.openStart && !from), noEnd:!!opt.openEnd && !!from && !to, endless:!!opt.endless, month:m, min:opt.min || "", openEnd:!!opt.openEnd, openStart:!!opt.openStart, clear:!!opt.clear, res:res}); });
 }
 
 function uiTime(title, value, opt){
@@ -6549,7 +6556,7 @@ function pkPick(ds){
   if(m.mode === "date"){ MODAL = null; render(); m.res(ds); return; }
   /* 기간: '부터' 를 고르면 '까지' 로 넘어감. 그 뒤로는 '까지' 를 계속 고침 — '부터' 를 다시 고르려면 위의 '부터' 칸을 누름(09-25 재아).
      예전엔 셋째 누름부터 새로 시작해서, 끝만 바꾸려다 시작이 날아갔음 */
-  if(!m.pickB){ m.a = ds; if(m.b && m.b < ds) m.b = ""; m.pickB = true; }
+  if(!m.pickB){ m.a = ds; if(m.b && m.b < ds) m.b = ""; m.pickB = true; if(m.endless && !m.b) m.noEnd = true; }   /* endless: 시작만 고르면 '끝까지'(적용 시점, 09-25) */
   else if(m.a && ds < m.a){ showToast("시작일보다 앞 날짜는 고를 수 없습니다"); return; }   /* 예전엔 시작이 앞으로 움직였음(09-25 재아) */
   else { m.b = ds; m.noEnd = false; }
   render();
@@ -6666,6 +6673,7 @@ function pkArm(root){
   for(var i = 0; i < list.length; i++){ var el = list[i]; if(el.dataset.pk) continue; el.dataset.pk = "1"; el.readOnly = true; el.setAttribute("inputmode", "none"); el.classList.add("pk-in"); }
 }
 function pkLabel(el){
+  if(el.dataset.title) return el.dataset.title;   /* 칸이 직접 정한 제목(운영시간 '시작 시간' 등, 09-25) */
   var lab = el.closest("label"), lb = lab && lab.querySelector(".lb, b");
   var t = (lb && lb.textContent) || el.getAttribute("aria-label") || el.title || el.placeholder || (el.type === "date" ? "날짜" : "숫자");
   return String(t).replace(/\s+/g, " ").trim().slice(0, 30);
@@ -6686,7 +6694,7 @@ function pkOpenFor(el, firstKey){
   if(el.disabled) return;
   var key = pkKey(el);
   if(el.type === "time"){
-    uiTime(pkLabel(el), el.value).then(function(v){ if(v != null) pkSet(pkLive(el, key), v); });
+    uiTime(pkLabel(el), el.value, {noQuick:!!el.dataset.nq}).then(function(v){ if(v != null) pkSet(pkLive(el, key), v); });
   }else if(el.type === "date"){
     uiDate(pkLabel(el), el.value, {min:el.min, max:el.max, clear:!el.required}).then(function(v){ if(v != null) pkSet(pkLive(el, key), v); });
   }else{
@@ -8525,28 +8533,43 @@ function renderSettings(){
   const DOWN = ["일","월","화","수","목","금","토"];
 
   /* ---------- 운영시간 ---------- */
-  const schedBody = `
-    ${(st.schedules||[]).slice().sort((a,b)=>b.from.localeCompare(a.from)).map(sc=>{
-      const cur = sc.from === (scheduleFor(todayStr()) || {}).from;
-      return `<div class="schrow ${cur?'cur':''}">
+  /* 09-25 재아: 현재가 맨 위에 펼친 채로, 나머지(예정·지난)는 아래에 접어 두고 하나씩만 펼침. 기간은 다음 운영시간 전날까지로 끝을 보여 줌.
+     완전히 같은 요일은 한 줄로(월·화·수·목). '고치기' → '수정', '현재 적용' → '현재' */
+  const schAll = (st.schedules||[]).slice().sort((a,b)=>a.from.localeCompare(b.from));
+  const schCur = schAll.filter(sc=>sc.from <= todayStr()).pop() || {};   /* 이 화면(임시본) 기준 — 새로 넣은 것도 바로 현재로 */
+  const schEnd = sc => { const i = schAll.indexOf(sc), nx = schAll[i+1]; return nx ? shiftDate(nx.from, -1) : ""; };
+  const schYmd = v => `${v.slice(0,4)}. ${+v.slice(5,7)}. ${+v.slice(8)}.`;
+  const schRange = sc => { const e = schEnd(sc); return sc.from === "2000-01-01" ? (e ? `기본 · ~ ${schYmd(e)}` : "기본") : (e ? `${schYmd(sc.from)} ~ ${schYmd(e)}` : `${schYmd(sc.from)} 부터`); };
+  const dayLine = d => d ? `${esc(d.open)} ~ ${esc(d.close)}${d.bs?` · 브레이크 ${esc(d.bs)} ~ ${esc(d.be)}`:""}${d.lo?` · 라스트오더 ${esc(d.lo)}`:""}${sessSummary(d)}` : "휴무";
+  const schDays = sc => {
+    const groups = [];
+    [1,2,3,4,5,6,0].map(i=>({n:DOWN[i], d:(sc.days||[])[i]})).concat(sc.holiday ? [{n:"공휴일", d:sc.holiday}] : []).forEach(x=>{
+      const k = JSON.stringify(x.d || null), g = groups.find(y=>y.k===k);
+      if(g) g.n.push(x.n); else groups.push({k, n:[x.n], d:x.d});
+    });
+    return groups.map(g=>`<span class="sch-d"><b>${g.n.join("·")}</b> ${dayLine(g.d)}</span>`).join("");
+  };
+  const schRow = sc => {
+    const cur = sc.from === schCur.from, fut = sc.from > todayStr(), open = cur || view.schOpen === sc.from;
+    const tag = cur ? `<span class="tag pine">현재</span>` : fut ? `<span class="tag amber">예정</span>` : `<span class="tag">지난</span>`;
+    return `<div class="schrow ${cur?'cur':''} ${open?'':'fold'}">
         <div class="sch-h">
-          <b>${sc.from==="2000-01-01"?"기본":`${sc.from.slice(0,4)}. ${+sc.from.slice(5,7)}. ${+sc.from.slice(8)}. 부터`}</b>
-          ${cur?`<span class="tag pine">현재 적용</span>`:sc.from > todayStr()?`<span class="tag amber">예정</span>`:""}
-          <button class="btn sm" style="margin-left:auto" onclick="openSchedule('${sc.from}')">고치기</button>
+          ${cur ? `<b>${schRange(sc)}</b>` : `<button type="button" class="sch-t" onclick="view.schOpen=${open ? "null" : `'${sc.from}'`}; render()"><b>${schRange(sc)}</b><i>${open?"▲":"▼"}</i></button>`}
+          ${tag}
+          <button class="btn sm" style="margin-left:auto" onclick="openSchedule('${sc.from}')">수정</button>
         </div>
-        <div class="sch-days">
-          ${[1,2,3,4,5,6,0].map(i=>({d:(sc.days||[])[i], i})).filter(x=>x.d).map(({d,i})=>`<span class="sch-d"><b>${DOWN[i]}</b>
-            ${esc(d.open)} ~ ${esc(d.close)}${d.bs?` · 브레이크 ${esc(d.bs)} ~ ${esc(d.be)}`:""}${d.lo?` · 라스트오더 ${esc(d.lo)}`:""}${sessSummary(d)}</span>`).join("")}
-          ${sc.holiday?`<span class="sch-d"><b>공휴</b>
-            ${esc(sc.holiday.open)} ~ ${esc(sc.holiday.close)}${sc.holiday.bs?` · 브레이크 ${esc(sc.holiday.bs)} ~ ${esc(sc.holiday.be)}`:""}${sc.holiday.lo?` · 라스트오더 ${esc(sc.holiday.lo)}`:""}${sessSummary(sc.holiday)}</span>`:""}
-        </div>
+        ${open ? `<div class="sch-days">${schDays(sc)}</div>` : ""}
       </div>`;
-    }).join("")}
+  };
+  const schRest = schAll.filter(sc=>sc.from !== schCur.from);
+  const schedBody = `
+    ${schAll.filter(sc=>sc.from === schCur.from).map(schRow).join("")}
+    ${schRest.filter(sc=>sc.from > todayStr()).map(schRow).join("")}
+    ${schRest.filter(sc=>sc.from < todayStr()).reverse().map(schRow).join("")}
     <div class="btn-row" style="margin-top:12px">
       <button class="btn" onclick="openSchedule(null)">＋ 새 운영시간</button>
       <button class="btn" onclick="openOverride()">휴무 · 공휴일 · 임시 영업</button>
-    </div>
-    <p class="f-note">'새 운영시간' 은 창 안에서 정한 날짜부터 바뀝니다(그 전 기록은 옛 시간 그대로). 이미 있는 기간을 통째로 고칠 때는 그 줄의 '고치기'. 휴무·임시 영업도 넣은 뒤 오른쪽 위 '적용하기' 를 눌러야 반영됩니다.</p>`;
+    </div>`;
     /* 09-24 재아: 임시 휴무·임시 영업시간·공휴일을 한 창(openOverride)으로 합침 — 공휴일 켜기·목록도 거기로 */
 
   /* ---------- 예약 규칙 ---------- */
@@ -13475,7 +13498,7 @@ function stayBox(i, seg, k, label){
 function segBox(i, seg, title, note){
   return `<div class="sess-r two">
     <div class="sf full"><b>${title}</b><span class="lbl-note">${esc(note)}</span></div>
-    <div class="sf"><span>접수 마감</span><input type="time" value="${dayOf(i).sess[seg].lastBook||""}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>
+    <div class="sf"><span>접수 마감</span><input type="time" data-title="${esc(title)} 접수 마감" data-nq="1" value="${dayOf(i).sess[seg].lastBook||""}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>
     ${stayBox(i, seg, "room", "점유 · 룸")}
     ${stayBox(i, seg, "table", "점유 · 테이블")}
   </div>`;
@@ -13492,30 +13515,21 @@ function sheetSchedule(){
     const key = String(i), isOpen = !!d.open[key];
     const edge = x.bs ? x.bs : (x.sess.edge || "");
     const loRef = x.lo ? `마감 ${hmDur(Math.max(0, toMin(x.close) - toMin(x.lo)))} 전` : "";
+    /* 시각 칸: 누르면 뜨는 팝업 제목(data-title)을 '시작 시간' · '끝 시간' 식으로, 30분 단위 빠른 단추는 없이(data-nq) — 09-25 재아 */
+    const tIn = (k, title, v) => `<input type="time" data-title="${title}" data-nq="1" value="${v||""}" onchange="${k === "edge" ? `setEdge(${i},this.value)` : `setDay(${i},'${k}',this.value)`}">`;
     const sum = `${esc(x.open)} ~ ${esc(x.close)}${x.bs?` · 브레이크 ${esc(x.bs)} ~ ${esc(x.be)}`:""}${x.lo?` · 라스트오더 ${esc(x.lo)}`:""}`;
     return `<div class="dayrow ${cls||''} ${isOpen?'on':''}">
       <button class="dr-h" onclick="toggleSchedDay('${key}')"><b>${label}</b><span class="dr-sum">${sum}</span><span class="fh-i">${isOpen?"▲":"▼"}</span></button>
       ${isOpen ? `<div class="dr-in">
-        <label><span>영업</span>
-          <input type="time" value="${x.open}" onchange="setDay(${i},'open',this.value)">
-          <em>~</em>
-          <input type="time" value="${x.close}" onchange="setDay(${i},'close',this.value)"></label>
-        <label><span>브레이크</span>
-          <input type="time" value="${x.bs||""}" ${x.bs?"":"disabled"} onchange="setDay(${i},'bs',this.value)">
-          <em>~</em>
-          <input type="time" value="${x.be||""}" ${x.bs?"":"disabled"} onchange="setDay(${i},'be',this.value)"></label>
-        <label class="chk"><input type="checkbox" ${x.bs?"":"checked"} onchange="toggleBreakDay(${i})">
-          <span>브레이크타임 없음</span></label>
-        <label><span>라스트오더</span>
-          <input type="time" value="${x.lo||""}" ${x.lo?"":"disabled"} onchange="setDay(${i},'lo',this.value)">
-          <em class="lo-ref">${loRef}</em></label>
-        <label class="chk"><input type="checkbox" ${x.lo?"":"checked"} onchange="toggleLoDay(${i})">
-          <span>라스트오더 없음</span></label>
-        <label><span>점심 경계</span>
-          <input type="time" value="${edge}" ${(x.bs || x.sess.edge === "")?"disabled":""} onchange="setEdge(${i},this.value)">
-          <em class="lo-ref">${x.bs ? "브레이크 시작과 같음 (자동)" : edge ? "이 시각부터 저녁" : "하루가 한 세션"}</em></label>
-        ${x.bs ? "" : `<label class="chk"><input type="checkbox" ${x.sess.edge===""?"checked":""} onchange="toggleEdge(${i})">
-          <span>점심 경계 없음 (하루 한 세션)</span></label>`}
+        <label><span>영업</span>${tIn("open", "시작 시간", x.open)}<em>~</em>${tIn("close", "끝 시간", x.close)}</label>
+        <!-- 09-25 재아: '없음' 이 기본으로 체크, 풀면 그 아래에 시각 칸이 드러남(평소엔 안 보임).
+             브레이크가 있으면 점심 경계는 브레이크 시작이라 칸이 없고, 브레이크가 없으면 그 자리에 점심 경계 -->
+        <label class="chk"><input type="checkbox" ${x.bs?"":"checked"} onchange="toggleBreakDay(${i})"><span>브레이크타임 없음</span></label>
+        ${x.bs ? `<label class="dr-sub"><span>브레이크</span>${tIn("bs", "브레이크 시작 시간", x.bs)}<em>~</em>${tIn("be", "브레이크 끝 시간", x.be)}</label>`
+               : `<label class="chk"><input type="checkbox" ${x.sess.edge===""?"checked":""} onchange="toggleEdge(${i})"><span>점심 경계 없음 (하루 한 세션)</span></label>
+                  ${x.sess.edge !== "" ? `<label class="dr-sub"><span>점심 경계</span>${tIn("edge", "점심 경계 시간", edge)}<em class="lo-ref">이 시각부터 저녁</em></label>` : ""}`}
+        <label class="chk"><input type="checkbox" ${x.lo?"":"checked"} onchange="toggleLoDay(${i})"><span>라스트오더 없음</span></label>
+        ${x.lo ? `<label class="dr-sub"><span>라스트오더</span>${tIn("lo", "라스트오더 시간", x.lo)}<em class="lo-ref">${loRef}</em></label>` : ""}
         <div class="sess">
           ${edge ? segBox(i,"lunch","점심", `${x.open} ~ ${edge}`) + segBox(i,"dinner","저녁", `${x.be||edge} ~ ${x.close}`) : segBox(i,"dinner","종일", `${x.open} ~ ${x.close}`)}
         </div>
@@ -13525,13 +13539,10 @@ function sheetSchedule(){
   const rows = [1,2,3,4,5,6,0].map(i=>dayBlock(d.days[i], i, DOW[i], i===0?'sun':i===6?'sat':'')).join("")
              + dayBlock(d.holiday, 7, "공휴일", "sun");
   return `
-    ${sheetHead(d.isNew?"새 운영시간 (정한 날짜부터)":"운영시간 고치기")}
+    ${sheetHead(d.isNew?"새 운영시간 (정한 날짜부터)":"운영시간 수정")}
     ${d.from > todayStr() ? `<div class="sched-note">${esc(pkShort(d.from))} 부터 적용 — 적용하면 오른쪽 위 '예정' 에 들어갑니다</div>` : ""}
-    <p class="f-note" style="margin:-6px 0 12px"><b>점심 경계</b>부터 저녁입니다(브레이크가 있으면 브레이크 시작). <b>접수 마감</b>은 마지막으로 입장을 받는 시각,
-      <b>점유 '끝까지'</b>는 그 세션 끝까지 한 자리에 한 팀. 라스트오더는 주방 마감이라 별개입니다.</p>
     <label class="f"><div class="lb">적용 시작일</div>
       <input type="date" value="${d.from}" onchange="setSchedFrom(this.value)">
-      <div class="f-note">이 날짜부터 새 시간이 적용됩니다. 그 전 날짜는 이전 설정을 그대로 씁니다.</div>
     </label>
     ${rows}
     <div class="sheet-actions">
@@ -13573,10 +13584,10 @@ async function saveSchedule(){
   d.days.forEach(ensureSess); ensureSess(d.holiday);
   st.schedules.push({from:d.from, days:deepClone(d.days), holiday:deepClone(d.holiday)});
   st.schedules.sort((a,b)=>a.from.localeCompare(b.from));
-  view.form=null; view.schedDraft=null; render(); showToast("오른쪽 위 '적용하기' 를 눌러야 반영됩니다");
+  view.form=null; view.schedDraft=null; view.schOpen=null; render(); showToast("오른쪽 위 '적용하기' 를 눌러야 반영됩니다");
 }
 async function delSchedule(from){
-  if(!await uiConfirm("이 운영시간을 삭제할까요?", `${from}부터 적용되던 설정이 사라지고 이전 설정이 이어집니다. '적용하기' 를 눌러야 반영됩니다.`, {ok:"삭제"})) return;
+  if(!await uiConfirm("이 운영시간을 삭제할까요?", `${from}부터 적용되던 설정이 사라지고 이전 설정이 이어집니다.`, {ok:"삭제"})) return;
   const st = draft();
   st.schedules = st.schedules.filter(s=>s.from!==from);
   view.form=null; render();
