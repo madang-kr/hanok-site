@@ -389,6 +389,9 @@ button.rowitem:hover{background:var(--surface-2)}
 .chart-sum{display:flex; flex-wrap:wrap; gap:var(--s16); margin-top:var(--s12); font-size:var(--fs-sub); color:var(--text-2)}
 .chart-sum b{color:var(--text)}
 .chart-nav{display:flex; align-items:center; gap:var(--s8); margin-bottom:var(--s12)}
+/* 예약률 추이: 기간 양옆에 ‹ › (워크시프트와 같은 단추) */
+.rate-nav{justify-content:center; gap:var(--s12)}
+.rate-per{font-size:15px; font-weight:700; min-width:200px; text-align:center}
 
 .menu-warn{background:var(--rust-soft); border:1px solid var(--rust-line); color:var(--rust);
   border-radius:var(--r-md); padding:var(--s12) var(--s16); font-size:var(--fs-sub); font-weight:700; margin-bottom:var(--s16)}
@@ -1958,7 +1961,8 @@ button.sa-card:hover{border-color:var(--text-3)}
 .slip-log th, .slip-log td{border-bottom:1px solid var(--border); padding:3px 4px; text-align:left; white-space:nowrap} .slip-log th{color:var(--text-3); font-weight:600}
 /* 손님 */
 .gs-top{display:flex; gap:var(--s8); align-items:center; flex-wrap:wrap; margin-bottom:var(--s12)}
-.gs-top input{flex:1 1 220px}
+.gs-top input{flex:0 1 240px; min-width:160px}   /* 좁게(09-25 재아) */
+.gs-top .gs-ns{margin-left:auto}   /* 노쇼 관리는 오른쪽 끝 */
 .gs-stats{display:flex; gap:var(--s4); margin:0 0 var(--s12)}
 .gs-stats span{flex:1; text-align:center; padding:var(--s8) 0; background:var(--surface-2); border-radius:var(--r-sm); font-size:var(--fs-label); color:var(--text-2)}
 .gs-stats span b{display:block; font-size:var(--fs-head); color:var(--text)} .gs-stats span.rust b{color:var(--rust)}
@@ -2023,6 +2027,9 @@ button.sa-card:hover{border-color:var(--text-3)}
 .dq-top{display:flex; flex-direction:row-reverse; align-items:center; gap:var(--s16); margin-bottom:var(--s8)}   /* 글 쓰기는 오른쪽(09-20) */
 .dq-top .btn{flex:none; white-space:nowrap}
 .dq-row.urgent .t{color:var(--rust)}
+/* 개발자에게 목록: 날짜·시간 한 줄, 긴급은 날짜·시간·제목 모두 빨강(09-25 재아) */
+.dq-row .dq-when{width:auto; min-width:84px; white-space:nowrap}
+.dq-row.urgent .dq-when{color:var(--rust)}
 .dq-done{opacity:.7}
 .dq-body{font-size:var(--fs-body); line-height:1.7; color:var(--text); background:var(--surface-2); border-radius:var(--r-sm); padding:var(--s12) var(--s16); margin-bottom:var(--s12); white-space:normal}
 .dq-reply{font-size:var(--fs-body); line-height:1.7; color:var(--text); background:var(--pine-soft); border-radius:var(--r-sm); padding:var(--s12) var(--s16)}
@@ -2153,6 +2160,10 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* 감사 문자: '직접 입력' 전에는 읽기만(09-25) · 고급 여닫기 삼각형 */
 .th-text.ro{cursor:default; color:var(--text-2)}
 .th-adv{min-width:44px; justify-content:center; font-size:12px}
+
+/* 워크시프트 기간 가운데: 지금이 아니면 눌러서 이번 주·이번 달로(09-25) */
+.hr-period-t.go{cursor:pointer; border-radius:var(--r-sm)}
+.hr-period-t.go:hover{background:var(--surface-2, #f3f1ee)}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -5321,12 +5332,13 @@ async function schedApplyNow(id){
    점수 = 방문 횟수 − 노쇼 × 5.  점수 2 이상 VIP, 5 이상 VVIP. 전화번호(숫자만) 기준으로 예약 기록에서 셉니다.
    TV(공개 뷰)는 전화번호가 없으니 서버가 같은 규칙(hanok_tier)으로 계산해 tier 열로 줍니다 — 숫자를 바꾸면 SQL 도 같이.
    예약 이름 옆 알약(tierTag)·손님 목록·마법사 손님 단계·TV 에서 씁니다. */
-var TIER_VIP = 2, TIER_VVIP = 5, TIER_NOSHOW = 5;
+/* 09-25(재아): 숫자는 설정 → 운영 판단에서 바꿈(tierVip · tierVvip · tierNoshow). 비어 있으면 2 · 5 · 5. 서버 hanok_tier(32차)도 같은 설정을 읽음 */
+function tierCfg(){ var st = (typeof store === "function" && store() && store().settings) || {}; return { vip: Number(st.tierVip) || 2, vvip: Number(st.tierVvip) || 5, ns: st.tierNoshow != null && st.tierNoshow !== "" ? Number(st.tierNoshow) : 5 }; }
 var CUST_IDX = null, CUST_IDX_KEY = "", RES_VER = 0;   /* RES_VER 은 저장·동기화 때 올라감 → 그때만 다시 셈 */
-function tierOf(visit, noshow){ var s = visit - TIER_NOSHOW * noshow; return s >= TIER_VVIP ? "VVIP" : s >= TIER_VIP ? "VIP" : ""; }
+function tierOf(visit, noshow){ var c = tierCfg(), s = visit - c.ns * noshow; return s >= c.vvip ? "VVIP" : s >= c.vip ? "VIP" : ""; }
 function custIndex(){
   var s = store(); if(!s) return {};
-  var key = RES_VER + "|" + s.reservations.length + "|" + (view.storeKey || "");
+  var tc = tierCfg(), key = RES_VER + "|" + s.reservations.length + "|" + (view.storeKey || "") + "|" + tc.vip + "," + tc.vvip + "," + tc.ns;   /* 등급 숫자를 바꾸면 다시 셈 */
   if(CUST_IDX && CUST_IDX_KEY === key) return CUST_IDX;
   var idx = {};
   s.reservations.forEach(function(r){
@@ -5334,7 +5346,7 @@ function custIndex(){
     var g = idx[d] || (idx[d] = { visit:0, noshow:0, total:0 });
     g.total++; if(r.status === "방문") g.visit++; else if(r.status === "노쇼") g.noshow++;
   });
-  Object.keys(idx).forEach(function(k){ var g = idx[k]; g.score = g.visit - TIER_NOSHOW * g.noshow; g.tier = tierOf(g.visit, g.noshow); });
+  Object.keys(idx).forEach(function(k){ var g = idx[k]; g.score = g.visit - tc.ns * g.noshow; g.tier = tierOf(g.visit, g.noshow); });
   CUST_IDX = idx; CUST_IDX_KEY = key; return idx;
 }
 /* 전화번호(또는 예약 객체) → {visit, noshow, score, tier, memo, name} */
@@ -6513,17 +6525,19 @@ function rateChart(endDate, days){
   }
   const W=720, H=250, L=36, R=10, T=14, B=34;
   const iw=W-L-R, ih=H-T-B, bw=iw/list.length;
-  const y = v => T + ih - (v/100)*ih;
+  /* 세로 눈금 10% 단위, 위 끝은 기간 최고치에 맞춤(최소 30%) — 예약이 적을 때 막대가 바닥에 붙어 '너무 없어 보였음'(09-25 재아) */
+  const TOP = Math.min(100, Math.max(30, Math.ceil((list.reduce((a,x)=>Math.max(a, x.rate), 0) + 5) / 10) * 10));
+  const y = v => T + ih - (Math.min(v, TOP)/TOP)*ih;
   const cx = i => L + i*bw + bw/2;
 
-  const grid = [0,20,40,60,80,100].map(v=>`
+  const grid = Array.apply(null, Array(TOP/10 + 1)).map((_, i)=>i*10).map(v=>`
     <line class="gl" x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}"/>
     <line class="gl tick" x1="${L-5}" y1="${y(v)}" x2="${L}" y2="${y(v)}"/>
     <text class="tx ax" x="${L-8}" y="${y(v)+3.5}" text-anchor="end">${v}%</text>`).join("");
 
   const bars = list.map((x,i)=>{
     const c = cx(i), w = Math.max(2, bw*0.56);
-    const hr = (x.room/100)*ih, hh = (x.hall/100)*ih;
+    const hr = (Math.min(x.room, TOP)/TOP)*ih, hh = (Math.min(x.hall, Math.max(0, TOP - x.room))/TOP)*ih;
     return `
       <rect class="rb-room" x="${c-w/2}" y="${T+ih-hr}" width="${w}" height="${Math.max(0,hr)}" rx="1.5">
         <title>${x.date} 룸 ${Math.round(x.room)}%p (룸만 보면 ${x.roomRate}%)</title></rect>
@@ -6545,7 +6559,6 @@ function rateChart(endDate, days){
   const avg = Math.round(list.reduce((a,x)=>a+x.rate,0)/list.length);
   const peak = list.reduce((a,x)=>x.rate>a.rate?x:a, list[0]);
   const low  = list.reduce((a,x)=>x.rate<a.rate?x:a, list[0]);
-  const st0 = dayStat(endDate);
 
   return `
     <div class="legend">
@@ -6562,7 +6575,6 @@ function rateChart(endDate, days){
       <span>평균 <b>${avg}%</b></span>
       <span>최고 <b>${peak.rate}%</b> (${dateLabel(peak.date)})</span>
       <span>최저 <b>${low.rate}%</b> (${dateLabel(low.date)})</span>
-      <span class="muted">기준 좌석 룸 ${st0.roomSeats} · 테이블 ${st0.hallSeats} · 노쇼·취소는 빠진 값입니다</span>   <!-- 좌석 수를 범례에 두니 예약 수로 읽혔음(09-25 재아) -->
     </div>`;
 }
 
@@ -8244,34 +8256,27 @@ function renderSettings(){
     </div>`;
 
   /* ---------- 디스플레이 ---------- */
+  /* 09-25 재아: 이름 정리 · 긴 설명 뺌 · TV 전용 주소를 따로 한 칸으로(광고 영상에 딸린 것처럼 보였음) */
   const dispBody = `
-    <div class="subhead">평소 띄울 화면</div>
+    <div class="subhead">화면 기본값</div>
     <div class="seg">
-      <button class="${tvType()!=="grid"?'on':''}" onclick="setTvType('list')">목록 (영상+예약)</button>
-      <button class="${tvType()==="grid"?'on':''}" onclick="setTvType('grid')">좌석표</button>
+      <button class="${tvType()!=="grid"?'on':''}" onclick="setTvType('list')">목록형</button>
+      <button class="${tvType()==="grid"?'on':''}" onclick="setTvType('grid')">좌석표형</button>
     </div>
-    <p class="f-note"><b>좌석표</b>가 기본입니다(09-20, 손님·직원 피드백). 1층 | 저층 두 기둥에 룸과 테이블이 층별로 놓입니다.<br>
-      목록은 왼쪽 영상 + 오른쪽 시각순 예약. TV 화면에서도 우측 상단에 마우스를 올리거나 화면을 한 번 누르면 바꿀 수 있습니다.
-      여기서 고른 값이 새로 켤 때의 기본입니다.</p>
 
-    <div class="subhead">예약이 없을 때</div>
+    <div class="subhead">남은 예약이 없을 때</div>
     <div class="seg">
-      <button class="${st.tvIdleFull!==false?'on':''}" onclick="setPolicy('tvIdleFull', true)">광고만 전체 화면</button>
-      <button class="${st.tvIdleFull===false?'on':''}" onclick="setPolicy('tvIdleFull', false)">빈 목록 그대로</button>
+      <button class="${st.tvIdleFull!==false?'on':''}" onclick="setPolicy('tvIdleFull', true)">광고 영상으로 전환</button>
+      <button class="${st.tvIdleFull===false?'on':''}" onclick="setPolicy('tvIdleFull', false)">그대로 유지</button>
     </div>
-    <p class="f-note">오늘 남은 예약이 하나도 없으면(30분 넘게 지난 것은 빼고) 목록·좌석표 대신 광고 영상만 화면 가득 틉니다. 예약이 생기면 다음 갱신(1분) 때 목록으로 돌아옵니다.</p>
 
-    <div class="subhead">광고 영상 <span>목록 화면 왼쪽에 나옵니다</span></div>
+    <div class="subhead">광고 영상</div>
     <div class="set-up">${saUpRow({ v:st.tvAd || "", kind:"video", open:true, href:st.tvAd ? adUrl(st.tvAd) : "", pick:"setPolicy('tvAd', u);", clear:"setPolicy('tvAd', '')", empty:"영상 없음 — 매장 사진이 넘어갑니다" })}</div>
-    <p class="f-note">
-      태블릿·PC 에서 영상 파일을 고르면 서버에 올라가고 TV 가 그걸 틉니다(적용하기를 눌러야 바뀜).<br>
-      · <b>H.264 (MP4)</b> 로 만드세요. 다른 형식은 구형 TV에서 안 나옵니다. 50MB 까지.<br>
-      · 소리는 빼세요. 자동 재생이 막히고, 입구에서 소리가 나면 민폐입니다.<br>
-      · 20~40초. 좌우가 잘리므로 <b>중요한 것은 가운데</b>에 두세요.</p>
+    <p class="f-note">H.264 (mp4) 영상 50MB까지 가능합니다. 소리는 없는 파일이 적합합니다.</p>
 
+    <div class="subhead">TV 전용 주소</div>
     <div class="urlbox">
-      <div class="ub-t">TV 전용 주소</div>
-      <div class="ub-row"><a class="ub-u" id="screen-url" href="${esc(screenUrl())}" target="_blank" rel="noopener">${esc(screenUrl())}</a><button class="btn sm" onclick="copyScreenUrl()">주소 복사</button></div>
+      <div class="ub-row"><a class="ub-u" id="screen-url" href="${esc(screenUrl())}" target="_blank" rel="noopener">${esc(screenUrl())}</a><button class="btn sm" onclick="copyScreenUrl()">복사</button></div>
     </div>`;
 
   /* ---------- 보안 / 기타 ---------- */
@@ -8307,7 +8312,16 @@ function renderSettings(){
         onclick="setPolicy('loSoon',${v})">${v}분</button>`).join("")}
     </div>
     <p class="f-note">라스트오더까지 이만큼 남은 시각부터 '임박'으로 알립니다.
-      손님께 라스트오더를 미리 안내하기 위한 것입니다.</p>`;
+      손님께 라스트오더를 미리 안내하기 위한 것입니다.</p>
+
+    <div class="subhead">단골 등급</div>
+    <label class="f"><div class="lb">VIP</div>
+      <button class="numbtn" onclick="openNum('tierVip','방문 몇 회부터 VIP',1,50,{def:2})">${st.tierVip||2}<small>회 이상</small></button></label>
+    <label class="f"><div class="lb">VVIP</div>
+      <button class="numbtn" onclick="openNum('tierVvip','방문 몇 회부터 VVIP',2,100,{def:5})">${st.tierVvip||5}<small>회 이상</small></button></label>
+    <label class="f"><div class="lb">노쇼 1회당 빼는 방문</div>
+      <button class="numbtn" onclick="openNum('tierNoshow','노쇼 한 번에 방문 몇 회를 뺄까요',0,20,{def:5})">${st.tierNoshow != null ? st.tierNoshow : 5}<small>회</small></button></label>
+    <p class="f-note">전화번호 하나가 손님 하나입니다. 방문 횟수에서 노쇼 × 이 숫자를 뺀 값으로 등급을 매깁니다. 예약 이름 옆 알약, 손님 관리, 손님용 TV 에 같이 쓰입니다.</p>`;
 
   const zBase = ZOOM_STEPS.indexOf(st.uiZoom) >= 0 ? st.uiZoom : 100, zAdj = (DATA._ui && DATA._ui.zoomAdj) || 0;
   const zoomBody = `
@@ -8399,7 +8413,7 @@ function renderSettings(){
       sm.on===false ? "예약 문자 안 보냄"
         : `${offsetLabel(sm.remindOffset)} ${hm(pad(sm.remindHour)+":00")}`,
       `<div class="set-part-h">예약 문자 안내</div>` + smsBodyUI + `<div class="set-part-h">감사 문자</div>` + (typeof thSettingsBody === "function" ? thSettingsBody(st) : ""))}
-    ${sec("disp","디스플레이",`${tvType()==="grid"?"좌석표":"목록"} · 광고 영상`, dispBody)}
+    ${sec("disp","디스플레이","", dispBody)}
     ${sec("policy","운영 판단",
       `정원 ${st.minCountAdultsOnly===false?"총원":"성인"} · 임박 ${st.loSoon!=null?st.loSoon:120}분`,
       policyBody)}
@@ -9861,7 +9875,8 @@ function hrPeriodHead(title, sub, onPrev, onToday, onNext, isNow){
   var big = pay ? ["hrMoveMonth(-12)", "hrMoveMonth(12)", "1년 전", "1년 뒤"] : ["hrMoveWeek(-4)", "hrMoveWeek(4)", "4주 전", "4주 뒤"];
   return '<div class="hr-period center' + (isNow ? '' : ' notnow') + '">' +
     '<div class="hr-period-nav"><button class="hr-nb" onclick="' + big[0] + '" title="' + big[2] + '">&laquo;</button><button class="hr-nb" onclick="' + onPrev + '" aria-label="이전">&lsaquo;</button></div>' +
-    '<div class="hr-period-t"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + (isNow ? '' : '<button class="btn sm ghost" onclick="' + onToday + '">' + (pay ? "이번 달" : "이번 주") + '</button>') + '</div>' +
+    /* 09-25 재아: '이번 주/이번 달' 단추 대신 가운데(몇 주차 · 기간)를 누르면 지금으로 */
+    '<div class="hr-period-t' + (isNow ? '' : ' go') + '"' + (isNow ? '' : ' role="button" tabindex="0" title="' + (pay ? "이번 달로" : "이번 주로") + '" onclick="' + onToday + '"') + '><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>' +
     '<div class="hr-period-nav"><button class="hr-nb" onclick="' + onNext + '" aria-label="다음">&rsaquo;</button><button class="hr-nb" onclick="' + big[1] + '" title="' + big[3] + '">&raquo;</button></div></div>';
 }
 function hrWeekView(){
@@ -10301,7 +10316,8 @@ function gsList(){
     /* 뒷자리가 딱 맞는 손님을 위로 */
     if(qd.length === 4) all.sort(function(a, b){ return (b.phone.slice(-4) === qd) - (a.phone.slice(-4) === qd); });
   }else{
-    if(GS.sort === "vip") all.sort(function(a, b){ return (b.visit - TIER_NOSHOW * b.noshow) - (a.visit - TIER_NOSHOW * a.noshow) || (b.last || "").localeCompare(a.last || ""); });   /* VIP 점수 순 — 걸러 내지 않고 전부 */
+    var ns = tierCfg().ns;
+    if(GS.sort === "vip") all.sort(function(a, b){ return (b.visit - ns * b.noshow) - (a.visit - ns * a.noshow) || (b.last || "").localeCompare(a.last || ""); });   /* VIP 점수 순 — 걸러 내지 않고 전부 */
     else if(GS.sort === "recent") all.sort(function(a, b){ return (b.last || "").localeCompare(a.last || "") || b.total - a.total; });
     else if(GS.sort === "visits") all.sort(function(a, b){ return b.visit - a.visit || b.total - a.total; });
     else if(GS.sort === "noshow") all = all.filter(function(g){ return g.noshow; }).sort(function(a, b){ return b.noshow - a.noshow; });
@@ -10333,10 +10349,11 @@ async function gsSave(){
 function sheetGuests(){
   if(!GS || GS.loading) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
   var seg = function(k, label){ return '<button class="' + (GS.sort === k ? "on" : "") + '" onclick="GS.sort=\'' + k + '\'; render()">' + label + '</button>'; };
-  return '<div class="gs-top"><input id="gs-q" value="' + esc(GS.q || "") + '" placeholder="뒷자리 4자리 · 번호 · 이름 · 메모" oninput="gsSetQ(this.value)" autocomplete="off">' +
-    '<button class="btn sm ghost" onclick="openNoshow(\'guests\')">노쇼 관리</button><div class="seg">' + seg("vip", "VIP 순") + seg("recent", "최근 방문") + seg("visits", "방문 횟수 순") + '</div></div>' +
+  /* 09-25 재아: 검색칸은 좁게('손님 검색'), 정렬은 그 옆, 노쇼 관리는 오른쪽 끝. 설명 글은 뺌(등급 숫자는 설정 → 운영 판단) */
+  return '<div class="gs-top"><input id="gs-q" value="' + esc(GS.q || "") + '" placeholder="손님 검색" oninput="gsSetQ(this.value)" autocomplete="off">' +
+    '<div class="seg">' + seg("vip", "VIP") + seg("recent", "최근") + seg("visits", "방문 횟수") + '</div>' +
+    '<button class="btn sm ghost gs-ns" onclick="openNoshow(\'guests\')">노쇼 관리</button></div>' +
     '<div class="card searchbox" id="gs-list">' + gsRows() + '</div>' +
-    '<p class="f-note">전화번호 하나 = 손님 하나. 이름은 그 번호로 가장 많이 적힌 이름이고, 열어서 고정 이름·메모를 적을 수 있습니다. 예약을 고치면 여기도 바로 바뀝니다.<br>등급: 방문 ' + TIER_VIP + '회 이상 <b>VIP</b>, ' + TIER_VVIP + '회 이상 <b>VVIP</b> — 노쇼 한 번에 방문 ' + TIER_NOSHOW + '회를 뺍니다.</p>' +
     (GS.open ? gsDetailHtml() : "");
 }
 function gsDetailHtml(){
@@ -10532,19 +10549,36 @@ function sheetExport(){
   return sheetHead("예약 내보내기") +
     '<div class="grid2"><div class="f"><div class="lb">시작</div>' + btn("from", "처음부터") + '</div><div class="f"><div class="lb">끝</div>' + btn("to", "끝까지") + '</div></div>' +
     '<div class="btn-row" style="margin:4px 0 10px"><button class="btn sm" onclick="expPreset(\'30\')">최근 30일</button><button class="btn sm" onclick="expPreset(\'month\')">이번 달</button><button class="btn sm" onclick="expPreset(\'prev\')">지난 달</button><button class="btn sm" onclick="expPreset(\'all\')">전체</button></div>' +
-    '<p class="f-note">날짜를 누르면 고르고, 비우면 ' + "'처음부터' · '끝까지'" + ' 입니다. 지금 기간에 예약 <b>' + n + '건</b>.</p>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button><button class="btn primary" onclick="exportCsv()"' + (n ? '' : ' disabled') + '>내보내기</button></div>';
 }
+/* 09-25 재아: 엑셀 비밀번호 — CSV 는 비밀번호를 못 걸어서 XLSX 로, 비밀번호는 사장님 2차 PIN.
+   2차 PIN 은 기기에 남겨 두지 않으므로 내보낼 때 한 번 더 받아(맞는지 서버로 확인) 그걸로 잠급니다.
+   암호화는 xlsx-populate(jsdelivr, 처음 한 번만 받음) — 엑셀·한셀에서 열 때 비밀번호를 묻는 파일 */
+var XLSX_POP = "https://cdn.jsdelivr.net/npm/xlsx-populate@1.21.0/browser/xlsx-populate.min.js";
+function xlsxPopLoad(){ return new Promise(function(res, rej){ if(window.XlsxPopulate) return res(); var s = document.createElement("script"); s.src = XLSX_POP; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("엑셀 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
 async function exportCsv(){
   var e = view.exp || {}, from = e.from || "", to = e.to || "";
   var list = expList().sort(function(a,b){ return (a.date + a.time).localeCompare(b.date + b.time); });
   if(!list.length){ await uiAlert("이 기간에는 예약이 없습니다", "", "warn"); return; }
+  var pw = "";
+  if(supaOn()){
+    var r = await uiPin("예약 내보내기", "2차 PIN — 엑셀 파일의 비밀번호가 됩니다", 6); if(!r || !r.code) return;
+    try{ await adminAuth(r.code); }catch(err){ await uiAlert("2차 PIN 이 다릅니다", "", "warn"); return; }
+    pw = r.code;
+  }
   var head = ["예약번호","날짜","시각","이름","전화","인원","어린이","좌석","상태","경로","코스·세트","요청사항","메모","등록일시"];
-  var q = function(v){ v = String(v == null ? "" : v); return '"' + v.replace(/"/g, '""') + '"'; };
-  var lines = [head.map(q).join(",")].concat(list.map(function(r){ return [resCode(r), r.date, r.time, r.name, r.phone || "", pplOf(r), r.infants || 0, resSeatLabel(r), r.status, r.source || "", (typeof courseSummary === "function" ? courseSummary(r.courses) : "") || (r.courseUndecided ? "미정" : ""), r.request || "", r.memo || "", r.createdAt || ""].map(q).join(","); }));
-  var blob = new Blob(["\ufeff" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
-  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "한옥반점_예약_" + (from || "처음") + "_" + (to || "끝") + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  logEvent("예약 내보내기", (from || "처음") + "~" + (to || "끝") + " " + list.length + "건"); showToast(list.length + "건을 내보냈습니다");
+  var rows = list.map(function(r){ return [resCode(r), r.date, r.time, r.name, r.phone || "", pplOf(r), r.infants || 0, resSeatLabel(r), r.status, r.source || "", (typeof courseSummary === "function" ? courseSummary(r.courses) : "") || (r.courseUndecided ? "미정" : ""), r.request || "", r.memo || "", r.createdAt || ""].map(function(v){ return v == null ? "" : v; }); });
+  showToast("엑셀 파일을 만드는 중…");
+  try{
+    await xlsxPopLoad();
+    var wb = await window.XlsxPopulate.fromBlankAsync(), sh = wb.sheet(0);
+    sh.name("예약"); sh.cell("A1").value([head].concat(rows));
+    sh.row(1).style("bold", true); sh.freezePanes(0, 1);
+    [12, 11, 7, 10, 14, 6, 6, 12, 7, 10, 18, 26, 26, 20].forEach(function(w, k){ sh.column(k + 1).width(w); });
+    var blob = await wb.outputAsync(pw ? { type:"blob", password:pw } : { type:"blob" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "한옥반점_예약_" + (from || "처음") + "_" + (to || "끝") + ".xlsx"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }catch(err){ await uiAlert("엑셀 파일을 만들지 못했습니다", err.message || String(err), "warn"); return; }
+  logEvent("예약 내보내기", (from || "처음") + "~" + (to || "끝") + " " + list.length + "건" + (pw ? " · 비밀번호" : "")); showToast(list.length + "건을 내보냈습니다" + (pw ? " — 비밀번호는 2차 PIN" : ""));
 }
 function sheetOwner(){
   var item = function(fn, icon, title, sub){ return '<button class="own-it" onclick="' + fn + '">' + icon + '<b>' + title + '</b><small>' + sub + '</small></button>'; };
@@ -10572,7 +10606,7 @@ function sheetOwner(){
     item("openSlip()", ICON.print, "수기 예약지", "전화 예약을 손으로 적는 종이") +
     item("openDevPage()", ICON.sos, "개발자에게", "고칠 것 · 급한 것 글로 남기기") +
     item("openMenuBoards()", ICON.print, "메뉴판", "메뉴판 만들기 · PDF · 사진") +
-    item("openExport()", ICON.download, "예약 내보내기", "엑셀로 여는 CSV") +
+    item("openExport()", ICON.download, "예약 내보내기", "엑셀 파일 · 비밀번호") +
     item("openOwnerSetting('admin')", ICON.key, "보안", "PIN · 2차 PIN · 로그") +
     '</div></div>';
 }
@@ -10954,17 +10988,16 @@ function sheetDevReq(){
   var open = DQ.list.filter(function(r){ return r.status !== "끝" && r.status !== "답변 완료"; }), done = DQ.list.filter(function(r){ return r.status === "끝" || r.status === "답변 완료"; });
   var row = function(r){
     return '<button class="rowitem tap dq-row' + (r.urgent ? ' urgent' : '') + '" onclick="DQ.open=\'' + esc(r.id) + '\'; render()">' +
-      '<span class="time-col">' + esc(dqWhen(r.created_at)) + '</span>' +
-      '<span class="grow"><span class="t">' + (r.urgent ? '<span class="tag rust sm">급함</span> ' : '') + esc(r.title) + '</span>' +
+      '<span class="time-col dq-when">' + esc(dqWhen(r.created_at)) + '</span>' +   /* 날짜·시간 한 줄(09-25 재아) */
+      '<span class="grow"><span class="t">' + esc(r.title) + '</span>' +   /* 긴급은 알약 대신 날짜·제목까지 빨갛게(.dq-row.urgent) */
       '<span class="s">' + (r.reply ? '답변: ' + esc(r.reply).slice(0, 80) : esc(r.body || "").split("\n")[0].slice(0, 80)) + '</span></span>' +
       dqStatusTag(r.status) + '</button>';
   };
-  return '<div class="dq-top"><button class="btn primary" onclick="dqNew()">글 쓰기</button>' +
-    '<p class="f-note" style="margin:0">고쳤으면 하는 것, 이상한 것, 급하게 바꿔야 하는 것을 여기 적어 주세요. <b>급함</b>이면 재아에게 바로 알림이 가고, <b>보통</b>은 모아서 봅니다. 정말 급하면 전화.</p></div>' +
+  return '<div class="dq-top"><button class="btn primary" onclick="dqNew()">글 쓰기</button></div>' +
     (DQ.err ? '<p class="f-note rust">불러오지 못했습니다: ' + esc(DQ.err) + ' (서버에 patch_19차가 아직 없을 수 있습니다)</p>' : '') +
-    '<div class="subhead">답변 기다리는 중 ' + open.length + '건</div>' +
+    '<div class="subhead">답변 대기 중 · ' + open.length + '건</div>' +
     '<div class="card searchbox">' + (open.length ? open.map(row).join("") : '<p class="muted" style="padding:16px">남긴 글이 없습니다.</p>') + '</div>' +
-    (done.length ? '<div class="subhead">답변 완료 ' + done.length + '건</div><div class="card searchbox dq-done">' + done.slice(0, 30).map(row).join("") + '</div>' : '') +
+    (done.length ? '<div class="subhead">답변 완료 · ' + done.length + '건</div><div class="card searchbox dq-done">' + done.slice(0, 30).map(row).join("") + '</div>' : '') +
     (DQ.draft ? dqFormHtml() : DQ.open ? dqDetailHtml() : "");
 }
 function dqNew(){ DQ.draft = { title:"", body:"", urgent:false, images:[] }; render(); setTimeout(function(){ var el = document.getElementById("dq-title"); if(el) el.focus(); }, 50); }
@@ -10972,16 +11005,17 @@ function dqSet(k, v){ if(DQ.draft) DQ.draft[k] = v; }
 function dqFormHtml(){
   var d = DQ.draft;
   return '<div class="overlay" onclick="DQ.draft=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
-    sheetHead("개발자에게 글 쓰기") +
-    '<div class="f"><div class="lb">얼마나 급한가요</div><div class="seg">' +
-      '<button class="' + (!d.urgent ? "on" : "") + '" onclick="dqSet(\'urgent\', false); render()">보통</button>' +
-      '<button class="' + (d.urgent ? "on rust" : "") + '" onclick="dqSet(\'urgent\', true); render()">급함</button></div>' +
-      '<div class="f-note">' + (d.urgent ? '지금 영업에 지장이 있는 것 — 재아에게 바로 알림이 갑니다.' : '개선 요청·건의 — 재아가 모아서 봅니다.') + '</div></div>' +
-    '<label class="f"><div class="lb">제목</div><input id="dq-title" type="text" value="' + esc(d.title) + '" placeholder="예: 예약 목록에서 전화번호가 안 보여요" oninput="dqSet(\'title\', this.value)"></label>' +
-    '<label class="f big"><div class="lb">내용 <span class="lbl-note">언제, 어느 화면에서, 무엇이</span></div><textarea rows="6" placeholder="예: 오늘 12시쯤 태블릿에서 예약 등록 마지막 단계에서 버튼이 안 눌렸어요" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' +
+    sheetHead("개발자에게") +
+    /* 09-25 재아: '보통/급함' → '요청·문의 / 오류·긴급', 예시 문구 뺌 */
+    '<div class="f"><div class="seg">' +
+      '<button class="' + (!d.urgent ? "on" : "") + '" onclick="dqSet(\'urgent\', false); render()">요청·문의</button>' +
+      '<button class="' + (d.urgent ? "on rust" : "") + '" onclick="dqSet(\'urgent\', true); render()">오류·긴급</button></div>' +
+      '<div class="f-note">' + (d.urgent ? '기능 결함, 시스템 오류 등 — 개발자에게 즉시 알림이 갑니다.' : '개선 요청, 시스템 문의 등') + '</div></div>' +
+    '<label class="f"><div class="lb">제목</div><input id="dq-title" type="text" value="' + esc(d.title) + '" oninput="dqSet(\'title\', this.value)"></label>' +
+    '<label class="f big"><div class="lb">내용</div><textarea rows="6" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' +
     '<div class="f"><div class="lb">화면 사진 <span class="lbl-note">선택</span></div><div class="dq-imgs">' +
       d.images.map(function(u, i){ return '<span class="dq-img"><img src="' + esc(u) + '" alt=""><button class="x" onclick="DQ.draft.images.splice(' + i + ',1); render()" aria-label="빼기">×</button></span>'; }).join("") +
-      '<button class="btn sm" onclick="saPickFile(\'image\', function(u){ DQ.draft.images.push(u); render(); })">사진 올리기</button></div></div>' +
+      '<button class="btn sm" onclick="saPickFile(\'image\', function(u){ DQ.draft.images.push(u); render(); }, true)">사진 첨부</button></div></div>' +   /* 여러 장 한 번에(09-25) */
     '<div class="sheet-actions"><button class="btn" onclick="DQ.draft=null; render()">취소</button><button class="btn primary" onclick="dqSend()">보내기</button></div></div></div>';
 }
 async function dqSend(){
@@ -10990,8 +11024,8 @@ async function dqSend(){
   try{
     var row = { id:newId("dq"), store:view.storeKey || "hanok", title:d.title.trim(), body:d.body.trim(), urgent:!!d.urgent, images:d.images, by:sessionBy() };
     await sb("/rest/v1/dev_requests", { method:"POST", body:row, prefer:"return=minimal" });
-    logEvent("개발자에게", (d.urgent ? "급함 " : "") + row.title);
-    DQ.draft = null; showToast(d.urgent ? "보냈습니다 · 재아에게 알림이 갑니다" : "보냈습니다");
+    logEvent("개발자에게", (d.urgent ? "긴급 " : "") + row.title);
+    DQ.draft = null; showToast("작성 완료");
     await dqLoad(); render();
   }catch(e){ await uiAlert("보내지 못했습니다", e.message || String(e), "warn"); }
 }
@@ -10999,7 +11033,7 @@ function dqDetailHtml(){
   var r = DQ.list.filter(function(x){ return x.id === DQ.open; })[0]; if(!r) return "";
   var imgs = Array.isArray(r.images) ? r.images : [];
   return '<div class="overlay" onclick="DQ.open=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
-    sheetHead((r.urgent ? '<span class="tag rust sm">급함</span> ' : '') + esc(r.title) + ' ' + dqStatusTag(r.status)) +
+    sheetHead((r.urgent ? '<span class="rust">' + esc(r.title) + '</span>' : esc(r.title)) + ' ' + dqStatusTag(r.status)) +
     '<p class="f-note" style="margin-top:-6px">' + esc(dqWhen(r.created_at)) + (r.by ? ' · ' + esc(r.by === "admin" ? "사장님" : "직원") : '') + '</p>' +
     (r.body ? '<div class="dq-body">' + esc(r.body).replace(/\n/g, "<br>") + '</div>' : '') +
     (imgs.length ? '<div class="dq-imgs">' + imgs.map(function(u){ return '<a class="dq-img" href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt=""></a>'; }).join("") + '</div>' : '') +
@@ -12364,7 +12398,7 @@ function numValue(){
     const j = (st.joins||[]).find(x=>x.id===f.ctx.join);
     return j ? j[f.key] : f.min;
   }
-  return st[f.key] != null ? st[f.key] : f.min;
+  return st[f.key] != null ? st[f.key] : (f.ctx && f.ctx.def != null ? f.ctx.def : f.min);   /* def: 아직 안 정한 값의 기본(단골 등급 2·5·5) */
 }
 function sheetNum(){
   const f = view.form;
@@ -13276,10 +13310,10 @@ function sheetRate(){
   return `
     <div class="wide-sheet">
     ${sheetHead("예약률 추이")}
-    <div class="chart-nav">
-      <button class="btn sm" onclick="rateMove(-7)">&lsaquo; 이전 주</button>
-      <span class="muted" style="flex:1; text-align:center; font-size:13px">${dateLabel(shiftDate(d,-20))} – ${dateLabel(d)}</span>   <!-- 그래프가 21일치(rateChart(d,21))라 첫날은 d−20 -->
-      <button class="btn sm" onclick="rateMove(7)">다음 주 &rsaquo;</button>
+    <div class="chart-nav rate-nav">
+      <button class="hr-nb" onclick="rateMove(-21)" aria-label="앞 3주">&lsaquo;</button>
+      <span class="rate-per">${dateLabel(shiftDate(d,-20))} – ${dateLabel(d)}</span>   <!-- 그래프가 21일치(rateChart(d,21))라 첫날은 d−20. 화살표는 3주씩(09-25 재아: 주 단위가 아니라 기간 단위로) -->
+      <button class="hr-nb" onclick="rateMove(21)" aria-label="다음 3주">&rsaquo;</button>
     </div>
     ${rateChart(d, 21)}
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>

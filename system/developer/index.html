@@ -66,7 +66,8 @@ nav.tabs button.on{color:var(--text); border-bottom-color:var(--ink)}
 .chip{height:32px; padding:0 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface); cursor:pointer; font-size:13px; font-weight:600; color:var(--text-2)}
 .chip.on{background:var(--ink); color:#fff; border-color:var(--ink)}
 .req{margin-bottom:12px}
-.req.urgent{border-color:#E9B4A7; box-shadow:inset 3px 0 0 var(--rust)}
+.req.urgent{background:var(--rust-bg); border-color:var(--rust); box-shadow:inset 4px 0 0 var(--rust)}   /* 긴급은 카드 전체를 빨갛게(09-25 재아) */
+.req.urgent h3{color:var(--rust)}
 .req-h{display:flex; align-items:flex-start; gap:10px}
 .req-h h3{margin:0; font-size:16px; flex:1; line-height:1.4}
 .req-m{font-size:13px; color:var(--text-3); margin-top:2px}
@@ -221,7 +222,7 @@ function reqHtml(r){
   return `<div class="card req${r.urgent && !isDone(r) ? " urgent" : ""}">
     <div class="req-h"><div style="flex:1"><h3>${esc(r.title)}</h3>
       <div class="req-m">${r.store === "anjip" ? "안집" : "한옥반점"} · ${r.by === "admin" ? "사장님" : "직원"} · ${esc(kst(r.created_at))} (${esc(ago(r.created_at))})</div></div>
-      ${r.urgent ? '<span class="tag red">급함</span>' : ''}${isDone(r) ? '<span class="tag green">답변 완료</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
+      ${r.urgent ? '<span class="tag red">긴급</span>' : ''}${isDone(r) ? '<span class="tag green">답변 완료</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
     ${r.body ? `<p class="req-b">${esc(r.body)}</p>` : ""}
     ${imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : ""}
     <div class="reply">
@@ -302,7 +303,7 @@ function tabHealth(){
     ${hc(staff && mins(staff.last) < 60 * 24 * 7 ? "ok" : "warn", "가게 계정 마지막 로그인", "직원 " + esc(staff ? ago(staff.last) : "없음"), "사장 " + esc(admin ? ago(admin.last) : "없음"))}
     ${hc(!site.booking ? "warn" : rq.waiting && mins(rq.oldest) > 12 * 60 ? "bad" : "ok", "홈페이지 예약", site.booking ? "켜짐" : "꺼짐", "대기 접수 " + (rq.waiting || 0) + "건" + (rq.waiting ? " · 가장 오래된 것 " + esc(ago(rq.oldest)) : "") + " · 마지막 접수 " + esc(ago(rq.last)))}
     ${hc("ok", "예약", "오늘 " + (res.today || 0) + " · 앞으로 " + (res.future || 0), "전체 " + (res.all || 0) + "건 · 마지막 변경 " + esc(ago(res.last_change)))}
-    ${hc(dq.urgent ? "bad" : dq.open ? "warn" : "ok", "개발자에게", dq.open ? "답 안 한 글 " + dq.open : "모두 답함", dq.urgent ? "급함 " + dq.urgent + "건" : "")}
+    ${hc(dq.urgent ? "bad" : dq.open ? "warn" : "ok", "개발자에게", dq.open ? "답 안 한 글 " + dq.open : "모두 답함", dq.urgent ? "긴급 " + dq.urgent + "건" : "")}
     ${hc("ok", "홈페이지 판", esc(ago(site.apply_at)) + " 적용", esc((site.note || "") + (h.site_next ? " · 예정 판 " + kst(h.site_next) : "")))}
     ${hc("ok", "오늘 홈페이지", "방문 " + ((h.visits_today || {}).visitors || 0) + "명", "페이지 " + ((h.visits_today || {}).views || 0) + "번 열림 · 자세한 건 통계")}
     ${hc(h.errors_7d ? "warn" : "ok", "화면 오류 (7일)", (h.errors_7d || 0) + "건", h.errors_7d ? "통계 탭 아래에 최근 오류" : "가게 기기에서 난 오류 없음")}
