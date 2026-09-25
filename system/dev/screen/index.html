@@ -1807,9 +1807,9 @@ button.sa-card:hover{border-color:var(--text-3)}
 .sa-empty{margin:0 0 6px; font-size:var(--fs-sub)}
 .sa-chips .tag small{color:var(--text-3); font-weight:400}
 /* 소식: 제목과 딱지를 한 줄 가운데로(09-24 재아 '딱지가 아래로 내려와 있다') */
-.sa-post-t{display:flex; align-items:center; gap:6px; min-width:0}
+.sa-post-t{display:flex; align-items:center; gap:10px; min-width:0}   /* 알약과 제목 사이 여유(09-25) */
 .sa-post-n{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.sa-post-t .tag{flex:none; margin:0}
+.sa-post-t .tag{flex:none; margin:0 8px 0 0!important; vertical-align:1px}   /* 제목 앞 알약과 제목 사이 여유 — .t 가 block 으로 덮여 gap 이 안 먹어서 margin 으로(09-25) */
 .sa-tab-sep{flex:none; width:1px; align-self:stretch; margin:8px 6px; background:var(--border-strong)}
 .sa-top-post{font-size:var(--fs-sub); color:var(--text-2)}
 @media (max-width:640px){ .sa-card-t{max-width:55%} .sa-card-s{display:none} }
@@ -2026,10 +2026,19 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* ---------- 개발자에게 (14h) ---------- */
 .dq-top{display:flex; flex-direction:row-reverse; align-items:center; gap:var(--s16); margin-bottom:var(--s8)}   /* 글 쓰기는 오른쪽(09-20) */
 .dq-top .btn{flex:none; white-space:nowrap}
-.dq-row.urgent .t{color:var(--rust)}
-/* 개발자에게 목록: 날짜·시간 한 줄, 긴급은 날짜·시간·제목 모두 빨강(09-25 재아) */
-.dq-row .dq-when{width:auto; min-width:84px; white-space:nowrap}
-.dq-row.urgent .dq-when{color:var(--rust)}
+/* 개발자에게 목록(09-25 2차): 한 글 = 한 칸, 칸 사이 선, 제목 굵게, 오른쪽에 날짜·상태 */
+.dq-list{border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); overflow:hidden; margin-bottom:var(--s16)}
+.dq-row{display:flex; align-items:center; gap:var(--s12); width:100%; padding:14px 16px; border:0; border-bottom:1px solid var(--border); background:none; font:inherit; text-align:left; cursor:pointer; color:var(--text)}
+.dq-row:last-child{border-bottom:0}
+.dq-row:hover{background:var(--surface-2, #f6f4f1)}
+.dq-l{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px}
+.dq-t{font-size:16px; font-weight:700; line-height:1.35; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dq-p{font-size:13px; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dq-p i{font-style:normal; font-weight:700; color:var(--pine)}
+.dq-r{flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px}
+.dq-when{font-size:13px; color:var(--text-3); white-space:nowrap; font-variant-numeric:tabular-nums}
+.dq-row.urgent{box-shadow:inset 4px 0 0 var(--rust)}
+.dq-row.urgent .dq-t, .dq-row.urgent .dq-when{color:var(--rust)}
 .dq-done{opacity:.7}
 .dq-body{font-size:var(--fs-body); line-height:1.7; color:var(--text); background:var(--surface-2); border-radius:var(--r-sm); padding:var(--s12) var(--s16); margin-bottom:var(--s12); white-space:normal}
 .dq-reply{font-size:var(--fs-body); line-height:1.7; color:var(--text); background:var(--pine-soft); border-radius:var(--r-sm); padding:var(--s12) var(--s16)}
@@ -3430,6 +3439,14 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 @supports not (font-size: clamp(10px, 1vw, 20px)){
   .tvx-legacy{padding:0}   /* 자리만 남겨 둡니다 — 앱 화면 쪽 clamp 폴백이 필요하면 여기에 */
 }
+
+/* 설정 안의 선택·단추를 운영 판단의 작은 알약(.seg)과 같은 크기로(09-25 재아: 제각각이고 너무 컸음).
+   숫자 단추(8 명 · 60 분 안)와 단추 줄(고치기 · PIN 관리 …)만 — 입력칸과 한 줄에 있는 단추는 칸 높이를 따라야 해서 그대로 */
+.set-one .fold-b .numbtn{height:auto!important; min-height:0!important; padding:4px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
+.set-one .fold-b .numbtn small{font-size:12px; margin-left:3px}
+.set-one .fold-b .btn-row > .btn, .set-one .fold-b .sch-h .btn{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
+/* 좌석 줄은 ▲▼ · 층 칸과 한 줄이라 원래 높이(38px) 그대로 — audit_rows */
+.set-one .fold-b .rowitem.seat .numbtn{height:38px!important; min-height:38px!important; padding:0 10px!important; border-radius:var(--r-sm)!important; font-size:14px!important}
 </style>
 </head>
 <body>
@@ -8113,8 +8130,7 @@ function renderSettings(){
 
     <div class="subhead">인원</div>
     <label class="f"><div class="lb">룸 최소 인원 기준</div>
-      <button class="togglebtn ${st.minCountAdultsOnly!==false?'on':''}" onclick="toggleAdultOnly()">
-        ${st.minCountAdultsOnly!==false?"성인 기준 (어린이 제외)":"총 인원 기준 (어린이 포함)"}</button>
+      <div class="seg"><button class="${st.minCountAdultsOnly!==false?'on':''}" onclick="setPolicy('minCountAdultsOnly',true)">성인만</button><button class="${st.minCountAdultsOnly===false?'on':''}" onclick="setPolicy('minCountAdultsOnly',false)">어린이 포함 총원</button></div>
       <div class="f-note">성인 기준이면 성인 1명·어린이 3명은 4인 룸 최소 인원에 못 미치는 것으로 봅니다.</div></label>
     <label class="f"><div class="lb">단체 기준 인원</div>
       <button class="numbtn" onclick="openNum('groupSize','단체 기준 인원',2,40)">${st.groupSize||8}<small>명</small></button>
@@ -8125,7 +8141,7 @@ function renderSettings(){
       <button class="numbtn" onclick="openNum('closeGapMin','같은 좌석에 몇 분 안에 겹치면 강한 경고',10,240,{step:10})">${st.closeGapMin != null ? st.closeGapMin : 60}<small>분 안</small></button>
       <div class="f-note">같은 좌석에 이 시간 안으로 다른 예약이 있으면 '1시간 안에 확정 예약' 식의 강한 확인창이 뜹니다. 그보다 멀면 약한 경고.</div></label>
     <label class="f"><div class="lb">분 단위 예약</div>
-      <button class="togglebtn ${st.minuteSteps!==false?'on':''}" onclick="setSetting('minuteSteps', ${st.minuteSteps===false?'true':'false'})">${st.minuteSteps!==false?"5분 단위 조절 켬":"30분 단위만"}</button>
+      <div class="seg"><button class="${st.minuteSteps!==false?'on':''}" onclick="setSetting('minuteSteps', true)">5분 단위</button><button class="${st.minuteSteps===false?'on':''}" onclick="setSetting('minuteSteps', false)">30분 단위</button></div>
       <div class="f-note">끄면 시각 선택에서 분 눈금이 사라지고 30분 단위로만 받습니다(누님 답 대기).</div></label>
     <label class="f"><div class="lb">취소를 노쇼로 볼 기준</div>
       <div class="seg">${[["none","안 함"],["sameday","당일"],["day1","전날부터"],["day2","이틀 전부터"],["hours","N시간 전"],["after","시각 지난 뒤"]].map(([v,l])=>`<button class="${(st.noshowCancelRule||"sameday")===v?'on':''}" onclick="setSetting('noshowCancelRule','${v}')">${l}</button>`).join("")}</div>
@@ -8292,7 +8308,7 @@ function renderSettings(){
     </div>
 
     <div class="subhead">광고 영상</div>
-    <div class="set-up">${saUpRow({ v:st.tvAd || "", kind:"video", open:true, href:st.tvAd ? adUrl(st.tvAd) : "", pick:"setPolicy('tvAd', u);", clear:"setPolicy('tvAd', '')", empty:"영상 없음 — 매장 사진이 넘어갑니다" })}</div>
+    <div class="set-up">${saUpRow({ v:st.tvAd || "", kind:"video", open:true, href:st.tvAd ? adUrl(st.tvAd) : "", pick:"setPolicy('tvAd', u);", clear:"setPolicy('tvAd', '')", clearText:"삭제", empty:"영상 없음 — 매장 사진이 넘어갑니다" })}</div>
     <p class="f-note">H.264 (mp4) 영상 50MB까지 가능합니다. 소리는 없는 파일이 적합합니다.</p>
 
     <div class="subhead">TV 전용 주소</div>
@@ -8357,7 +8373,7 @@ function renderSettings(){
       여기서 맞출 거라면 브라우저는 100%로 두세요.</p>
     <div class="subhead" style="margin-top:16px">전체화면</div>
     <label class="f"><div class="lb">로그인하면 전체화면으로</div>
-      <button class="togglebtn ${(DATA._ui&&DATA._ui.fullscreen===false)?'':'on'}" onclick="setFullscreenAuto(${(DATA._ui&&DATA._ui.fullscreen===false)?'true':'false'})">${(DATA._ui&&DATA._ui.fullscreen===false)?"안 함":"전체화면 켬"}</button>
+      <div class="seg"><button class="${(DATA._ui&&DATA._ui.fullscreen===false)?'':'on'}" onclick="setFullscreenAuto(true)">전체화면</button><button class="${(DATA._ui&&DATA._ui.fullscreen===false)?'on':''}" onclick="setFullscreenAuto(false)">안 함</button></div>
       <div class="f-note">이 기기에만 적용됩니다. 안드로이드·PC 크롬에서 주소창·탭이 사라집니다. 아이폰·아이패드는 브라우저가 막고 있어, 사파리 공유 → <b>홈 화면에 추가</b> 로 열면 같은 효과가 납니다. 전체화면에서 나오려면 ESC 또는 아래로 쓸어내리기.</div></label>`;
 
   /* ---------- 문자 안내 ---------- */
@@ -9034,7 +9050,7 @@ function saUpRow(o){
     '<span class="sa-up-name' + (v ? '' : ' muted') + '" title="' + esc(name) + '">' + esc(v ? name : (o.empty || "없음")) + '</span>' +
     (v && o.open ? '<a class="btn sm ghost" href="' + esc(o.href || (o.kind === "image" ? saImg(v) : v)) + '" target="_blank" rel="noopener">열기</a>' : '') +
     '<button type="button" class="btn sm" onclick="saPickFile(\'' + o.kind + '\', function(u, n){ ' + o.pick + ' })">' + (v ? "바꾸기" : "올리기") + '</button>' +
-    (v && o.clear ? '<button type="button" class="sa-x" onclick="' + o.clear + '" aria-label="빼기">×</button>' : '') +
+    (v && o.clear ? (o.clearText ? '<button type="button" class="btn sm ghost danger" onclick="' + o.clear + '">' + esc(o.clearText) + '</button>' : '<button type="button" class="sa-x" onclick="' + o.clear + '" aria-label="빼기">×</button>') : '') +   /* clearText: × 대신 글자 단추(디스플레이 설정 '삭제', 09-25) */
   '</div>';
 }
 /* 보이는 파일 이름: 올릴 때 원래 이름을 경로에 담아 둠(_x-<base64url>, saFileChosen) → 풀어서 '가을 메뉴.jpg'.
@@ -9454,7 +9470,7 @@ function saTabPosts(){
     : list.map(function(p){
         var imgs = (p.images || []).length, files = (p.files || []).length;
         return '<button class="rowitem tap sa-post-row' + (p.status === "비공개" ? ' off' : '') + '" onclick="saPostEdit(\'' + p.id + '\')">' + saPostThumb(p.images) +
-          '<span class="grow"><span class="t sa-post-t"><span class="sa-post-n">' + esc(p.title) + '</span>' + (p.pinned ? '<span class="tag pine sm">고정</span>' : '') + (p.status === "초안" ? '<span class="tag amber sm">임시 저장</span>' : '') + (p.status === "비공개" ? '<span class="tag sm">비공개</span>' : '') + '</span>' +
+          '<span class="grow"><span class="t sa-post-t">' + (p.pinned ? '<span class="tag pine sm">고정</span>' : '') + (p.status === "초안" ? '<span class="tag amber sm">임시 저장</span>' : '') + (p.status === "비공개" ? '<span class="tag sm">비공개</span>' : '') + '<span class="sa-post-n">' + esc(p.title) + '</span></span>' +   /* 알약은 제목 앞(09-25 재아) */
           '<span class="s">' + esc(dateLabel(p.date)) + (imgs ? ' · 사진 ' + imgs : '') + (files ? ' · 파일 ' + files : '') + (p.updated_at ? ' · 고침 ' + saPostWhen(p.updated_at) : '') + '</span></span></button>';
       }).join("");
   var del = (SA.postsDel || []).map(function(p){
@@ -10558,7 +10574,8 @@ function cdLeave(){
 /* 09-25(재아): 날짜를 글로 치던 두 번 묻기 → 기간 양식. 시작을 비우면 '처음부터', 끝을 비우면 '끝까지' */
 function openExport(){ view.exp = view.exp || { from: shiftDate(todayStr(), -30), to: todayStr() }; view.form = {type:"export", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render(); window.scrollTo(0,0); }   /* 화면형 — 닫으면 사장님 메뉴로 */
 function expList(){ var e = view.exp || {}; return store().reservations.filter(function(r){ return (!e.from || r.date >= e.from) && (!e.to || r.date <= e.to); }); }
-function expPick(k){ uiDate(k === "from" ? "시작일" : "마지막 날", view.exp[k] || "", {clear:true}).then(function(v){ if(v == null) return; view.exp[k] = v; if(view.exp.from && view.exp.to && view.exp.from > view.exp.to){ var t = view.exp.from; view.exp.from = view.exp.to; view.exp.to = t; } render(); }); }
+/* 09-25 재아: 시작·끝을 따로 고르던 것 → 범위 달력 한 번(특별 기간 고르기와 같은 창). '끝 없이' 되고, 지우면 전체 */
+function expPick(){ uiRange("내보낼 기간", view.exp.from || "", view.exp.to || "", {openEnd:true, clear:true}).then(function(r){ if(!r) return; view.exp = { from:r.from || "", to:r.to || "" }; render(); }); }
 function expPreset(k){
   var t = todayStr(), m = t.slice(0, 7), pm = monthStr(new Date(new Date(m + "-01T00:00:00").getTime() - 864e5));
   view.exp = k === "30" ? {from:shiftDate(t, -30), to:t} : k === "month" ? {from:m + "-01", to:hrMonthEnd(m)} : k === "prev" ? {from:pm + "-01", to:hrMonthEnd(pm)} : {from:"", to:""};
@@ -10566,9 +10583,8 @@ function expPreset(k){
 }
 function sheetExport(){
   var e = view.exp || {}, n = expList().length;
-  var btn = function(k, empty){ return '<button type="button" class="sa-pick" onclick="expPick(\'' + k + '\')">' + (e[k] ? esc(dateLabel(e[k])) : '<span class="muted">' + empty + '</span>') + '</button>'; };
   return sheetHead("예약 내보내기") +
-    '<div class="grid2"><div class="f"><div class="lb">시작</div>' + btn("from", "처음부터") + '</div><div class="f"><div class="lb">끝</div>' + btn("to", "끝까지") + '</div></div>' +
+    '<div class="f"><div class="lb">기간</div><button type="button" class="sa-pick" onclick="expPick()">' + esc((e.from ? dateLabel(e.from) : "처음부터") + " ~ " + (e.to ? dateLabel(e.to) : "끝까지")) + '</button></div>' +
     '<div class="btn-row" style="margin:4px 0 10px"><button class="btn sm" onclick="expPreset(\'30\')">최근 30일</button><button class="btn sm" onclick="expPreset(\'month\')">이번 달</button><button class="btn sm" onclick="expPreset(\'prev\')">지난 달</button><button class="btn sm" onclick="expPreset(\'all\')">전체</button></div>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button><button class="btn primary" onclick="exportCsv()"' + (n ? '' : ' disabled') + '>내보내기</button></div>';
 }
@@ -11008,17 +11024,17 @@ function sheetDevReq(){
   if(!DQ || DQ.loading) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
   var open = DQ.list.filter(function(r){ return r.status !== "끝" && r.status !== "답변 완료"; }), done = DQ.list.filter(function(r){ return r.status === "끝" || r.status === "답변 완료"; });
   var row = function(r){
-    return '<button class="rowitem tap dq-row' + (r.urgent ? ' urgent' : '') + '" onclick="DQ.open=\'' + esc(r.id) + '\'; render()">' +
-      '<span class="time-col dq-when">' + esc(dqWhen(r.created_at)) + '</span>' +   /* 날짜·시간 한 줄(09-25 재아) */
-      '<span class="grow"><span class="t">' + esc(r.title) + '</span>' +   /* 긴급은 알약 대신 날짜·제목까지 빨갛게(.dq-row.urgent) */
-      '<span class="s">' + (r.reply ? '답변: ' + esc(r.reply).slice(0, 80) : esc(r.body || "").split("\n")[0].slice(0, 80)) + '</span></span>' +
-      dqStatusTag(r.status) + '</button>';
+    /* 09-25 재아: 글끼리 구분이 잘 안 됐음 → 한 글 = 한 칸(제목 굵게 · 첫 줄 미리보기 · 오른쪽에 날짜와 상태). 긴급은 왼쪽 빨간 띠 + 날짜·제목 빨강 */
+    return '<button class="dq-row' + (r.urgent ? ' urgent' : '') + '" onclick="DQ.open=\'' + esc(r.id) + '\'; render()">' +
+      '<span class="dq-l"><b class="dq-t">' + esc(r.title) + '</b>' +
+      '<span class="dq-p">' + (r.reply ? '<i>답변</i> ' + esc(r.reply).slice(0, 90) : esc(r.body || "").split("\n")[0].slice(0, 90)) + '</span></span>' +
+      '<span class="dq-r"><span class="dq-when">' + esc(dqWhen(r.created_at)) + '</span>' + dqStatusTag(r.status) + '</span></button>';
   };
   return '<div class="dq-top"><button class="btn primary" onclick="dqNew()">글 쓰기</button></div>' +
     (DQ.err ? '<p class="f-note rust">불러오지 못했습니다: ' + esc(DQ.err) + ' (서버에 patch_19차가 아직 없을 수 있습니다)</p>' : '') +
     '<div class="subhead">답변 대기 중 · ' + open.length + '건</div>' +
-    '<div class="card searchbox">' + (open.length ? open.map(row).join("") : '<p class="muted" style="padding:16px">남긴 글이 없습니다.</p>') + '</div>' +
-    (done.length ? '<div class="subhead">답변 완료 · ' + done.length + '건</div><div class="card searchbox dq-done">' + done.slice(0, 30).map(row).join("") + '</div>' : '') +
+    '<div class="dq-list">' + (open.length ? open.map(row).join("") : '<p class="muted" style="padding:16px">남긴 글이 없습니다.</p>') + '</div>' +
+    (done.length ? '<div class="subhead">답변 완료 · ' + done.length + '건</div><div class="dq-list dq-done">' + done.slice(0, 30).map(row).join("") + '</div>' : '') +
     (DQ.draft ? dqFormHtml() : DQ.open ? dqDetailHtml() : "");
 }
 function dqNew(){ DQ.draft = { title:"", body:"", urgent:false, images:[] }; render(); setTimeout(function(){ var el = document.getElementById("dq-title"); if(el) el.focus(); }, 50); }
@@ -11058,7 +11074,7 @@ function dqDetailHtml(){
     '<p class="f-note" style="margin-top:-6px">' + esc(dqWhen(r.created_at)) + (r.by ? ' · ' + esc(r.by === "admin" ? "사장님" : "직원") : '') + '</p>' +
     (r.body ? '<div class="dq-body">' + esc(r.body).replace(/\n/g, "<br>") + '</div>' : '') +
     (imgs.length ? '<div class="dq-imgs">' + imgs.map(function(u){ return '<a class="dq-img" href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt=""></a>'; }).join("") + '</div>' : '') +
-    '<div class="subhead">재아 답변</div>' +
+    '<div class="subhead">개발자 답변</div>' +
     (r.reply ? '<div class="dq-reply">' + esc(r.reply).replace(/\n/g, "<br>") + (r.replied_at ? '<small>' + esc(dqWhen(r.replied_at)) + '</small>' : '') + '</div>' : '<p class="muted">아직 답변이 없습니다.</p>') +
     '<div class="sheet-actions"><button class="btn ghost danger" onclick="dqDelete(\'' + esc(r.id) + '\')">삭제하기</button><button class="btn primary" onclick="DQ.open=null; render()">닫기</button></div></div></div>';
 }
@@ -11283,10 +11299,9 @@ function sheetMenus(){
   var bgs = '<div class="subhead" style="margin-top:22px">배경</div><div class="mb-bglist">' +
     mbBgOpts("").filter(function(o){ return o.v !== "none"; }).map(function(o){ return '<div class="mb-bgit"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' + (o.v === "flower" ? '<small class="muted">기본</small>' : '<button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제">' + ICON.trash + '</button>') + '</div>'; }).join("") +
     '<button class="mb-bgit add" onclick="mbBgAdd()"><span class="mb-bgthumb"></span><small>＋ 배경 추가</small></button></div>';
-  return sheetHead("메뉴판") +
+  return '<div class="sheet-h mb-listh"><h2>메뉴판</h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
     (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
     body +
-    (list.length ? '<div class="btn-row" style="margin-top:14px"><button class="btn" onclick="mbAdd()">＋ 메뉴판 추가</button></div>' : '') +
     (MB && !MB.loading && !MB.err ? bgs : '') + mbPopHtml();
 }
 async function mbAdd(){
