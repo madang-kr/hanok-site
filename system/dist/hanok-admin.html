@@ -374,6 +374,8 @@ button.rowitem:hover{background:var(--surface-2)}
 .chart .tx{fill:var(--text-3); font-size:var(--fs-label); font-family:var(--sans); font-weight:600}
 .chart .tx.sm{font-size:var(--fs-label); font-weight:500}
 .chart .tx.on{fill:var(--text)}
+.chart .tx.sun{fill:#B0553F} .chart .tx.sat{fill:#3E6291}   /* 예약률 추이 요일 색(09-25) — .on 뒤에 둬야 고른 날도 색이 남음 */
+.chart .tx.on{font-weight:800}
 .chart .tx.ax{fill:var(--text-3); font-size:var(--fs-label); font-weight:600}
 /* 예약률 그래프 — 룸은 먹색, 홀은 회갈색 */
 .chart .rb-room{fill:#3A3833}
@@ -1126,6 +1128,7 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .sgrid.any{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .scell{position:relative; border:1px solid var(--border-strong); background:var(--surface); padding:var(--s16) var(--s8); display:flex; flex-direction:column; align-items:center; gap:var(--s4); border-radius:var(--r-md)}
 .scell .sn{font-size:var(--fs-title); font-weight:700}
+.scell.join .sn{white-space:normal; word-break:keep-all; overflow-wrap:anywhere; line-height:1.25; min-width:0}   /* 합침·붙이기 이름은 길어서 줄바꿈 */
 .scell .sc{font-size:var(--fs-sub); color:var(--text-3)}
 .scell .sb{position:absolute; top:6px; right:6px; font-size:var(--fs-label); font-weight:700;
   color:var(--amber); background:var(--amber-soft); border-radius:var(--r-sm); padding:var(--s4) var(--s4)}
@@ -1645,6 +1648,14 @@ label.chk span{width:auto}
 
 /* '저장하지 않은 변경이 있습니다' 띠도 설정 구역 폭(820px)에 맞춤(09-25 재아) */
 .applybar{max-width:820px; margin-left:auto; margin-right:auto}
+
+/* 적용 시점(09-25 재아: 예정은 각 설정 화면에서 정함) */
+.sched-when{border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin:0 0 14px; background:var(--surface-2, #FAF8F4)}
+.sched-when .sw-l{display:block; font-weight:700; font-size:var(--fs-label); color:var(--text-2); margin-bottom:6px}
+.sched-when .sw-note{margin-top:8px; width:100%}
+.sched-when .sw-s{margin-top:6px; font-size:var(--fs-label); color:var(--text-2)}
+.sched-note{background:#FBF1DC; color:#7A5712; border-radius:10px; padding:8px 12px; margin:0 0 12px; font-weight:600}
+.dev-only{font-weight:500; color:var(--text-3); margin-left:6px; font-size:var(--fs-label)}
 /* ---------- 홈페이지 관리 (14b-site-admin.js) ----------
    설정 화면과 같은 부품(.f .lb .in-sm .btn .tag .card)을 쓰고, 여기서는 배치만. 태블릿(820)이 기준, 폰은 한 단으로 */
 .sa-top{display:flex; flex-wrap:wrap; align-items:center; gap:var(--s12); padding:var(--s12) var(--s16); margin:-8px 0 var(--s12); background:var(--surface-2); border-radius:var(--r-sm)}
@@ -3848,7 +3859,7 @@ function resToRow(rec, storeKey){
   var data = {}, k;
   for(k in rec) if(!RES_TOP[k] && k.charAt(0) !== "_") data[k] = rec[k];
   return { id:rec.id, store:storeKey, date:rec.date, time:rec.time, status:rec.status,
-           name:rec.name || "", phone:String(rec.phone || "").replace(/\D/g, ""),
+           name:rec.name || "", phone:/^\s*\+/.test(rec.phone || "") ? String(rec.phone).trim() : String(rec.phone || "").replace(/\D/g, ""),   /* 해외(+81 …)는 + 와 띄어쓰기째로 */
            people:pplOf(rec), room_id:rec.roomId || null, data:data, deleted_at:rec.deletedAt || null };
 }
 
@@ -4727,12 +4738,13 @@ function legalHolidayKind(date){
   return "";
 }
 /* 공휴일 표시 켜기/끄기 — 사장 추가(holidays)·제외(holidaysOff) 목록으로. 워크시프트 날짜 머리·휴무 등록에서 부름. 바로 저장(설정 '적용하기' 없이) */
-function setHolidayFlag(date, on){
-  const st = store().settings; st.holidays = st.holidays || []; st.holidaysOff = st.holidaysOff || [];
+function setHolidayFlag(date, on, into){
+  const st = into || store().settings; st.holidays = st.holidays || []; st.holidaysOff = st.holidaysOff || [];
   const builtin = !!(KR_HOLIDAYS[Number(date.slice(0,4))] || []).includes(date);
   st.holidays = st.holidays.filter(d => d !== date); st.holidaysOff = st.holidaysOff.filter(d => d !== date);
   if(on && !builtin) st.holidays.push(date);
   if(!on && builtin) st.holidaysOff.push(date);
+  if(into) return;   /* 설정 화면(임시본) — '적용하기' 때 저장·기록(09-25) */
   mirrorDraft("holidays"); mirrorDraft("holidaysOff");
   logEvent("설정 변경", `공휴일 ${on ? "지정" : "해제"} ${date}`); saveData();
 }
@@ -5372,26 +5384,18 @@ function schedConflicts(e){
 }
 /* 적용하기에서 부름. 바뀐 묶음이 있으면 "지금 바로 / 날짜부터" 를 묻고, 날짜면 예정으로 넣고 그 묶음은 임시본에서 되돌립니다.
    돌려주는 값: true = 계속 적용하기 진행, false = 취소 */
+/* 09-25 재아: '언제부터' 는 적용할 때 창으로 묻지 않고, 그 설정 화면(좌석·예약 규칙·코스) 맨 위 '적용 시점' 에서 미리 정합니다.
+   view.schedAt[묶음] = {from, to, note}. 날짜를 안 정한 묶음은 바로 적용 */
 async function askScheduleOnApply(before, after){
-  const groups = changedGroups(before, after);
+  const at = view.schedAt || {};
+  const groups = changedGroups(before, after).filter(g => at[g] && at[g].from);
   if(!groups.length) return true;
-  const names = groups.map(g => SCHED_GROUPS[g].label).join(" · ");
-  const when = await uiChoose ? await uiChoose(`${names} 변경 — 언제부터 적용할까요?`, ["지금 바로", "날짜를 정해서 (예정)"]) : 0;
-  if(when == null) return false;
-  if(when === 0) return true;
-  const from = await uiPrompt("적용 시작일", "YYYY-MM-DD", {value:shiftDate(todayStr(), 1), ok:"다음"});
-  if(!from || !/^\d{4}-\d{2}-\d{2}$/.test(from)) return false;
-  if(from <= todayStr()){ await uiAlert("내일부터 정할 수 있습니다", "오늘 바로면 '지금 바로' 를 고르세요.", "warn"); return false; }
-  let to = await uiPrompt("적용 종료일 (비우면 계속)", "YYYY-MM-DD · 이 날까지만 쓰고 원래대로", {value:"", ok:"다음"});
-  if(to == null) return false;
-  to = to.trim() || null;
-  if(to && (!/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from)){ await uiAlert("종료일이 시작일보다 빠릅니다", "", "warn"); return false; }
-  const note = ((await uiPrompt("메모 (선택)", "예: 여포 파셜룸 추가", {value:"", ok:"확인"})) || "").trim();
   const st = store().settings;
   st.scheduled = st.scheduled || [];
   /* 예정은 '그 묶음 전체의 모습' 을 날짜순으로 덮어씁니다. 같은 묶음에 더 이른 예정이 있으면 이번 것이 그 뒤에 덮으므로
      그 예정의 내용은 이번 값에 들어 있어야 합니다 — 지금 설정을 고쳐 만든 값이라 빠져 있을 수 있어 한 번 알립니다 */
   for(const g of groups){
+    const from = at[g].from;
     const earlier = (st.scheduled||[]).filter(e => e.group === g && e.from < from && !e.to);
     if(earlier.length){
       const ok = await uiConfirm(`${SCHED_GROUPS[g].label}에 더 이른 예정이 있습니다`,
@@ -5401,6 +5405,7 @@ async function askScheduleOnApply(before, after){
     }
   }
   for(const g of groups){
+    const from = at[g].from, to = at[g].to || null, note = (at[g].note || "").trim();
     const values = {}; SCHED_GROUPS[g].keys.forEach(k => { if(after[k] !== undefined) values[k] = deepClone(after[k]); });
     const e = { id:"sc_" + Date.now() + "_" + g, from, to, group:g, values, note, createdAt:new Date().toISOString(), by:(sessionBy() || "-") };
     const conf = schedConflicts(e);
@@ -5412,9 +5417,33 @@ async function askScheduleOnApply(before, after){
     /* 그 묶음은 지금 설정으로 되돌립니다 — 예정에만 들어가야 하니까 */
     SCHED_GROUPS[g].keys.forEach(k => { if(before[k] === undefined) delete after[k]; else after[k] = deepClone(before[k]); });
     logEvent("예정 설정 등록", schedLabel(e));
+    delete at[g];
   }
   return true;
 }
+/* 설정 묶음 화면 맨 위 '적용 시점' 줄 — 바로 / 날짜 정해서(예정). 날짜는 내일부터, 끝은 비우면 계속 */
+function schedWhenHtml(g){
+  const at = (view.schedAt || {})[g], on = !!(at && at.from);
+  const n = schedFor(g).length;
+  return `<div class="sched-when">
+    <span class="sw-l">적용 시점</span>
+    <div class="seg"><button class="${on?'':'on'}" onclick="schedAtSet('${g}', null)">적용하기 누르면 바로</button><button class="${on?'on':''}" onclick="schedAtPick('${g}')">${on ? esc(pkRangeText(at.from, at.to)) : "날짜 정해서 (예정)"}</button></div>
+    ${on ? `<input class="sw-note" value="${esc(at.note||"")}" placeholder="메모 (선택)" onchange="(view.schedAt['${g}']||{}).note=this.value">` : ""}
+    ${on ? `<div class="sw-s">이 화면에서 고친 것은 '적용하기' 를 누르면 ${esc(pkShort(at.from))}부터 쓰도록 오른쪽 위 '예정' 에 들어갑니다. 그 전까지는 지금 설정 그대로.</div>` : ""}
+    ${n ? `<div class="sw-s">이미 걸린 예정 ${n}건 — <button class="linkbtn" onclick="openScheduled()">오른쪽 위 '예정' 에서 보기</button></div>` : ""}
+  </div>`;
+}
+function schedAtSet(g, v){ view.schedAt = view.schedAt || {}; if(v) view.schedAt[g] = v; else delete view.schedAt[g]; render(); }
+async function schedAtPick(g){
+  const cur = (view.schedAt || {})[g] || {};
+  const r = await uiRange("언제부터 적용할까요? (끝을 정하면 그 날까지만)", cur.from || shiftDate(todayStr(), 1), cur.to || "", {openEnd:true});
+  if(!r || !r.from) return;
+  if(r.from <= todayStr()){ await uiAlert("내일부터 정할 수 있습니다", "오늘부터면 '적용하기 누르면 바로' 를 고르세요.", "warn"); return; }
+  schedAtSet(g, {from:r.from, to:r.to || null, note:cur.note || ""});
+}
+/* 오른쪽 위 '예정' 개수 — 예정 설정 + 앞으로 시작할 운영시간 */
+function schedCount(){ return schedList().filter(e => !e.to || e.to >= todayStr()).length + futureHours().length; }
+function futureHours(){ return (store().settings.schedules || []).filter(s => s.from > todayStr()); }
 
 /* ---------- 예정 목록 시트 (되돌리기 왼쪽 단추) ---------- */
 function openScheduled(){ view.form = {type:"sched2"}; render(); }
@@ -5429,9 +5458,12 @@ function sheetScheduled(){
         <button class="btn sm" onclick="schedApplyNow('${e.id}')">지금 적용</button>
         <button class="btn sm danger" onclick="schedDelete('${e.id}')">삭제</button></div>
     </div>`; }).join("")
-    : `<div class="empty">예정된 설정 변경이 없습니다.<br><span class="s">설정을 고치고 '적용하기' 에서 '날짜를 정해서' 를 고르면 여기에 쌓입니다.</span></div>`;
-  return `${sheetHead(`예정된 설정 · ${list.length}건`)}
-    <div class="card searchbox">${rows}</div>
+    : `<div class="empty">예정된 설정 변경이 없습니다.<br><span class="s">좌석·예약 규칙·코스 화면 맨 위 '적용 시점' 에서 날짜를 정하고 '적용하기' 를 누르면 여기에 쌓입니다.</span></div>`;
+  const fh = futureHours().map(sc => `<div class="rowitem" style="display:block">
+      <div class="t"><b>${esc(dateLabel(sc.from))} 부터</b> <span class="tag">운영시간</span></div>
+      <div class="s">새 운영시간 — 설정 → 운영시간 에서 고치거나 지웁니다</div></div>`).join("");
+  return `${sheetHead(`예정된 설정 · ${list.length + futureHours().length}건`)}
+    <div class="card searchbox">${fh}${fh && !list.length ? "" : rows}</div>
     <p class="f-note">날짜가 되면 아무도 안 눌러도 그 날부터 적용됩니다. 기간이 있는 것은 끝나면 원래대로 돌아옵니다.</p>
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
@@ -6041,7 +6073,7 @@ function mirrorDraft(key){ if(view.draft) view.draft[key] = deepClone(store().se
 /* 설정 두 개의 차이를 '키: 이전 → 이후' 로 — 관리자 → 설정 변경 내역 */
 function settingsDiff(a, b){
   const out = [], keys = {}; Object.keys(a||{}).concat(Object.keys(b||{})).forEach(k=>{ keys[k]=1; });
-  const NAME = {scheduled:null, rooms:"좌석", joins:"룸 합침", schedules:"운영시간", overrides:"임시 일정", holidays:"공휴일 추가", holidaysOff:"공휴일 제외", courseGroups:"코스 구성", sources:"예약경로", sms:"문자 안내", displayRows:"디스플레이 배치", tvType:"디스플레이 형식", groupSize:"단체 기준", noshowExcluded:"노쇼 경고 제외", uiZoom:"화면 크기", closeGapMin:"겹침 경고", noshowWarnCount:"노쇼 경고 기준", noshowCancelRule:"취소→노쇼 기준", tvAd:"광고 영상", ai:"AI 설정", smsFreeLog:null, holidayAsWeekend:"공휴일=주말", minCountAdultsOnly:"정원 기준", chairDefault:"유아의자 기본", loSoon:"임박 기준", breakMode:"브레이크 방식", _setlog:null};
+  const NAME = {_cd:null, _closedDay:null, _reloadAt:null, holidaysLegal:"법정 공휴일", holidayMode:"공휴일 운영시간", scheduled:null, rooms:"좌석", joins:"룸 합침", schedules:"운영시간", overrides:"임시 일정", holidays:"공휴일 추가", holidaysOff:"공휴일 제외", courseGroups:"코스 구성", sources:"예약경로", sms:"문자 안내", displayRows:"디스플레이 배치", tvType:"디스플레이 형식", groupSize:"단체 기준", noshowExcluded:"노쇼 경고 제외", uiZoom:"화면 크기", closeGapMin:"겹침 경고", noshowWarnCount:"노쇼 경고 기준", noshowCancelRule:"취소→노쇼 기준", tvAd:"광고 영상", ai:"AI 설정", smsFreeLog:null, holidayAsWeekend:"공휴일=주말", minCountAdultsOnly:"정원 기준", chairDefault:"유아의자 기본", loSoon:"임박 기준", breakMode:"브레이크 방식", _setlog:null};
   Object.keys(keys).forEach(k=>{
     if(NAME[k] === null) return;
     const x = JSON.stringify(a ? a[k] : undefined), y = JSON.stringify(b ? b[k] : undefined);
@@ -6087,7 +6119,7 @@ async function applySettings(){
 }
 async function revertSettings(){
   if(!await uiConfirm("변경을 되돌릴까요?", "마지막으로 적용한 상태로 돌아갑니다.", {ok:"되돌리기"})) return;
-  view.draft = deepClone(store().settings);
+  view.draft = deepClone(store().settings); view.schedAt = {};
   render();
 }
 
@@ -6182,7 +6214,7 @@ function renderStore(){
         <div class="bar-right">
           ${view.tab==="settings" ? `
           <!-- 설정: 되돌리기·적용하기를 여기(나가기 왼쪽)에 (재아). 아래 안내 띠는 없앴습니다 -->
-          <button class="tvbtn b-sched ${schedList().length?'has':''}" onclick="openScheduled()" title="예정된 설정">예정<i class="cnt">${schedList().length}</i></button>
+          ${schedCount() ? `<button class="tvbtn b-sched has" onclick="openScheduled()" title="예정된 설정">예정<i class="cnt">${schedCount()}</i></button>` : ""}   <!-- 09-25 재아: 예정이 있을 때만 -->
           <button class="tvbtn b-revert" onclick="revertSettings()" ${settingsDirty()?"":"disabled"}>되돌리기</button>
           <button class="tvbtn amber b-apply" onclick="applySettings()" ${settingsDirty()?"":"disabled"}>적용하기</button>
           <button class="tvbtn icon b-pageback" onclick="closeSettingsToOwner()" title="사장님으로" aria-label="사장님으로 돌아가기">${ICON.back}</button>` : isMobile() ? `
@@ -6195,7 +6227,7 @@ function renderStore(){
           ${view.date===todayStr() ? "" : `<button class="tvbtn b-today" onclick="goToday()">오늘</button>`}
           <button class="tvbtn icon b-refresh" onclick="manualRefresh()" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
           <button class="tvbtn icon b-reqs ${reqPending().length?'has':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` · 대기 ${reqPending().length}건`:""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>   <!-- 09-20: 아이콘 + 강조색, 대기 있으면 불빛 -->
-          <button class="tvbtn b-search" onclick="openSearch()" title="단축키 /">검색</button>
+          <button class="tvbtn b-search" onclick="openSearch()" title="단축키 /">/ 검색</button>   <!-- 09-25 재아: 단축키가 보이게('＋ 등록' 과 같은 식) -->
           <button class="tvbtn accent b-add" onclick="openWizard()" title="단축키 +">＋ 등록</button>`}
           ${view.tab==="settings" ? "" : `
           <!-- 더보기(⋮): 자주 안 쓰는 것들을 여기로 모았습니다 — 예약률 추이 · 영업시간 · 설정 · 디스플레이 모드 -->
@@ -6689,8 +6721,10 @@ function rateChart(endDate, days){
     const dt = new Date(x.date+"T00:00:00");
     const dow = ["일","월","화","수","목","금","토"][dt.getDay()];
     const on = x.date===view.date;
-    return `<text class="tx ${on?'on':''}" x="${cx(i)}" y="${H-16}" text-anchor="middle">${dt.getDate()}</text>
-            <text class="tx sm ${on?'on':''}" x="${cx(i)}" y="${H-4}" text-anchor="middle">${dow}</text>`;
+    /* 토요일 파랑, 일요일·공휴일 빨강 — 달력과 같게(09-25 재아). 공휴일이 토요일이면 빨강 */
+    const dc = (dt.getDay()===0 || isHoliday(x.date)) ? " sun" : dt.getDay()===6 ? " sat" : "";
+    return `<text class="tx${dc} ${on?'on':''}" x="${cx(i)}" y="${H-16}" text-anchor="middle">${dt.getDate()}</text>
+            <text class="tx sm${dc} ${on?'on':''}" x="${cx(i)}" y="${H-4}" text-anchor="middle">${dow}</text>`;
   }).join("");
 
   const avg = Math.round(list.reduce((a,x)=>a+x.rate,0)/list.length);
@@ -8107,7 +8141,7 @@ const rowToReq = function(x){
            course:x.course, courseLabel:x.course_label, name:x.name, phone:phoneFmtReq(x.phone), request:x.request||"", allergy:x.allergy||"",
            status:x.status, reason:x.reason||"", resId:x.res_id||null, expiresAt:x.expires_at };
 };
-function phoneFmtReq(p){ const d = String(p||"").replace(/\D/g,""); return d.length >= 10 ? d.replace(/(\d{3})(\d{3,4})(\d{4})/, "$1-$2-$3") : d; }
+function phoneFmtReq(p){ return phoneNorm(p); }   /* 번호 모양 규칙은 한 곳(phoneFmt)에서만 */
 async function pullRequests(){
   if(!supaOn() || !SESSION || OFFLINE || !AUTHED || !view.storeKey) return;
   const key = view.storeKey || "hanok";
@@ -8201,11 +8235,11 @@ function renderSettings(){
   /* ---------- 운영시간 ---------- */
   const schedBody = `
     ${(st.schedules||[]).slice().sort((a,b)=>b.from.localeCompare(a.from)).map(sc=>{
-      const cur = sc === scheduleFor(todayStr());
+      const cur = sc.from === (scheduleFor(todayStr()) || {}).from;
       return `<div class="schrow ${cur?'cur':''}">
         <div class="sch-h">
           <b>${sc.from==="2000-01-01"?"기본":`${sc.from.slice(0,4)}. ${+sc.from.slice(5,7)}. ${+sc.from.slice(8)}. 부터`}</b>
-          ${cur?`<span class="tag pine">현재 적용</span>`:""}
+          ${cur?`<span class="tag pine">현재 적용</span>`:sc.from > todayStr()?`<span class="tag amber">예정</span>`:""}
           <button class="btn sm" style="margin-left:auto" onclick="openSchedule('${sc.from}')">고치기</button>
         </div>
         <div class="sch-days">
@@ -8220,11 +8254,11 @@ function renderSettings(){
       <button class="btn" onclick="openSchedule(null)">＋ 새 운영시간</button>
       <button class="btn" onclick="openOverride()">휴무 · 공휴일 · 임시 영업</button>
     </div>
-    <p class="f-note">'새 운영시간' 은 정한 날짜부터 바뀝니다(그 전 기록은 옛 시간 그대로). 이미 있는 기간을 통째로 고칠 때는 그 줄의 '고치기'.</p>`;
+    <p class="f-note">'새 운영시간' 은 창 안에서 정한 날짜부터 바뀝니다(그 전 기록은 옛 시간 그대로). 이미 있는 기간을 통째로 고칠 때는 그 줄의 '고치기'. 휴무·임시 영업도 넣은 뒤 오른쪽 위 '적용하기' 를 눌러야 반영됩니다.</p>`;
     /* 09-24 재아: 임시 휴무·임시 영업시간·공휴일을 한 창(openOverride)으로 합침 — 공휴일 켜기·목록도 거기로 */
 
   /* ---------- 예약 규칙 ---------- */
-  const ruleBody = `
+  const ruleBody = `${schedWhenHtml("rules")}
     <p class="f-note" style="margin:0 0 12px"><b>점유 시간·접수 마감</b>은 운영시간의 <b>세션</b>(점심/저녁)에서 요일마다 정합니다 (운영시간 → 고치기).</p>
 
     <div class="subhead">인원</div>
@@ -8313,7 +8347,7 @@ function renderSettings(){
     <div class="pairwrap"><table class="pairs"><tr><th></th>${list.map(t=>`<th>${esc(t.name)}</th>`).join("")}</tr>
       ${list.map(a=>`<tr><th>${esc(a.name)}</th>${list.map(b=>a.id===b.id?`<td class="self"></td>`:`<td><button class="pair ${(a.joinWith||[]).indexOf(b.id)>=0?'on':''}" onclick="toggleJoinWith('${a.id}','${b.id}')" title="${esc(a.name)} + ${esc(b.name)}">${(a.joinWith||[]).indexOf(b.id)>=0?"●":""}</button></td>`).join("")}</tr>`).join("")}
     </table></div>`; };
-  const seatBody = `
+  const seatBody = `${schedWhenHtml("seats")}
     <p class="f-note" style="margin:0 0 12px">
       <b>배정 순서</b>는 좌석을 정하지 않은 손님에게 자리를 미리 잡아 둘 때 씁니다.
       인원이 맞는 좌석 중 <b>위에서부터</b> 고릅니다(▲▼로 순서를 바꾸세요). 룸과 테이블은 손님이 고른 쪽만 봅니다.</p>
@@ -8359,7 +8393,7 @@ function renderSettings(){
     ${floorsT.map(pairTable).join("")}` : ""}`;
 
   /* ---------- 코스 ---------- */
-  const courseBody = `
+  const courseBody = `${schedWhenHtml("course")}
     ${(st.courseGroups||DEFAULT_COURSE_GROUPS).map((g,i)=>`
       <div class="cgedit">
         <div class="row">
@@ -8396,8 +8430,8 @@ function renderSettings(){
   const dispBody = `
     <div class="subhead">화면 기본값</div>
     <div class="seg">
-      <button class="${tvType()!=="grid"?'on':''}" onclick="setTvType('list')">목록형</button>
-      <button class="${tvType()==="grid"?'on':''}" onclick="setTvType('grid')">좌석표형</button>
+      <button class="${(st.tvType||tvType())!=="grid"?'on':''}" onclick="setPolicy('tvType','list')">목록형</button>
+      <button class="${(st.tvType||tvType())==="grid"?'on':''}" onclick="setPolicy('tvType','grid')">좌석표형</button>
     </div>
 
     <div class="subhead">남은 예약이 없을 때</div>
@@ -8468,7 +8502,7 @@ function renderSettings(){
     <div class="seg zoomseg">${ZOOM_STEPS.map(function(z){
       return `<button class="${zBase===z?'on':''}" onclick="setZoom(${z})">${z}%</button>`;
     }).join("")}</div>
-    <div class="subhead" style="margin-top:16px">전체화면</div>
+    <div class="subhead" style="margin-top:16px">전체화면 <span class="dev-only">이 기기만 · 바로 적용</span></div>
     <div class="sa-line"><span class="sa-line-l"><b>전체화면 자동 적용</b></span><button type="button" class="sa-sw${fsOn ? ' on' : ''}" role="switch" aria-checked="${fsOn}" aria-label="전체화면 자동 적용" onclick="setFullscreenAuto(${fsOn ? 'false' : 'true'})"><i></i></button></div>`;
 
   /* ---------- 문자 안내 ---------- */
@@ -8537,9 +8571,9 @@ function renderSettings(){
   };
   return `<div class="${view.setSec ? "set-open" : "own-grid set-grid"}">
     ${sec("hours","운영시간",`${hoursFor(todayStr()).open} ~ ${hoursFor(todayStr()).close}`, schedBody)}
-    ${sec("rules","예약 규칙",`단체 ${st.groupSize||8}명${schedChip("rules")}`, ruleBody)}
-    ${sec("seats","좌석",`룸 ${st.rooms.filter(isRoom).length} · 테이블 ${st.rooms.filter(isTable).length}${schedChip("seats")}`, seatBody)}
-    ${sec("course","코스·세트",`${schedChip("course")}`, courseBody)}
+    ${sec("rules","예약 규칙",`단체 ${st.groupSize||8}명`, ruleBody)}
+    ${sec("seats","좌석",`룸 ${st.rooms.filter(isRoom).length} · 테이블 ${st.rooms.filter(isTable).length}`, seatBody)}
+    ${sec("course","코스·세트","", courseBody)}
     ${sec("source","예약경로",`${(st.sources||[]).length}개`, srcBody)}
     ${sec("sms","문자 설정",
       sm.on===false ? "예약 문자 안 보냄"
@@ -12090,7 +12124,7 @@ function openSmsLog(fromMessages){ view.form={type:"smslog", page:!!fromMessages
 function openRate(back){ view.rateEnd = view.date; view.form={type:"rate", page:!!back, back:back||""}; render(); window.scrollTo(0,0); }
 function rateMove(n){ view.rateEnd = shiftDate(view.rateEnd || view.date, n); render(); }
 function openSchedule(from){
-  const st = store().settings;
+  const st = draft();   /* 09-25 재아: 설정은 전부 '적용하기' — 창도 임시본을 봅니다 */
   const base = from ? (st.schedules||[]).find(s=>s.from===from) : scheduleFor(todayStr());
   view.schedDraft = {
     from: from || todayStr(), origFrom: from || null,
@@ -12211,7 +12245,7 @@ function sheetRes(){
       ${store().settings.minuteSteps !== false && f.time ? `<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="resNudge(-5)">− 5분</button><span class="lbl-note">${hm(f.time)}</span><button class="btn sm" onclick="resNudge(5)">＋ 5분</button></div>` : ""}</div>` : ""}
     <div class="grid2">
       <label class="f"><div class="lb">예약자</div><input id="f-name" value="${esc(f.name)}" placeholder="홍길동" autocomplete="off"></label>
-      <label class="f"><div class="lb">전화번호</div><input id="f-phone" type="tel" inputmode="numeric" value="${esc(f.phone)}" placeholder="010-0000-0000"></label>
+      <label class="f"><div class="lb">전화번호</div><input id="f-phone" type="tel" inputmode="tel" value="${esc(f.phone)}" placeholder="010-0000-0000"></label>
     </div>
     <div class="grid2">
       <label class="f"><div class="lb">총 인원 (어린이 포함)</div>
@@ -13033,6 +13067,7 @@ function sheetSchedule(){
              + dayBlock(d.holiday, 7, "공휴일", "sun");
   return `
     ${sheetHead(d.isNew?"새 운영시간 (정한 날짜부터)":"운영시간 고치기")}
+    ${d.from > todayStr() ? `<div class="sched-note">${esc(pkShort(d.from))} 부터 적용 — 적용하면 오른쪽 위 '예정' 에 들어갑니다</div>` : ""}
     <p class="f-note" style="margin:-6px 0 12px"><b>점심 경계</b>부터 저녁입니다(브레이크가 있으면 브레이크 시작). <b>접수 마감</b>은 마지막으로 입장을 받는 시각,
       <b>점유 '끝까지'</b>는 그 세션 끝까지 한 자리에 한 팀. 라스트오더는 주방 마감이라 별개입니다.</p>
     <label class="f"><div class="lb">적용 시작일</div>
@@ -13043,7 +13078,7 @@ function sheetSchedule(){
     <div class="sheet-actions">
       ${!d.isNew && d.from!=="2000-01-01" ? `<button class="btn danger" onclick="delSchedule('${d.from}')">삭제</button>`:""}
       <button class="btn ghost" onclick="closeSheet()">닫기</button>
-      <button class="btn primary" onclick="saveSchedule()">저장</button>
+      <button class="btn primary" onclick="saveSchedule()">넣기</button>
     </div>`;
 }
 function dayOf(i){ return i===7 ? view.schedDraft.holiday : view.schedDraft.days[i]; }
@@ -13059,32 +13094,29 @@ function toggleLoDay(i){
   render();
 }
 function setSchedFrom(v){ view.schedDraft.from = v; render(); }
+/* 09-25 재아: 설정은 즉시 저장 없이 전부 '적용하기' — 여기서는 임시본에만 넣고, 기록은 적용할 때(settingsDiff) 남습니다 */
 async function saveSchedule(){
-  const st = store().settings, d = view.schedDraft;
+  const st = draft(), d = view.schedDraft;
   if(!d.from) return uiAlert("적용 시작일을 정해주세요","","warn");
   st.schedules = (st.schedules||[]).filter(s=>s.from!==d.from && s.from!==d.origFrom);   /* 시작일을 바꿨으면 옛 항목도 정리 */
   d.days.forEach(ensureSess); ensureSess(d.holiday);
   st.schedules.push({from:d.from, days:deepClone(d.days), holiday:deepClone(d.holiday)});
   st.schedules.sort((a,b)=>a.from.localeCompare(b.from));
-  mirrorDraft("schedules");   /* 안 그러면 '적용하기'가 방금 저장한 것을 되돌립니다(점검 D1) */
-  logEvent("설정 변경", `운영시간 ${d.from}부터`);
-  view.form=null; view.schedDraft=null; saveData(); render();
+  view.form=null; view.schedDraft=null; render(); showToast("오른쪽 위 '적용하기' 를 눌러야 반영됩니다");
 }
 async function delSchedule(from){
-  if(!await uiConfirm("이 운영시간을 삭제할까요?", `${from}부터 적용되던 설정이 사라지고 이전 설정이 이어집니다.`, {ok:"삭제"})) return;
-  const st = store().settings;
+  if(!await uiConfirm("이 운영시간을 삭제할까요?", `${from}부터 적용되던 설정이 사라지고 이전 설정이 이어집니다. '적용하기' 를 눌러야 반영됩니다.`, {ok:"삭제"})) return;
+  const st = draft();
   st.schedules = st.schedules.filter(s=>s.from!==from);
-  mirrorDraft("schedules");
-  logEvent("설정 변경", `운영시간 삭제 ${from}`);
-  view.form=null; saveData(); render();
+  view.form=null; render();
 }
 
 /* ---------- 임시 영업시간 · 휴무 ---------- */
 /* ---------- 휴무 · 공휴일 · 임시 영업 — 한 창(09-24 재아 '기능을 하나로') ----------
    한 해의 특별한 날을 한 목록에: 공휴일(내장표·추가·제외), 임시 휴무, 임시 영업시간. 추가는 날짜(여러 날도) + 종류 하나.
-   저장은 모두 바로(예전에 공휴일만 설정 '적용하기' 를 거쳤던 것도 여기서는 바로) */
+   09-25 재아: 설정은 전부 '적용하기' — 이 창도 임시본(draft)에 넣고, 오른쪽 위 '적용하기' 로 반영 */
 function sheetOverride(){
-  const st = store().settings, y = view.holYear || Number(todayStr().slice(0,4));
+  const st = draft(), y = view.holYear || Number(todayStr().slice(0,4));
   const ovr = {}; (st.overrides||[]).forEach(o=>{ if(o.date.slice(0,4)===String(y)) ovr[o.date] = o; });
   const hol = {}; holidaysOfYear(y, st).forEach(h=>{ hol[h.date] = h.src; });
   const off = (st.holidaysOff||[]).filter(d=>d.slice(0,4)===String(y));
@@ -13136,15 +13168,14 @@ function sheetOverride(){
     <button type="button" class="sa-add" style="margin-top:16px" onclick="view.ovrBulkOpen=!view.ovrBulkOpen; render()">${view.ovrBulkOpen?"▲":"▼"} 여러 날 한 번에 넣기</button>
     ${view.ovrBulkOpen ? bulkOvrHtml() : ""}`;
 }
-function hdSet(k, on){ const st = store().settings; st[k] = !!on; mirrorDraft(k); logEvent("설정 변경", k + " = " + !!on); saveData(); render(); }
-function restoreHolidayNow(d){ const st = store().settings; st.holidaysOff = (st.holidaysOff||[]).filter(x=>x!==d); mirrorDraft("holidaysOff"); saveData(); render(); }
+function hdSet(k, on){ const st = draft(); st[k] = !!on; render(); }
+function restoreHolidayNow(d){ const st = draft(); st.holidaysOff = (st.holidaysOff||[]).filter(x=>x!==d); render(); }
 async function delSpecialDay(date){
-  const st = store().settings, o = (st.overrides||[]).find(x=>x.date===date), h = isHoliday(date);
+  const st = draft(), o = (st.overrides||[]).find(x=>x.date===date), h = holidaysOfYear(Number(date.slice(0,4)), st).some(x=>x.date===date);
   if(!await uiConfirm("이 날을 삭제할까요?", pkShort(date) + " — " + [o ? (o.closed ? "휴무" : "임시 영업시간") : "", h ? "공휴일 표시" : ""].filter(Boolean).join(" · ") + " 을(를) 지웁니다", {ok:"삭제"})) return;
-  if(o){ st.overrides = st.overrides.filter(x=>x.date!==date); mirrorDraft("overrides"); }
-  if(h) setHolidayFlag(date, false);
-  logEvent("설정 변경", `특별한 날 삭제 ${date}`);
-  saveData(); render();
+  if(o) st.overrides = st.overrides.filter(x=>x.date!==date);
+  if(h) setHolidayFlag(date, false, st);
+  render();
 }
 /* ---------- 임시 일정 일괄 등록 (8차-J, 재아 요청) ----------
    한 줄에 하나. `날짜 | 메모 | 내용`. 메모는 비워도 됩니다. 날짜는 2026-12-31 또는 2026-12-24~2026-12-26.
@@ -13201,14 +13232,12 @@ function bulkPreview(){
 async function bulkApply(){
   const b = view.ovrBulk; if(!b || !b.result) return;
   if(readonlyBlock()) return;
-  const st = store().settings; let n = 0;
+  const st = draft(); let n = 0;
   b.result.filter(x=>x.ok).forEach(x=>{ x.dates.forEach(d=>{
     st.overrides = (st.overrides||[]).filter(o=>o.date!==d).concat([Object.assign({date:d}, x.rec)]); n++;
   }); });
-  mirrorDraft("overrides");
-  logEvent("설정 변경", `임시 일정 일괄 ${n}일`);
-  view.ovrBulk = null; saveData(); render();
-  uiAlert("일괄 등록 완료", `${n}일이 들어갔습니다. 위 목록에서 확인하세요.`, "ok");
+  view.ovrBulk = null; render();
+  uiAlert("일괄 등록", `${n}일을 넣었습니다. 위 목록에서 확인하고 오른쪽 위 '적용하기' 를 누르세요.`, "ok");
 }
 async function copyBulkPrompt(){
   const txt = "우리 식당(한옥반점) 예약 시스템에 넣을 임시 휴무·영업시간 목록을 만들어 줘.\n먼저 나에게 물어봐: ① 몇 년도 공휴일이 필요한지(대체공휴일 포함 여부) ② 휴무로 할 날과 임시 영업시간으로 할 날 ③ 임시 영업시간이면 영업·라스트오더·브레이크 시간. 답을 받은 뒤에 아래 형식으로 한 줄에 하루씩만 출력해(다른 말 없이).\n형식: 날짜 | 메모 | 내용\n- 날짜: 2026-12-31 처럼. 연속이면 2026-12-24~2026-12-26\n- 내용: \"휴무\" 또는 \"영업 11:00-22:00\" 뒤에 \"라스트오더 21:00\"(없으면 \"라스트오더 없음\"), \"브레이크 15:00-17:00\"(없으면 \"브레이크 없음\")\n예)\n2026-09-16 | 임시공휴일 | 휴무\n2026-12-31 | 연말 | 영업 11:00-23:00 라스트오더 22:00 브레이크 없음\n\n내가 원하는 것: ";
@@ -13380,16 +13409,14 @@ function setOvr(k,v){
   render();
 }
 async function saveOverride(){
-  const st = store().settings;
+  const st = draft();
   const d = view.ovrDraft || {from:todayStr(), to:todayStr(), kind:"closed"};
   const from = d.from || todayStr(), to = d.to || from;
   const dates = []; for(let x = from; x <= to && dates.length < 62; x = shiftDate(x, 1)) dates.push(x);
   if(d.kind === "holiday"){
-    dates.forEach(x=>setHolidayFlag(x, true));
+    dates.forEach(x=>setHolidayFlag(x, true, st));
     /* 법정 공휴일로 넣은 날은 급여 계산(유급휴일·휴일가산)에 씀. 내장표에 있는 날은 원래 법정이라 따로 안 적음 */
-    st.holidaysLegal = (st.holidaysLegal || []).filter(x => dates.indexOf(x) < 0).concat(d.legal !== false ? dates.filter(x => legalHolidayKind(x) !== "public") : []);
-    mirrorDraft("holidaysLegal");
-    if(d.note){ /* 공휴일 메모는 휴무 기록 없이 남길 곳이 없어 로그에만 */ logEvent("설정 변경", `공휴일 메모 ${from}~${to} ${d.note}`); }
+    st.holidaysLegal = (st.holidaysLegal || []).filter(x => dates.indexOf(x) < 0).concat(d.legal !== false ? dates.filter(x => !(KR_HOLIDAYS[Number(x.slice(0,4))] || []).includes(x) && x.slice(5) !== "05-01") : []);
   }else{
     const recs = dates.map(date=>{ const base = hoursFor(date); return d.kind === "closed"
       ? {date, closed:true, note:d.note||"임시 휴무"}
@@ -13397,19 +13424,15 @@ async function saveOverride(){
          bs:d.noBreak?"":(d.bs!==undefined?d.bs:base.bs), be:d.noBreak?"":(d.be!==undefined?d.be:base.be),
          lo:d.noLo?"":(d.lo||base.lo), note:d.note||"임시 운영시간"}; });
     st.overrides = (st.overrides||[]).filter(o=>dates.indexOf(o.date) < 0).concat(recs);
-    mirrorDraft("overrides");
-    if(d.holiday) dates.forEach(x=>setHolidayFlag(x, true));
+    if(d.holiday) dates.forEach(x=>setHolidayFlag(x, true, st));
   }
-  logEvent("설정 변경", `특별한 날 ${from}${to!==from?"~"+to:""} ${d.kind==="closed"?"휴무":d.kind==="hours"?"시간변경":"공휴일"}`);
-  view.holYear = Number(from.slice(0,4)); view.ovrDraft = null; saveData(); render();
+  view.holYear = Number(from.slice(0,4)); view.ovrDraft = null; render(); showToast("넣었습니다 — 오른쪽 위 '적용하기' 를 눌러야 반영됩니다");
 }
 async function delOverride(date){
   if(!await uiConfirm("임시 일정을 삭제할까요?", dateLabel(date), {ok:"삭제"})) return;
-  const st = store().settings;
+  const st = draft();
   st.overrides = st.overrides.filter(o=>o.date!==date);
-  mirrorDraft("overrides");
-  logEvent("설정 변경", `임시 일정 삭제 ${date}`);
-  saveData(); render();
+  render();
 }
 
 /* ---------- 공용 PIN 변경 ----------
@@ -14429,8 +14452,8 @@ function wzStepDate(){
     </div>
     <div class="wz-time">
       ${WZ.date ? hoursLineHtml(dh) : `<div class="hours-line"><span class="hl-c"><i>영업시간</i>—</span><span class="hl-c"><i>브레이크</i>—</span><span class="hl-c"><i>라스트오더</i>—</span></div>`}
-      <div class="lbl" style="margin-bottom:8px">${WZ.date?dateLabel(WZ.date):"날짜를 먼저 고르세요"} · 시각</div>
-      ${WZ.date ? sessionGrid() : `<div class="empty">왼쪽 달력에서 날짜를 고르면 시각이 나옵니다.</div>`}
+      ${WZ.date ? `<div class="lbl" style="margin-bottom:8px">${dateLabel(WZ.date)} · 시각</div>` : ""}
+      ${WZ.date ? sessionGrid() : `<div class="empty">날짜를 선택해주세요.</div>`}
       <details class="hmore" ${WZ.showAllSlots?"open":""} ontoggle="WZ.showAllSlots=this.open"><summary>접수 시간 외</summary>
       <div class="hgrid">${slotCells}</div></details>
       ${minuteRail}
@@ -14563,16 +14586,16 @@ function afterRender(){
 
 /* ---------- 2단계: 인원 (어린이 포함 총원) ---------- */
 function wzStepPeople(){
-  const tiles = [2,3,4,5,6].map(n=>
+  const tiles = [2,3,4,5,6,7].map(n=>
     `<button class="ptile ${WZ.people===n&&!WZ.customPeople?'on':''}" onclick="wzPeople(${n})">
       <span class="pn">${n}</span><span class="pu">명</span></button>`).join("");
   const cur = WZ.people||0;
   return `
     <div class="pgrid">${tiles}</div>
-    <button class="pmore ${WZ.customPeople?'on':''}" onclick="wzCustom()">7명 이상</button>
+    <button class="pmore ${WZ.customPeople?'on':''}" onclick="wzCustom()">8명 이상</button>
       <div class="bigstep ${WZ.customPeople?'':'hold'}">
         <button onclick="wzAdj('people',-1)" aria-label="총 인원 한 명 줄이기" ${WZ.customPeople?'':'tabindex="-1"'}>−</button>
-        <div class="v"><span>${WZ.people||7}</span><small>명</small></div>
+        <div class="v"><span>${WZ.people||8}</span><small>명</small></div>
         <button onclick="wzAdj('people',1)" aria-label="총 인원 한 명 늘리기" ${WZ.customPeople?'':'tabindex="-1"'}>＋</button>
       </div>
     <div class="infant ${WZ.infants>=(WZ.people||99)&&WZ.people?'bad':''}">
@@ -14592,7 +14615,7 @@ function wzPeople(n){
   WZ.people=n; WZ.customPeople=false;
   render();
 }
-function wzCustom(){ WZ.customPeople=true; if(!WZ.people || WZ.people < 7) WZ.people=7; render(); }   /* 6명을 눌러 뒀어도 7부터(재아) */
+function wzCustom(){ WZ.customPeople=true; if(!WZ.people || WZ.people < 8) WZ.people=8; render(); }   /* 7명을 눌러 뒀어도 8부터 — 2~7명은 단추(09-25 재아) */
 function wzAdj(k,d){
   /* 막지 않습니다 — 이상한 값은 빨갛게 보여 주고 사장이 판단합니다 */
   if(k==="infants"){
@@ -14621,7 +14644,7 @@ function wzStepSeat(){
   const kind = WZ.seatKind;   /* 8차-W(재아): 기본값 없음 — 룸/테이블을 먼저 고르면 그때 좌석이 보입니다 */
 
   const cell = (ids, x, extraCls) => {
-    const label = ids.length > 1 ? seatLabelIds(ids).replace(/ (룸|테이블)$/,"") : esc(x.name);
+    const label = ids.length > 1 ? esc(seatLabelIds(ids).replace(/ (룸|테이블)$/,"")).split("+").join("+<wbr>") : esc(x.name);   /* 합친 이름은 + 뒤에서 줄바꿈(테이블 조합이 칸을 넘쳤음, 09-25) */
     let statuses = ids.map(id=>roomStatus(WZ.date, WZ.time, id));
     const state = statuses.some(r=>r.state==="blocked") ? "blocked" : statuses.some(r=>r.state==="warn") ? "warn" : "free";
     const blocked = ids.some(id=>blockedAt(seatById(id), WZ.date, WZ.time));
@@ -14634,7 +14657,8 @@ function wzStepSeat(){
     const mv = statuses.reduce((a,r)=>a+(r.movable?r.movable.length:0),0);
     const key = ids.length > 1 ? x.id : ids[0];
     const sub = isTable(x) ? `${roomMin(x)?roomMin(x)+"~":""}${seatMax(x)}인${x.note?` · ${esc(x.note)}`:""}` : `${seatsMin(ids, WZ.date)}~${seatsMax(ids)}인${ids.length===1 && roomOpt(x) ? ` · 최적 ${roomOpt(x)}` : ""}`;
-    return `<button class="scell ${WZ.seat===key?'on':''} ${bad?'warned busy':''} ${extraCls||''}" onclick="wzSeat('${key}')" ${x.note&&ids.length>1?`title="${esc(x.note)}"`:""}>
+    const on = ids.length > 1 ? WZ.seatJoin === key : (WZ.seat === key && !WZ.seatJoin);   /* 합친 칸은 seatJoin 으로 — 대표 좌석 칸이 같이 켜지지 않게 */
+    return `<button class="scell ${on?'on':''} ${bad?'warned busy':''} ${extraCls||''}" onclick="wzSeat('${key}')" ${x.note&&ids.length>1?`title="${esc(x.note)}"`:""}>
       <span class="sn">${label}</span>
       <span class="sc">${sub}</span>
       ${txt?`<span class="avail ${cls}">${txt}</span>`:""}
@@ -14672,8 +14696,10 @@ function wzStepSeat(){
         ${txt?`<span class="avail ${bad?'warn':'free'}">${txt}</span>`:""}
       </button>`; }).join("")}</div>
       <button class="wz-adv ${WZ.tableAdv?'on':''}" onclick="WZ.tableAdv=!WZ.tableAdv; render()">${WZ.tableAdv?"▲":"▼"} 특정 테이블 지정</button>
-      ${WZ.tableAdv ? floors.map(fl=>`<div class="lbl" style="margin-top:10px">${esc(floorLabel(fl))}</div>
-        <div class="sgrid tables">${floorTables(fl).map(t=>cell([t.id], t)).join("")}</div>`).join("") : ""}`;
+      ${WZ.tableAdv ? floors.map(fl=>{ const cb = tableCombos(fl, total); return `<div class="lbl" style="margin-top:10px">${esc(floorLabel(fl))}</div>
+        <div class="sgrid tables">${floorTables(fl).map(t=>cell([t.id], t)).join("")}</div>
+        ${cb.length ? `<div class="lbl" style="margin-top:10px">${esc(fl || "")} 붙이기 <span class="lbl-note">룸 합침처럼 골라 둘 수 있음</span></div>
+        <div class="sgrid tables">${cb.map(ids=>{ const k = "tj:" + ids.join(","); return cell(ids, {id:k, name:"", type:"table", capacity:seatsMax(ids)}, "join"); }).join("")}</div>` : ""}`; }).join("") : ""}`;
   }
   return `
     ${(()=>{ if(!WZ.time) return `<div class="seat-main"><button class="${kind==='room'?'on':''}" onclick="wzSeatKind('room')">룸 예약</button><button class="${kind==='table'?'on':''}" onclick="wzSeatKind('table')">테이블 예약</button></div>`;
@@ -14687,6 +14713,26 @@ function wzStepSeat(){
     ${kind?`<button class="wz-adv seat-detail-toggle ${WZ.seatDetail?'on':''}" onclick="WZ.seatDetail=!WZ.seatDetail; render()">${WZ.seatDetail?"▲":"▼"} ${kind==='room'?"룸 지정":"테이블 지정"}</button>`:""}
     ${kind&&WZ.seatDetail?body:""}`;
 }
+/* 층 안에서 붙일 수 있는 테이블 조합(09-25 재아: 테이블도 룸처럼 골라 붙이게)
+   joinWith 로 이어진 것만. 저층처럼 다섯이 다 붙으면 26가지라 — 두 개짜리는 전부, 셋 이상은 이 인원에 '딱 맞는'(하나 빼면 모자란) 것만 */
+function tableCombos(fl, people){
+  const tb = floorTables(fl, WZ && WZ.date), out = [], seen = {};
+  const cap = set => set.reduce((a, x)=>a + seatMax(x), 0);
+  const grow = set => {
+    if(set.length >= 2){
+      const ids = set.slice().sort((a, b)=>tb.indexOf(a) - tb.indexOf(b)).map(x=>x.id), k = ids.join(",");
+      if(!seen[k]){
+        seen[k] = 1;
+        const c = cap(set), tight = people > 0 && c >= people && set.every(x=>c - seatMax(x) < people);
+        if(set.length === 2 || tight) out.push(ids);
+      }
+    }
+    if(set.length >= 5) return;
+    tb.forEach(x=>{ if(set.indexOf(x) >= 0 || !set.some(c=>canJoinTables(c.id, x.id))) return; set.push(x); grow(set); set.pop(); });
+  };
+  tb.forEach(x=>grow([x]));
+  return out.sort((a, b)=>a.length - b.length || seatsMax(a) - seatsMax(b));
+}
 function wzSeatKind(k){
   if(WZ.seatKind===k){ WZ.seatKind=null; WZ.seat=null; WZ.seatDetail=false; render(); return; }
   WZ.seatKind = k; WZ.seat = null; WZ.seatExtra=[]; WZ.seatDetail=false; WZ.tableAdv=false; render();
@@ -14697,7 +14743,7 @@ function wzSeatKind(k){
 async function wzSeat(v){
   const st = store().settings;
   const people = WZ.people||0;
-  if((WZ.seat===v || WZ.seatJoin===v) && v!=="room-any" && v!=="table-any"){
+  if((WZ.seatJoin ? WZ.seatJoin===v : WZ.seat===v) && v!=="room-any" && v!=="table-any"){   /* 합친 것을 고른 채 대표 좌석 한 칸을 누르면 해제가 아니라 그 칸으로 */
     WZ.seat=null; WZ.seatJoin=null; WZ.seatExtra=[]; render(); return;
   }
   WZ.seatExtra = []; WZ.tentative = null; WZ.tentativeExtra = [];
@@ -14716,7 +14762,8 @@ async function wzSeat(v){
   }
   if(!["any","hall-any","table-any","room-any"].includes(v)){
     const j = (st.joins||[]).find(g=>g.id===v);
-    const ids = j ? j.ids.slice() : [v];
+    const tj = /^tj:/.test(v) ? v.slice(3).split(",") : null;   /* 테이블 붙이기 조합(09-25) — 'tj:t21,t22' */
+    const ids = j ? j.ids.slice() : tj ? tj : [v];
     if(!seatById(ids[0])) return;
     const label = seatLabelIds(ids);
     for(let k=0;k<ids.length;k++){
@@ -14755,8 +14802,8 @@ async function wzSeat(v){
       }
     }
     if(j && (j.split || j.note) && !await uiConfirm(`${label} — ${j.note || "공간이 나뉩니다"}`, j.split ? "테이블이 나뉘어 앉게 됩니다. 손님께 확인하셨나요?" : "손님께 확인하셨나요?", {ok:"확인했음", cancel:"다시 고르기"})) return;
-    if(j) WZ.seatExtra = ids.slice(1);
-    WZ.seat = j ? ids[0] : v; WZ.seatJoin = j ? j.id : null; render();
+    if(j || tj) WZ.seatExtra = ids.slice(1);
+    WZ.seat = j || tj ? ids[0] : v; WZ.seatJoin = j ? j.id : tj ? v : null; render();
     return;
   }
   /* 좌석 미정 — 잠정 배정 가능 여부를 먼저 확인 */
@@ -14789,7 +14836,7 @@ function wzStepGuest(){
     </label>
     <div class="f big"><div class="lb">전화번호</div>
       <div class="inrow">
-        <input id="wz-phone" type="tel" inputmode="numeric" pattern="[0-9-]*"
+        <input id="wz-phone" type="tel" inputmode="tel"
                value="${esc(WZ.phone)}" placeholder="010-0000-0000"
                onfocus="wzPhoneNone(false)">
         <button class="nonebtn sm warn ${WZ.phoneNone?'on':''}" onclick="wzPhoneNone()">번호 없음</button>
@@ -14826,25 +14873,42 @@ function fmtPhone(el, ev){
   if(ev && ev.inputType==="insertText" && ev.data==="-") WZ.phoneManual = true;
   if(!raw.replace(/\D/g,"")) WZ.phoneManual = false;        /* 다 지우면 다시 자동으로 */
   if(WZ.phoneManual){ WZ.phone = raw; return; }
-  const out = phoneFmt(raw.replace(/\D/g,"").slice(0,11));
+  /* + 로 시작하면 해외 번호 — 자리 규칙이 나라마다 달라 치는 대로 둠(+82 는 저장할 때 0 으로 바꿈) */
+  if(/^\s*\+/.test(raw)){ const t = "+" + raw.replace(/[^\d\s-]/g, "").replace(/^[\s-]+/, "").slice(0, 20); if(el.value !== t) el.value = t; WZ.phone = t; return; }
+  const d = raw.replace(/\D/g,"");
+  const out = phoneFmt(d.slice(0, phoneMax(d)));
   if(el.value !== out) el.value = out;
   WZ.phone = out;
 }
+/* 번호 종류별 최대 자릿수 — 050x 안심번호는 12자리, 서울(02)은 10자리, 1588 류는 8자리, 나머지 11자리 */
+function phoneMax(d){ return /^050/.test(d) ? 12 : /^02/.test(d) ? 10 : /^1[5-9]/.test(d) ? 8 : 11; }
 /* 숫자열 → 하이픈 넣은 번호. 휴대폰(01x) 3-4-4, 서울(02) 2-3-4 / 2-4-4, 지역번호(033 등) 3-3-4 / 3-4-4, 1588 류 4-4.
    입력 중(자릿수가 다 안 찼을 때)에도 앞부분 하이픈은 미리 넣어 줍니다 */
 /* 입력한 번호를 저장용 모양으로 — 숫자만 남기고 phoneFmt. 서버 왕복 뒤 모양이 달라져 충돌로 오인하던 것을 막습니다(점검 D10) */
-function phoneNorm(v){ const d = String(v || "").replace(/\D/g, ""); return d ? phoneFmt(d) : ""; }
+function phoneNorm(v){
+  const s = String(v || "").trim();
+  if(/^\+/.test(s)){
+    const dd = s.replace(/\D/g, "");
+    if(/^82/.test(dd)) return phoneFmt("0" + dd.slice(2).replace(/^0/, ""));   /* +82 10-… → 010-… (국내 번호로) */
+    return "+" + s.slice(1).replace(/[^\d\s-]/g, "").replace(/\s+/g, " ").trim();   /* 해외: 친 모양 그대로 */
+  }
+  const d = s.replace(/\D/g, ""); return d ? phoneFmt(d) : "";
+}
+/* 09-25 재아: 시작 번호마다 하이픈 자리·길이가 다름
+   010 3-4-4 · 011/016~019 3-3-4(10자리)·3-4-4 · 02 2-3-4·2-4-4 · 031 등 지역·070·080 3-3-4·3-4-4
+   0502~0508 안심번호 4-3-4·4-4-4 · 1588 류 4-4 · 서버에서 온 '+81…'(해외)는 그대로 */
 function phoneFmt(d){
   if(!d) return "";
+  if(/^\+/.test(d)) return d;
   let a = 3;                                   /* 앞자리(지역·통신사) 길이 */
   if(d.indexOf("02") === 0) a = 2;
+  else if(/^050[2-8]/.test(d)) a = 4;          /* 0505-123-4567 안심번호 */
   else if(/^1[5-9]/.test(d)) a = 4;            /* 1588-0000 같은 대표번호 */
   if(d.length <= a) return d;
   const rest = d.slice(a);
-  if(a === 4) return d.slice(0,4) + "-" + rest;
-  /* 가운데 자리: 휴대폰은 4, 그 외는 전체 길이가 (a+8) 이면 4, 아니면 3 */
-  const mobile = d.indexOf("01") === 0;
-  const mid = mobile ? 4 : (d.length >= a+8 ? 4 : 3);
+  if(a === 4 && d.charAt(0) === "1") return d.slice(0,4) + "-" + rest;
+  /* 가운데 자리: 010 은 4, 그 외는 전체 길이가 (a+8) 이상이면 4, 아니면 3 */
+  const mid = /^010/.test(d) ? 4 : (d.length >= a+8 ? 4 : 3);
   if(rest.length <= mid) return d.slice(0,a) + "-" + rest;
   return d.slice(0,a) + "-" + rest.slice(0,mid) + "-" + rest.slice(mid);
 }
