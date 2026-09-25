@@ -1423,6 +1423,9 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .sch-t i{font-style:normal; font-size:11px; color:var(--text-3)}
 /* 운영시간 수정: '없음' 체크를 풀면 그 아래에 드러나는 시각 칸 — 살짝 들여 씀 */
 .dr-in label.dr-sub{padding-left:26px}
+.sess-auto{display:flex; align-items:center; height:38px; font-size:var(--fs-sub); color:var(--text-2)}
+.sess-r .sf > span small{font-weight:500; color:var(--text-3); margin-left:4px}
+.dayrow.ovr-day{margin:4px 0 12px}
 .sess{margin-top:var(--s8); border-top:1px dashed var(--border); padding-top:var(--s8)}
 .sess-r{display:grid; grid-template-columns:1fr 1fr 1fr 34px; gap:var(--s4) var(--s8); align-items:end; padding:var(--s8); margin-bottom:var(--s8); background:var(--surface-2); border-radius:var(--r-sm)}
 .sess-r > .sf{display:flex; flex-direction:column; gap:2px; min-width:0}
@@ -4931,7 +4934,7 @@ function hoursFor(date){
   const ov = (st.overrides||[]).find(o=>o.date===date);
   if(ov){
     if(ov.closed) return Object.assign({}, base, {closed:true, note:ov.note||"임시 휴무"});
-    ["open","close","lo","bs","be"].forEach(k=>{ if(ov[k]!==undefined) base[k]=ov[k]; });
+    ["open","close","lo","bs","be","sess"].forEach(k=>{ if(ov[k]!==undefined) base[k]=ov[k]; });   /* 임시 영업시간도 점심 경계·접수 마감·자리 시간(sess)을 가짐(09-25) */
     base.note = ov.note||"임시 운영시간";
     base.custom = true;
   }
@@ -4975,13 +4978,20 @@ function sessFromDay(day){
 }
 /* 저장본을 새 모양으로 고정합니다(설정 편집·마이그레이션) */
 function ensureSess(day){ if(!day.sess) day.sess = sessFromDay(day); delete day.sessions; return day.sess; }
+/* 09-25 재아:
+   · 접수 마감은 '그 시각 전까지'(15:30 이면 15:25·15:00 까지) — 15:30 에 오는 손님은 점심 주문 마감(15:25)에 걸리므로
+   · 브레이크가 없는 날 점심(soft)은 점심 경계 전까지 받고, 자리는 '경계까지, 늦게 온 팀은 최소 N분 보장'(룸·테이블 따로 — seg.room/table 이 분)
+   · 경계가 영업시간 밖이면(임시 영업시간으로 저녁만 여는 날 등) 하루 한 세션 — 전엔 '17시 시작 15:30 끝' 점심이 생겼음 */
 function sessionsOfDay(dh){
   var x = sessFromDay(dh);
   var edge = dh.bs ? dh.bs : (x.edge || "");
-  var mk = function(name, from, seg, until){ return { name:name, from:from, lastBook:seg.lastBook, stay:seg.room, stayTable:seg.table != null ? seg.table : seg.room, until:until }; };
+  if(edge && (toMin(edge) <= toMin(dh.open) || toMin(edge) >= toMin(dh.close))) edge = "";
+  var mk = function(name, from, seg, until, soft){ return { name:name, from:from, lastBook:soft ? until : seg.lastBook, stay:seg.room, stayTable:seg.table != null ? seg.table : seg.room, until:until, soft:!!soft }; };
   if(!edge) return [ mk("종일", dh.open, x.dinner, dh.close) ];
-  return [ mk("점심", dh.open, x.lunch, edge), mk("저녁", dh.be || edge, x.dinner, dh.close) ];
+  return [ mk("점심", dh.open, x.lunch, edge, !dh.bs), mk("저녁", dh.be || edge, x.dinner, dh.close) ];
 }
+/* 브레이크 없는 날 점심의 최소 보장(분) — 옛 값 '끝까지' 는 110 */
+function softGuar(v){ return (v === "end" || !Number(v)) ? 110 : Number(v); }
 function sessionsFor(date){
   const dh = hoursFor(date);
   if(dh.closed) return [];
@@ -5018,6 +5028,10 @@ function stayMinAt(date, time, seatId){
   const x = seatId ? seatById(seatId) : null;
   const isT = !!seatId && (isTablePref(seatId) || (x && isTable(x)));
   const stv = isT && sess.stayTable != null ? sess.stayTable : sess.stay;
+  if(sess.soft){   /* 경계까지, 늦게 온 팀은 최소 보장 — 마감은 안 넘김 */
+    const t = toMin(time), close = toMin(hoursFor(date).close);
+    return Math.max(30, Math.min(close - t, Math.max(sessionEnd(date, sess) - t, softGuar(stv))));
+  }
   if(stv === "end") return Math.max(30, sessionEnd(date, sess) - toMin(time));
   return Math.max(30, Number(stv) || 150);
 }
@@ -7347,7 +7361,7 @@ function resWarn(r){
   else{
     if(inBreak(r.date, r.time)) out.push("브레이크타임");
     if(toMin(r.time) < toMin(h.open) || toMin(r.time) >= toMin(h.close)) out.push("영업시간 밖");
-    else if(toMin(r.time) > lastBookMin(r.date, r.time)) out.push("접수 마감 이후");
+    else if(toMin(r.time) >= lastBookMin(r.date, r.time)) out.push("접수 마감 이후");
     else if(h.lo && toMin(r.time) > toMin(h.lo)) out.push("라스트오더 이후");
     if(toMin(r.time) + stayOf(r) > toMin(h.close)) out.push("마감 넘김");
   }
@@ -8391,13 +8405,16 @@ function availOfDay(date){
 function availOfDayRaw(date){
   const out = {}, ss = sessionsFor(date);
   /* 공휴일 표시 — 홈페이지 예약 창이 이걸 보고 주말 규칙·빨간 날을 정함. 시각 칸이 아니라서 okAt 에 안 걸림(09-24: 공휴일 원본을 시스템 하나로) */
-  if(typeof isHoliday === "function" && isHoliday(date)) out._d = { hol:1 };
+  /* le = 점심 끝(분) — 홈페이지 예약 창의 점심/저녁 구분·점심 세트가 이걸 봄(전엔 15:30 고정). 하루 한 세션이면 0(09-25) */
+  const dd = {}; if(typeof isHoliday === "function" && isHoliday(date)) dd.hol = 1;
+  if(ss.length) dd.le = ss.length > 1 ? toMin(ss[0].until) : 0;
+  if(Object.keys(dd).length) out._d = dd;
   if(!ss.length) return out;
   const rooms = roomsAt(date).filter(isRoom);
   const floors = []; roomsAt(date).filter(isTable).forEach(t => { const f = t.floor || ""; if(floors.indexOf(f) < 0) floors.push(f); });
   ss.forEach(se => {
     const from = toMin(se.from), last = toMin(se.lastBook);
-    for(let m = from; m <= last; m += 30){
+    for(let m = from; m < last; m += 30){   /* 접수 마감 시각은 안 받음(그 전까지, 09-25) */
       const time = minToHM(m);
       if(inBreak(date, time)) continue;
       /* 잠정 배정(미배정 예약이 임시로 잡은 방)도 찬 것으로 — findSeat 의 free 판정과 같게. state 만 보면 '비켜줄 수 있는' 잠정이 있는 방이
@@ -13484,43 +13501,42 @@ const DOW = ["일","월","화","수","목","금","토"];
 /* 운영시간 요약 한 줄에 붙는 세션 요약 — "점심 접수 ~14:00 · 저녁 접수 ~19:30" */
 function sessSummary(d){
   const ss = sessionsOfDay(d); if(!ss.length) return "";
-  const f = v => v === "end" ? "끝까지" : `${v||110}분`;
-  return `<span class="sch-s">${ss.map(se=>`${esc(se.name)} 접수 ~${esc(se.lastBook)} (룸 ${f(se.stay)} · 테이블 ${f(se.stayTable)})`).join(" · ")}</span>`;
+  const f = (v, se) => se.soft ? `경계까지·최소 ${softGuar(v)}분` : v === "end" ? "끝까지" : `${v||110}분`;
+  return `<span class="sch-s">${ss.map(se=>`${esc(se.name)} 접수 ${esc(se.lastBook)} 전까지 (룸 ${f(se.stay, se)} · 테이블 ${f(se.stayTable, se)})`).join(" · ")}</span>`;
 }
 /* 운영시간 편집(8차-X, 재아) — 월요일부터, 요일 카드는 접혀 있고 눌러서 폅니다.
    세션은 '점심 경계' 하나 + 점심/저녁 접수 마감·점유(룸/테이블 따로). 브레이크가 있으면 경계는 브레이크 시작으로 잠깁니다.
    라스트오더는 직접 입력하고 옆에 '마감 N분 전' 을 참고로만 보여 줍니다(자동 버튼 삭제) */
 function stayBox(i, seg, k, label){
   const v = dayOf(i).sess[seg][k];
+  /* 브레이크 없는 날 점심: 경계까지 앉되, 늦게 온 팀은 최소 N분 보장(09-25 재아) — '끝까지' 체크 없이 보장 분만 */
+  if(seg === "lunch" && !dayOf(i).bs) return `<div class="sf"><span>${label}</span><span class="sess-stay"><small>경계까지 · 최소</small>
+    <input type="number" min="30" step="10" data-title="${label} 최소 보장" data-unit="분" value="${softGuar(v)}" onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||110)"><small>분</small></span></div>`;
   return `<div class="sf"><span>${label}</span><span class="sess-stay"><label class="chk"><input type="checkbox" ${v==="end"?"checked":""} onchange="setSessV(${i},'${seg}','${k}',this.checked?'end':110)"><span>끝까지</span></label>
     <input type="number" min="30" step="10" value="${v==="end"?"":(v||110)}" ${v==="end"?"disabled":""} onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||110)"><small>분</small></span></div>`;
 }
 function segBox(i, seg, title, note){
   return `<div class="sess-r two">
     <div class="sf full"><b>${title}</b><span class="lbl-note">${esc(note)}</span></div>
-    <div class="sf"><span>접수 마감</span><input type="time" data-title="${esc(title)} 접수 마감" data-nq="1" value="${dayOf(i).sess[seg].lastBook||""}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>
+    ${seg === "lunch" && !dayOf(i).bs ? `<div class="sf"><span>접수 마감</span><span class="sess-auto">점심 경계 전까지</span></div>`
+      : `<div class="sf"><span>접수 마감 <small>이 시각 전까지</small></span><input type="time" data-title="${esc(title)} 접수 마감" data-nq="1" value="${dayOf(i).sess[seg].lastBook||""}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>`}
     ${stayBox(i, seg, "room", "점유 · 룸")}
     ${stayBox(i, seg, "table", "점유 · 테이블")}
   </div>`;
 }
-function setSessV(i, seg, k, v){ dayOf(i).sess[seg][k] = v; render(); }
-function setEdge(i, v){ dayOf(i).sess.edge = v; render(); }
-function toggleEdge(i){ const x = dayOf(i).sess; x.edge = x.edge === "" ? "15:30" : ""; render(); }
+function ovrTouch(i){ if(i === 8 && view.ovrDraft) view.ovrDraft.dayTouched = true; }
+function setSessV(i, seg, k, v){ ovrTouch(i); dayOf(i).sess[seg][k] = v; render(); }
+function setEdge(i, v){ ovrTouch(i); dayOf(i).sess.edge = v; render(); }
+function toggleEdge(i){ ovrTouch(i); const x = dayOf(i).sess; x.edge = x.edge === "" ? "15:30" : ""; render(); }
 function toggleSchedDay(key){ const d = view.schedDraft; d.open = d.open || {}; d.open[key] = !d.open[key]; render(); }
-function sheetSchedule(){
-  const d = view.schedDraft;
-  d.open = d.open || {};
-  const dayBlock = (x, i, label, cls) => {
+/* 하루 운영시간 편집 칸 — 운영시간 수정 창의 요일 카드와 임시 영업시간(i = 8) 이 같이 씀(09-25) */
+function dayEditHtml(x, i){
     ensureSess(x);
-    const key = String(i), isOpen = !!d.open[key];
     const edge = x.bs ? x.bs : (x.sess.edge || "");
     const loRef = x.lo ? `마감 ${hmDur(Math.max(0, toMin(x.close) - toMin(x.lo)))} 전` : "";
     /* 시각 칸: 누르면 뜨는 팝업 제목(data-title)을 '시작 시간' · '끝 시간' 식으로, 30분 단위 빠른 단추는 없이(data-nq) — 09-25 재아 */
     const tIn = (k, title, v) => `<input type="time" data-title="${title}" data-nq="1" value="${v||""}" onchange="${k === "edge" ? `setEdge(${i},this.value)` : `setDay(${i},'${k}',this.value)`}">`;
-    const sum = `${esc(x.open)} ~ ${esc(x.close)}${x.bs?` · 브레이크 ${esc(x.bs)} ~ ${esc(x.be)}`:""}${x.lo?` · 라스트오더 ${esc(x.lo)}`:""}`;
-    return `<div class="dayrow ${cls||''} ${isOpen?'on':''}">
-      <button class="dr-h" onclick="toggleSchedDay('${key}')"><b>${label}</b><span class="dr-sum">${sum}</span><span class="fh-i">${isOpen?"▲":"▼"}</span></button>
-      ${isOpen ? `<div class="dr-in">
+    return `<div class="dr-in">
         <label><span>영업</span>${tIn("open", "시작 시간", x.open)}<em>~</em>${tIn("close", "끝 시간", x.close)}</label>
         <!-- 09-25 재아: '없음' 이 기본으로 체크, 풀면 그 아래에 시각 칸이 드러남(평소엔 안 보임).
              브레이크가 있으면 점심 경계는 브레이크 시작이라 칸이 없고, 브레이크가 없으면 그 자리에 점심 경계 -->
@@ -13533,7 +13549,18 @@ function sheetSchedule(){
         <div class="sess">
           ${edge ? segBox(i,"lunch","점심", `${x.open} ~ ${edge}`) + segBox(i,"dinner","저녁", `${x.be||edge} ~ ${x.close}`) : segBox(i,"dinner","종일", `${x.open} ~ ${x.close}`)}
         </div>
-      </div>` : ""}
+      </div>`;
+}
+function sheetSchedule(){
+  const d = view.schedDraft;
+  d.open = d.open || {};
+  const dayBlock = (x, i, label, cls) => {
+    ensureSess(x);
+    const key = String(i), isOpen = !!d.open[key];
+    const sum = `${esc(x.open)} ~ ${esc(x.close)}${x.bs?` · 브레이크 ${esc(x.bs)} ~ ${esc(x.be)}`:""}${x.lo?` · 라스트오더 ${esc(x.lo)}`:""}`;
+    return `<div class="dayrow ${cls||''} ${isOpen?'on':''}">
+      <button class="dr-h" onclick="toggleSchedDay('${key}')"><b>${label}</b><span class="dr-sum">${sum}</span><span class="fh-i">${isOpen?"▲":"▼"}</span></button>
+      ${isOpen ? dayEditHtml(x, i) : ""}
     </div>`;
   };
   const rows = [1,2,3,4,5,6,0].map(i=>dayBlock(d.days[i], i, DOW[i], i===0?'sun':i===6?'sat':'')).join("")
@@ -13551,14 +13578,22 @@ function sheetSchedule(){
       <button class="btn primary" onclick="saveSchedule()">넣기</button>
     </div>`;
 }
-function dayOf(i){ return i===7 ? view.schedDraft.holiday : view.schedDraft.days[i]; }
-function setDay(i,k,v){ dayOf(i)[k]=v; render(); }
+function dayOf(i){ return i===8 ? ovrDay() : i===7 ? view.schedDraft.holiday : view.schedDraft.days[i]; }
+/* 임시 영업시간 창의 하루 — 처음엔 고른 첫 날의 운영시간을 복사(날짜를 바꾸면 손대기 전이면 새로) */
+function ovrDay(){
+  const d = view.ovrDraft || (view.ovrDraft = {from:todayStr(), to:todayStr(), kind:"hours"});
+  if(!d.day || (!d.dayTouched && d.dayFrom !== (d.from || todayStr()))){ const b = hoursFor(d.from || todayStr()); d.day = deepClone({open:b.open, close:b.close, bs:b.bs||"", be:b.be||"", lo:b.lo||"", sess:b.sess}); ensureSess(d.day); d.dayFrom = d.from || todayStr(); d.dayTouched = false; }
+  return d.day;
+}
+function setDay(i,k,v){ ovrTouch(i); dayOf(i)[k]=v; render(); }
 function toggleBreakDay(i){
+  ovrTouch(i);
   const d = dayOf(i);
   if(d.bs){ d.bs=""; d.be=""; } else { d.bs="15:30"; d.be="17:00"; }
   render();
 }
 function toggleLoDay(i){
+  ovrTouch(i);
   const d = dayOf(i);
   d.lo = d.lo ? "" : minToHM(Math.max(0, toMin(d.close)-80));
   render();
@@ -13625,16 +13660,7 @@ function sheetOverride(){
       <div class="f"><div class="lb">날짜</div><button type="button" class="sa-pick" onclick="uiRange('날짜 (여러 날이면 시작~끝)', view.ovrDraft ? view.ovrDraft.from : todayStr(), view.ovrDraft ? view.ovrDraft.to : todayStr(), {}).then(function(r){ if(r){ setOvr('from', r.from); setOvr('to', r.to || r.from); } })">${esc(pkRangeText(d.from, d.to))}</button></div>
       <div class="f"><div class="lb">종류</div><div class="seg">${kindBtn("closed","휴무")}${kindBtn("hours","영업시간 변경")}${kindBtn("holiday","공휴일")}</div></div>
     </div>
-    ${d.kind!=="hours"?"":`
-      <div class="grid2">
-        <label class="f"><div class="lb">영업 시작</div><input type="time" value="${d.open||base.open}" onchange="setOvr('open',this.value)"></label>
-        <label class="f"><div class="lb">영업 종료</div><input type="time" value="${d.close||base.close}" onchange="setOvr('close',this.value)"></label>
-        <label class="f"><div class="lb">브레이크 시작</div><input type="time" value="${d.noBreak?"":(d.bs!==undefined&&d.bs!==""?d.bs:base.bs)}" ${d.noBreak?"disabled":""} onchange="setOvr('bs',this.value)"></label>
-        <label class="f"><div class="lb">브레이크 종료</div><input type="time" value="${d.noBreak?"":(d.be!==undefined&&d.be!==""?d.be:base.be)}" ${d.noBreak?"disabled":""} onchange="setOvr('be',this.value)"></label>
-      </div>
-      <label class="chk"><input type="checkbox" ${d.noBreak?"checked":""} onchange="setOvr('noBreak',this.checked)"><span>브레이크타임 없음</span></label>
-      <label class="f"><div class="lb">라스트오더</div><input type="time" value="${d.noLo?"":(d.lo||base.lo)}" ${d.noLo?"disabled":""} onchange="setOvr('lo',this.value)"></label>
-      <label class="chk"><input type="checkbox" ${d.noLo?"checked":""} onchange="setOvr('noLo',this.checked)"><span>라스트오더 없음</span></label>`}
+    ${d.kind!=="hours"?"":`<div class="dayrow on ovr-day">${dayEditHtml(ovrDay(), 8)}</div>`}   <!-- 09-25 재아: 임시 영업시간도 운영시간과 같은 칸(점심 경계·접수 마감·자리 시간까지) -->
     ${d.kind==="holiday"?`<div class="f"><div class="lb">어떤 공휴일인가요 <span class="lbl-note">급여 계산에 씀 — 법정이면 5인 이상 사업장은 쉬어도 유급·일하면 가산</span></div><div class="seg">
         <button class="${d.legal!==false?'on':''}" onclick="setOvr('legal', true)">법정 공휴일 (임시공휴일·선거일 등)</button>
         <button class="${d.legal===false?'on':''}" onclick="setOvr('legal', false)">가게 사정 (유급 아님)</button></div></div>`:""}
@@ -13898,11 +13924,18 @@ async function saveOverride(){
   const d = view.ovrDraft || {from:todayStr(), to:todayStr(), kind:"closed"};
   const from = d.from || todayStr(), to = d.to || from;
   const dates = []; for(let x = from; x <= to && dates.length < 62; x = shiftDate(x, 1)) dates.push(x);
-  if(d.kind === "hours" && d.open && d.close && toMin(d.close) <= toMin(d.open)) return uiAlert("영업 종료가 시작보다 빠릅니다", "", "warn");
+  const day = d.kind === "hours" ? ovrDay() : null;
+  if(day){
+    const bad = [];
+    if(!day.open || !day.close || toMin(day.close) <= toMin(day.open)) bad.push("영업 끝이 시작보다 빠릅니다");
+    if(day.bs && day.be && toMin(day.be) <= toMin(day.bs)) bad.push("브레이크 끝이 시작보다 빠릅니다");
+    if(day.lo && toMin(day.lo) > toMin(day.close)) bad.push("라스트오더가 마감보다 늦습니다");
+    if(bad.length) return uiAlert("영업시간을 확인해 주세요", bad.join("\n"), "warn");
+  }
   /* 09-25 전수검토: 예약이 있는 날을 휴무로 넣어도 아무 말이 없어, 손님이 문 닫은 가게로 올 수 있었음 */
   if(d.kind !== "holiday"){
     const hits = store().reservations.filter(r=>dates.indexOf(r.date) >= 0 && holdsSeat(r) && (d.kind === "closed" ||
-      toMin(r.time) < toMin(d.open || hoursFor(r.date).open) || toMin(r.time) >= toMin(d.close || hoursFor(r.date).close)))
+      toMin(r.time) < toMin(day ? day.open : hoursFor(r.date).open) || toMin(r.time) >= toMin(day ? day.close : hoursFor(r.date).close)))
       .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
     if(hits.length && !await uiConfirm(`이 날짜에 ${d.kind === "closed" ? "" : "새 영업시간 밖 "}예약 ${hits.length}건이 있습니다`,
       hits.slice(0,8).map(r=>`· ${dateLabel(r.date)} ${hm(r.time)} ${r.name} 손님 ${pplText(r)}`).join("\n") + (hits.length > 8 ? `\n외 ${hits.length-8}건` : "") +
@@ -13913,11 +13946,9 @@ async function saveOverride(){
     /* 법정 공휴일로 넣은 날은 급여 계산(유급휴일·휴일가산)에 씀. 내장표에 있는 날은 원래 법정이라 따로 안 적음 */
     st.holidaysLegal = (st.holidaysLegal || []).filter(x => dates.indexOf(x) < 0).concat(d.legal !== false ? dates.filter(x => !(KR_HOLIDAYS[Number(x.slice(0,4))] || []).includes(x) && x.slice(5) !== "05-01") : []);
   }else{
-    const recs = dates.map(date=>{ const base = hoursFor(date); return d.kind === "closed"
+    const recs = dates.map(date=>d.kind === "closed"
       ? {date, closed:true, note:d.note||"임시 휴무"}
-      : {date, closed:false, open:d.open||base.open, close:d.close||base.close,
-         bs:d.noBreak?"":(d.bs!==undefined?d.bs:base.bs), be:d.noBreak?"":(d.be!==undefined?d.be:base.be),
-         lo:d.noLo?"":(d.lo||base.lo), note:d.note||"임시 운영시간"}; });
+      : {date, closed:false, open:day.open, close:day.close, bs:day.bs||"", be:day.bs ? day.be||"" : "", lo:day.lo||"", sess:deepClone(day.sess), note:d.note||"임시 운영시간"});
     st.overrides = (st.overrides||[]).filter(o=>dates.indexOf(o.date) < 0).concat(recs);
     if(d.holiday) dates.forEach(x=>setHolidayFlag(x, true, st));
   }
@@ -14614,7 +14645,7 @@ function timeWarns(date, time){
   /* 접수 마감(세션의 lastBook) — 식사 시간을 보장하려고 정한 마지막 입장 시각. 라스트오더(주방 마감)와 다릅니다 */
   const sess = sessionAt(date, time);
   const lb = lastBookMin(date, time);
-  if(t > lb) out.push(`접수 마감 이후입니다 - ${sess?sess.name+" ":""}${hm(minToHM(lb))}까지`);
+  if(t >= lb) out.push(`접수 마감 이후입니다 - ${sess?sess.name+" ":""}${hm(minToHM(lb))} 전까지`);   /* 그 시각 전까지(09-25 재아) */
   /* 라스트오더까지 남은 주문 시간 — 직원이 손님께 "주문 가능 시간이 40분입니다" 라고 바로 말할 수 있게 */
   if(dh.lo){
     const lo = toMin(dh.lo);
@@ -14857,7 +14888,7 @@ function timeGrid(ctx){
     const cells = [];
     /* 다음 세션이 있으면 그 시작(경계) 시각은 다음 세션 칸에만 — 15:30 이 점심·저녁에 둘 다 나와 같이 켜지던 것(재아) */
     const cut = ss.indexOf(se) + 1 < ss.length ? toMin(se.until) : null;
-    for(let t = from; t <= last; t += 30){
+    for(let t = from; t < last; t += 30){   /* 접수 마감 시각은 안 받음(그 전까지) */
       if(cut != null && t >= cut) break;
       if(dh.bs && dh.be && t >= toMin(dh.bs) && t < toMin(dh.be)) continue;
       const hmS = minToHM(t);
@@ -14926,7 +14957,7 @@ function wzStepDate(){
   const isPastDate = WZ.date < todayStr();
   const nowM = toMin(nowHM());
   /* 세션 칸에 이미 있는 시각은 여기서 뺍니다 — '접수 시간 밖' 은 나머지만 */
-  const inSess = {}; (WZ.date ? sessionsFor(WZ.date) : []).forEach(se=>{ for(let t = toMin(se.from); t <= toMin(se.lastBook); t += 30) inSess[t] = 1; });
+  const inSess = {}; (WZ.date ? sessionsFor(WZ.date) : []).forEach(se=>{ for(let t = toMin(se.from); t < toMin(se.lastBook); t += 30) inSess[t] = 1; });
   const slotCells = !WZ.date ? "" : slots.filter(t=>!inSess[t] || (dh.bs && dh.be && t >= toMin(dh.bs) && t < toMin(dh.be))).map(t=>{
     const h = Math.floor(t/60), m = t%60;
     const n = 0;

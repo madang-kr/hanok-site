@@ -24,6 +24,9 @@
   const R = () => Object.assign({enabled:true, maxDays:30, minAdults:2, maxPeople:12, roomMinAdults:5, limitMin:5, sameDay:false, sameDayLeadH:2,
                                  offTitle:"지금은 온라인 예약을 받지 않습니다", offMsg:"예약은 전화로 부탁드립니다."}, (window.SITE && SITE.online) || {});
   const MAX_SEAT = 40, LUNCH_END = 15*60+30, CODE_SEC = 120, RESEND_WAIT_SEC = 60;
+  /* 점심 끝(분) — 예약 시스템이 남은 자리 표에 날짜마다 실어 보냄(_d.le = 그 날의 점심 경계, 하루 한 세션이면 0). 없으면 15:30(09-25 재아) */
+  const LE = {};
+  const lunchEnd = date => (date in LE) ? LE[date] : LUNCH_END;
   const LIMIT_SEC = () => Math.max(1, R().limitMin || 5) * 60;
 
   /* ---------- 흉내 API ---------- */
@@ -77,6 +80,7 @@
        시스템이 올린 날만 고침. 표가 아직 없는 먼 날은 data/site.js 기본 목록 그대로 */
     const markHol = (date, data) => {
       if(!data) return;
+      if(data._d && data._d.le != null) LE[date] = Number(data._d.le) || 0;
       const H = window.HOLIDAYS || (window.HOLIDAYS = []), i = H.indexOf(date), hol = !!(data._d && data._d.hol);
       if(hol && i < 0) H.push(date); else if(!hol && i >= 0) H.splice(i, 1);
     };
@@ -354,7 +358,7 @@
       const list = await RES_API.slots(S.date, total(), S.seat || "any");
       if(!ov || want !== S.date) return;
       if(!list.length){ times.innerHTML = `<p class="rv-quiet">이 날은 예약 가능한 시간이 없습니다. 다른 날짜를 고르시거나 유선으로 문의해 주세요. <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a></p>`; return; }
-      const lunch = list.filter(t => mins(t) < LUNCH_END), dinner = list.filter(t => mins(t) >= LUNCH_END);
+      const le = lunchEnd(S.date), lunch = list.filter(t => mins(t) < le), dinner = list.filter(t => mins(t) >= le);
       const grid = (label, arr) => arr.length ? `<div class="rv-tgroup"><span>${label}</span><div class="rv-times">${
         arr.map(t => `<button type="button" data-t="${t}" class="${t===S.time?'on':''}">${hm(t)}</button>`).join("")}</div></div>` : "";
       times.innerHTML = grid("점심", lunch) + grid("저녁", dinner);
@@ -435,7 +439,7 @@
       /* 09-25: 예약 시스템에서 온 것은 {name, cn, key}. 옛 홈페이지 자료는 "이름 | 한자" 글 */
       const row = (x, kind) => { if(x && typeof x === "object"){ const d = x.cn ? null : siteDisp(x.name, kind === "set", isWeekend(S.date)); return {key:x.key || kind+":"+x.name, name:x.name, cn:x.cn || (d && d.name === x.name ? d.cn || "" : "")}; } const m = String(x).split("|"); const name = m[0].trim(); return {key:kind+":"+name, name, cn:(m[1]||"").trim()}; };
       const spLunch = sp.lunchOff ? [] : (sp.lunch || []);   /* 점심 세트를 끈 특별 기간(09-25) */
-      const dinner = sp.courses || [], lunch = mins(S.time) < LUNCH_END ? spLunch : [], both = spLunch.length > 0, t = sp.title || "특별";
+      const dinner = sp.courses || [], lunch = mins(S.time) < lunchEnd(S.date) ? spLunch : [], both = spLunch.length > 0, t = sp.title || "특별";
       const g = [];
       if(dinner.length) g.push({ title: both ? t + " · 저녁 코스" : (sp.title || "특별 코스"), items: dinner.map(x => row(x, "course")) });
       if(lunch.length) g.push({ title: t + " · 점심 세트", items: lunch.map(x => row(x, "set")) });
@@ -446,7 +450,7 @@
        보이는 이름·한자는 홈페이지 차림에서 같은 코스를 찾아서('오' → '오 코스 吳'), 묶음 제목도 차림 제목 */
     const SM = window.SYS_MENU;
     if(SM && (SM.courseGroups || []).length){
-      const we = isWeekend(S.date) || new Date(S.date + "T00:00:00").getDay() === 0, lunchT = mins(S.time) < LUNCH_END;
+      const we = isWeekend(S.date) || new Date(S.date + "T00:00:00").getDay() === 0, lunchT = mins(S.time) < lunchEnd(S.date);
       const slot = (we ? "주말" : "평일") + (lunchT ? "점심" : "저녁"), lg = siteLunchGroup(we);
       const dn = [], ln = [];
       SM.courseGroups.forEach(g => {
@@ -463,7 +467,7 @@
     }
     /* 예약 시스템 값을 못 받았을 때 — 홈페이지 차림 그대로(묶음 이름은 차림 제목, 비운 묶음은 안 나옴) */
     const out = (MENU.courses.items || []).length ? [{ title: ((MP.courses && MP.courses.title) || "저녁 코스") + ((MP.courses && MP.courses.sub) ? " · " + MP.courses.sub : ""), items: MENU.courses.items.map(c => ({key:c.key || "course:"+c.name, name:c.name, cn:c.cn})) }] : [];
-    if(mins(S.time) < LUNCH_END && (MENU.lunch || []).length){
+    if(mins(S.time) < lunchEnd(S.date) && (MENU.lunch || []).length){
       const want = isWeekend(S.date) ? "주말" : "평일";
       /* 예약 시스템 묶음은 when(평일점심·주말점심)으로, 옛 자료는 제목 앞글자로 */
       const set = MENU.lunch.filter(g => (g.when || []).indexOf(want + "점심") >= 0)[0] || MENU.lunch.filter(g => !(g.when || []).length && g.title.indexOf(want) === 0)[0] || (MENU.lunch.some(g => (g.when || []).length) ? null : MENU.lunch[0]);
