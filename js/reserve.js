@@ -95,18 +95,25 @@
       return out;
     };
     RES_API.submit = async p => {
-      const body = { id:"rq_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36), store:SUPA.store,
+      /* 같은 접수를 다시 보낼 때는 같은 번호(p.rid) — 응답만 잃어버린 뒤 다시 눌러도 두 번 들어가지 않음(409 = 이미 들어감 = 성공) */
+      const body = { id:p.rid || ("rq_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36)), store:SUPA.store,
         date:p.date, time:p.time, adults:p.adults, kids:p.kids, people:p.people, seat:p.seat, course:p.course, course_label:p.courseLabel,
         name:p.name, phone:String(p.phone).replace(/\D/g,""), request:p.request||"", allergy:p.allergy||"", status:"대기" };
-      const r = await fetch(SUPA.url + "/rest/v1/requests", { method:"POST", headers:Object.assign({"Prefer":"return=minimal"}, H), body:JSON.stringify(body) });
+      let r;
+      try{ r = await fetch(SUPA.url + "/rest/v1/requests", { method:"POST", headers:Object.assign({"Prefer":"return=minimal"}, H), body:JSON.stringify(body) }); }
+      catch(e){ return {ok:false, id:body.id, msg:"인터넷 연결이 끊겼습니다. 연결을 확인하고 '접수하기' 를 다시 눌러 주세요."}; }
+      if(r.status === 409){ return {ok:true, id:body.id}; }
       if(r.ok){ if(window.hanokHit) window.hanokHit("ev:예약 접수"); return {ok:true, id:body.id}; }
       let msg = ""; try{ msg = (await r.json()).message || ""; }catch(e){}
-      if(/RATE_PHONE/.test(msg)) return {ok:false, msg:"이 번호로 오늘 접수한 예약이 이미 5건입니다. 전화로 문의해 주세요."};
+      if(/RATE_PHONE/.test(msg)) return {ok:false, msg:"이 번호로 최근 24시간 동안 접수한 예약이 이미 5건입니다. 전화로 문의해 주세요."};
       if(/RATE_ALL/.test(msg)) return {ok:false, msg:"지금 접수가 몰려 있습니다. 잠시 뒤 다시 시도해 주세요."};
       return {ok:false, msg:"접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."};
     };
   }
 
+  /* 휴대폰 인증 — 문자 발송을 실제로 붙이기 전까지 끔(09-25 전수검토: 문자가 안 나가는데 손님이 인증번호를 기다리다 포기할 수 있었고,
+     반대로 아무 6자리나 통과해 인증 의미도 없었음). 문자 업체를 붙이면 true 로 */
+  const SMS_VERIFY = false;
   /* ---------- 상태 ---------- */
   let S, step, timer, left, ov, monthCache, extended;   /* extended: 5분 연장을 한 번 썼는지 */
   const total = () => S.adults + S.kids;
@@ -463,16 +470,16 @@
         <h3>예약자 정보</h3>
         <div class="rv-fld"><label for="rv-name">성함</label><input id="rv-name" value="${esc(S.name)}" placeholder="성함을 입력해 주세요" autocomplete="name" maxlength="30"></div>
         <div class="rv-fld">
-          <label for="rv-phone">전화번호</label>
+          <label for="rv-phone">휴대폰 번호</label>
           <div class="rv-inline">
-            <input id="rv-phone" type="tel" value="${esc(S.phone)}" placeholder="전화번호를 입력해 주세요" autocomplete="tel" inputmode="numeric"${S.verified?" disabled":""}>
-            <button type="button" class="btn" id="rv-send"${S.verified?" disabled":""}>${S.verified ? "인증 완료" : "인증번호 요청"}</button>
+            <input id="rv-phone" type="tel" value="${esc(S.phone)}" placeholder="010-0000-0000" autocomplete="tel" inputmode="numeric"${S.verified?" disabled":""}>
+            <button type="button" class="btn" id="rv-send"${S.verified?" disabled":""}${SMS_VERIFY ? "" : " hidden"}>${S.verified ? "인증 완료" : "인증번호 요청"}</button>
           </div>
           <div class="rv-inline" id="rv-codebox"${S.sent && !S.verified ? "" : " hidden"}>
             <input id="rv-code" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리">
             <button type="button" class="btn" id="rv-verify">확인</button>
           </div>
-          <p class="rv-fld-hint" id="rv-tel-hint">${S.verified ? "인증되었습니다." : ""}</p>
+          <p class="rv-fld-hint" id="rv-tel-hint">${S.verified ? "인증되었습니다." : (SMS_VERIFY ? "" : `확정 연락을 드릴 번호입니다. 일반전화·해외 번호는 <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a> 로 전화 주세요.`)}</p>
           <button type="button" class="rv-linkbtn" id="rv-tel-edit"${S.sent && !S.verified ? "" : " hidden"}>번호 수정</button>
         </div>
         <div class="rv-fld"><label for="rv-req">요청사항 <em>선택</em></label>
@@ -493,7 +500,7 @@
       if(S.sent && !S.resendUsed && resendLeft > 0){ send.disabled = true; send.textContent = `다시 요청 (${resendLeft}초)`; resendLeft--; }
       else if(S.sent && !S.resendUsed){ send.disabled = false; send.textContent = "다시 요청"; }
     };
-    const ok = () => S.name.trim().length >= 2 && S.verified;
+    const ok = () => S.name.trim().length >= 2 && (SMS_VERIFY ? S.verified : /^01\d{8,9}$/.test(S.phone.replace(/\D/g, "")));
     const refoot = () => foot(f, true, next, "다음", !ok());
     name.addEventListener("input", () => { S.name = name.value; refoot(); });
     req.addEventListener("input", () => { S.req = req.value; });
@@ -501,6 +508,7 @@
       const d = phone.value.replace(/\D/g, "").slice(0, 11);
       phone.value = d.length > 7 ? d.replace(/(\d{3})(\d{3,4})(\d{0,4})/, "$1-$2-$3") : d.length > 3 ? d.replace(/(\d{3})(\d{0,4})/, "$1-$2") : d;
       S.phone = phone.value;
+      if(!SMS_VERIFY) refoot();
     });
     send.addEventListener("click", () => {
       const d = S.phone.replace(/\D/g, "");
@@ -534,7 +542,7 @@
       ["날짜", dateText(S.date)], ["시간", hm(S.time)],
       ["인원", S.kids ? `성인 ${S.adults}명 · 어린이 ${S.kids}명` : `성인 ${S.adults}명`],
       ["좌석", S.seat === "room" ? "룸" : "테이블"],
-      ["메뉴", S.course === "later" ? "미정" : (S.course === "none" ? "단품 주문" : `${S.courseLabel} · ${total()}인분`)],
+      ["메뉴", S.course === "later" ? "미정" : (S.course === "none" ? "단품 주문" : `${S.courseLabel} · ${S.adults}인분 (성인 기준)`)],
       ["예약자", S.name.trim()+" · "+S.phone]
     ];
     if(S.req.trim()) rows.push(["요청사항", S.req.trim()]);
@@ -552,7 +560,7 @@
       </section>
       <section class="rv-sec">
         ${box("rule", "매장 이용규정에 동의합니다", `<ul>
-            <li>접수 후 매장에서 확인 후 확정 여부를 문자로 전송드립니다.</li>
+            <li>접수 후 매장에서 확인하고 확정 여부를 연락드립니다.</li>
             <li>룸에서는 코스 및 세트, 또는 그에 상응하는 금액의 단품 주문만 가능합니다.</li>
             <li>룸은 매장 상황에 맞춰 배정합니다.</li>
             <li>예약 시각 20분 내로 방문이 되지 않을 경우 예약이 취소되며 No-Show로 처리됩니다.</li>
@@ -573,9 +581,11 @@
     async function submit(){
       if(!all()) return;
       const btn = $("[data-next]", f); btn.disabled = true; btn.textContent = "접수 중…";
-      const r = await RES_API.submit({date:S.date, time:S.time, adults:S.adults, kids:S.kids, people:total(),
+      clearInterval(timer); timer = null;   /* 응답을 기다리는 사이 제한 시간이 끝나 완료 화면이 깨지던 것(09-25) */
+      const r = await RES_API.submit({rid:S.rid, date:S.date, time:S.time, adults:S.adults, kids:S.kids, people:total(),
                                       seat:S.seat, course:S.course, courseLabel:S.courseLabel,
                                       name:S.name.trim(), phone:S.phone, request:S.req.trim(), allergy:S.allergy.trim()});
+      if(r && r.id) S.rid = r.id;   /* 다시 보낼 때 같은 번호 */
       if(r && r.ok){ S.reqId = r.id || ""; clearInterval(timer); timer = null; step = 8; render(); }
       else { btn.disabled = false; btn.textContent = "접수하기"; render((r && r.msg) || "접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."); }
     }
@@ -597,7 +607,7 @@
         <h3>접수되었습니다</h3>
         <p class="big">${esc(dateText(S.date))} ${esc(hm(S.time))} · ${esc(peopleText())} · ${S.seat==="room"?"룸":"테이블"}</p>
         ${S.reqId ? `<p class="rv-code">예약번호 <b class="num">${resCode(S.reqId)}</b></p>` : ""}
-        <p>확인 후 <b>${esc(S.phone)}</b> 로 예약 확정 문자를 보내드립니다.</p>
+        <p>가게에서 확인한 뒤 <b>${esc(S.phone)}</b> 로 확정을 알려드립니다.</p>
         <p class="rv-quiet">예약 변경 혹은 다른 문의사항은 <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a> 로 전화 주세요.</p>
       </div>`;
     f.innerHTML = `<span></span><button type="button" class="btn fill" data-close>닫기</button>`;
@@ -616,7 +626,7 @@
     open();
     const d = new Date(Date.now() + 3*864e5);
     Object.assign(S, {date:ymd(d), time:"12:30", adults:5, kids:1, seat:"room", course:"course:촉 코스", courseLabel:"촉 코스",
-                      name:"홍길동", phone:"010-1234-5678", sent:true, verified:true});
+                      name:"홍길동", phone:"010-1234-5678", sent:SMS_VERIFY, verified:SMS_VERIFY});
     step = Number(m[1]);
     if(step === 1){ S.adults = 1; S.kids = 0; }
     if(step > 3) startTimer();
