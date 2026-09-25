@@ -2173,6 +2173,12 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* 워크시프트 기간 가운데: 지금이 아니면 눌러서 이번 주·이번 달로(09-25) */
 .hr-period-t.go{cursor:pointer; border-radius:var(--r-sm)}
 .hr-period-t.go:hover{background:var(--surface-2, #f3f1ee)}
+
+/* 개발자에게 글 쓰기: 종류 단추 오른쪽에 설명, 사진 제목 오른쪽에 첨부 단추(09-25) */
+.dq-kind{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.dq-kind .f-note{margin:0}
+.dq-photo-h{display:flex; align-items:center; gap:12px; margin-bottom:8px}
+.dq-photo-h .lb{margin:0}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -2180,7 +2186,10 @@ button.sa-card:hover{border-color:var(--text-3)}
 .page-wrap.wide{max-width:1240px}
 
 /* 목록 */
-.mb-list{display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:var(--s16)}
+/* 메뉴판은 한 줄에 셋까지 보이고, 넘치면 좌우로 밀기(09-25 재아) */
+.mb-list{display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 2 * var(--s16)) / 3); gap:var(--s16); overflow-x:auto; padding-bottom:6px; scroll-snap-type:x proximity}
+.mb-list .mb-it{scroll-snap-align:start}
+@media (max-width:640px){ .mb-list{grid-auto-columns:calc((100% - var(--s16)) / 2)} }
 .mb-it{border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; background:var(--surface); display:flex; flex-direction:column}
 .mb-thumb{display:block; width:100%; height:228px; padding:0; border:0; border-bottom:1px solid var(--border); background:#f4f1ec; cursor:pointer; overflow:hidden; text-align:left}
 .mb-thumb .mbp{margin:0 auto}
@@ -2193,7 +2202,8 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-top{display:flex; align-items:center; gap:var(--s12); flex-wrap:wrap; margin-bottom:var(--s12)}
 .mb-name{flex:1; min-width:180px; font-weight:700}
 .mb-stat{font-size:13px; color:var(--text-3); min-width:70px}
-.mb-chips{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--s12)}
+.mb-chips{display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; margin-bottom:var(--s12); padding-bottom:4px}   /* 한 줄, 넘치면 좌우로(09-25) */
+.mb-chip{flex:none}
 .mb-chip{height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--border); background:var(--surface); font:inherit; font-size:14px; cursor:pointer; white-space:nowrap}
 .mb-chip.on{background:var(--text); color:var(--surface); border-color:var(--text)}
 .mb-chip.add{border-style:dashed; color:var(--text-2)}
@@ -2252,7 +2262,8 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-popopts.imgs{display:grid; grid-template-columns:repeat(3, 1fr)}
 .mb-popopts.imgs .mb-popopt{align-items:center; padding:10px}
 .mb-bgthumb{display:block; width:100%; aspect-ratio:210/297; border-radius:6px; border:1px solid var(--border); background:#fff center/100% 100% no-repeat}
-.mb-bglist{display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:12px}
+.mb-bglist{display:flex; gap:12px; overflow-x:auto; padding-bottom:6px}   /* 배경도 한 줄 좌우 스크롤(09-25) */
+.mb-bglist > *{flex:0 0 132px}
 .mb-bgit{display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); font:inherit}
 .mb-bgit.add{cursor:pointer; border-style:dashed; color:var(--text-2)}
 .mb-bgit.add .mb-bgthumb{background:var(--surface-2, #f4f1ec)}
@@ -2275,6 +2286,10 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-listh{display:flex!important; align-items:center; justify-content:space-between; gap:12px}
 .mb-listh .btn{margin-left:auto}
 .mb-bgbtns{display:inline-flex; gap:4px}
+
+.mb-bgit.def{border-color:var(--text)}
+.mb-bgbtns{display:inline-flex; gap:4px; align-items:center}
+.mb-range{width:100%}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -3394,8 +3409,8 @@ body.scrolled .topbar{box-shadow:0 1px 0 var(--topbar-line), 0 6px 20px rgba(0,0
 .pk-d.on{background:var(--text); color:#fff}
 .pk-d:disabled{color:var(--border-strong); cursor:default; background:transparent}
 .pk-rng{display:flex; align-items:center; justify-content:center; gap:var(--s12); margin-bottom:var(--s12)}
-.pk-rng span{display:flex; flex-direction:column; align-items:center; min-width:96px; padding:6px 10px; border:1px solid var(--border); border-radius:var(--r-sm); font-weight:700; color:var(--text)}
-.pk-rng span.cur{border-color:var(--text)}
+.pk-rng span, .pk-rng button{display:flex; flex-direction:column; align-items:center; min-width:96px; padding:6px 10px; border:1px solid var(--border); border-radius:var(--r-sm); font-weight:700; color:var(--text)}
+.pk-rng span.cur, .pk-rng button.cur{border-color:var(--text)}
 .pk-rng small{font-size:11px; font-weight:500; color:var(--text-3)}
 .pk-rng i{font-style:normal; color:var(--text-3)}
 .pk-modal .md-f .btn{min-width:0; padding:var(--s8) var(--s16); font-size:var(--fs-sub)}
@@ -3435,6 +3450,9 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 .pk-type input{flex:1 1 auto; min-width:0; height:40px}
 .pk-type .btn{height:40px; min-height:40px; padding-top:0; padding-bottom:0}
 .pk-ymv .pk-err{text-align:left}
+
+/* 기간 창의 부터·까지 칸은 눌러서 고를 쪽을 바꿈(09-25) */
+.pk-rng button{background:var(--surface); font:inherit; color:var(--text); cursor:pointer}
 /* ============================================================
    12. 구형 브라우저 폴백 — 반드시 @supports 안에 둡니다
    ============================================================ */
@@ -6193,7 +6211,8 @@ function uiDate(title, value, opt){
 function uiRange(title, from, to, opt){
   opt = opt || {};
   var m = (from || to || todayStr()).slice(0, 7);
-  return new Promise(function(res){ modalReplace({mode:"range", title:title, tone:"ok", a:from || "", b:to || "", pickB:!!from, month:m, min:opt.min || "", openEnd:!!opt.openEnd, clear:!!opt.clear, res:res}); });
+  /* openStart: '시작 없이'(처음부터) 가능 · noEnd: 끝 없이로 골라 둔 상태(09-25 재아, 예약 내보내기) */
+  return new Promise(function(res){ modalReplace({mode:"range", title:title, tone:"ok", a:from || "", b:to || "", pickB:!!from || (!!opt.openStart && !from), noEnd:!!opt.openEnd && !!from && !to, month:m, min:opt.min || "", openEnd:!!opt.openEnd, openStart:!!opt.openStart, clear:!!opt.clear, res:res}); });
 }
 
 function uiTime(title, value){
@@ -6235,14 +6254,20 @@ function pkMonth(n){ var m = MODAL; if(!m) return; var p = m.month.split("-").ma
 function pkPick(ds){
   var m = MODAL; if(!m) return;
   if(m.mode === "date"){ MODAL = null; render(); m.res(ds); return; }
-  /* 기간: 첫 번째 = 시작, 두 번째 = 끝(앞이면 서로 바꿈). 셋째부터는 새로 시작 */
-  if(!m.pickB || !m.a){ m.a = ds; m.b = ""; m.pickB = true; }
-  else { if(ds < m.a){ m.b = m.a; m.a = ds; } else m.b = ds; m.pickB = false; }
+  /* 기간: '부터' 를 고르면 '까지' 로 넘어감. 그 뒤로는 '까지' 를 계속 고침 — '부터' 를 다시 고르려면 위의 '부터' 칸을 누름(09-25 재아).
+     예전엔 셋째 누름부터 새로 시작해서, 끝만 바꾸려다 시작이 날아갔음 */
+  if(!m.pickB){ m.a = ds; if(m.b && m.b < ds) m.b = ""; m.pickB = true; }
+  else if(m.a && ds < m.a){ m.b = m.a; m.a = ds; m.noEnd = false; }
+  else { m.b = ds; m.noEnd = false; }
   render();
 }
+/* 위의 '부터' · '까지' 칸 누르기 — 어느 쪽을 고를지 */
+function pkRngSide(side){ var m = MODAL; if(!m || m.mode !== "range") return; m.pickB = side === "b"; render(); }
+function pkNoStart(){ var m = MODAL; if(!m) return; m.a = ""; m.pickB = true; render(); }
+function pkNoEnd(){ var m = MODAL; if(!m) return; m.b = ""; m.noEnd = true; render(); }
 function pkRangeOk(noEnd){
-  var m = MODAL; if(!m || m.mode !== "range" || !m.a) return;
-  var b = noEnd ? "" : (m.b || m.a);   /* 끝을 안 골랐으면 하루짜리 */
+  var m = MODAL; if(!m || m.mode !== "range" || (!m.a && !m.openStart)) return;
+  var b = (noEnd || m.noEnd) ? "" : (m.b || m.a);   /* 끝을 안 골랐으면 하루짜리 */
   MODAL = null; render(); m.res({from:m.a, to:b});
 }
 function pkClear(){ var m = MODAL; if(!m) return; MODAL = null; render(); m.res(m.mode === "range" ? {from:"", to:""} : ""); }
@@ -6329,10 +6354,13 @@ function pkRender(m){
     body = pkCalHtml(m);
     if(m.clear) foot = '<button class="btn ghost" onclick="pkClear()" style="margin-right:auto">지우기</button>' + foot;
   }else{
-    body = '<div class="pk-rng"><span class="' + (!m.pickB ? 'cur' : '') + '"><small>시작</small>' + (m.a ? esc(pkShort(m.a)) : '—') + '</span><i>~</i><span class="' + (m.pickB ? 'cur' : '') + '"><small>끝</small>' + (m.b ? esc(pkShort(m.b)) : (m.a ? '같은 날' : '—')) + '</span></div>' + pkCalHtml(m);
+    /* '시작' · '끝' → '부터' · '까지'(09-25 재아). 두 칸은 눌러서 고를 쪽을 바꿈 */
+    var aTxt = m.a ? esc(pkShort(m.a)) : (m.openStart ? '처음부터' : '—'), bTxt = m.b ? esc(pkShort(m.b)) : m.noEnd ? '끝까지' : (m.a ? '같은 날' : (m.openStart ? '—' : '—'));
+    body = '<div class="pk-rng"><button type="button" class="' + (!m.pickB ? 'cur' : '') + '" onclick="pkRngSide(\'a\')"><small>부터</small>' + aTxt + '</button><i>~</i><button type="button" class="' + (m.pickB ? 'cur' : '') + '" onclick="pkRngSide(\'b\')"><small>까지</small>' + bTxt + '</button></div>' + pkCalHtml(m);
     if(m.clear) foot = '<button class="btn ghost" onclick="pkClear()" style="margin-right:auto">지우기</button>' + foot;
-    if(m.openEnd) foot += '<button class="btn" onclick="pkRangeOk(true)"' + (m.a ? '' : ' disabled') + '>끝 없이</button>';
-    foot += '<button class="btn primary" onclick="pkRangeOk(false)"' + (m.a ? '' : ' disabled') + '>확인</button>';
+    if(!m.pickB && m.openStart) foot += '<button class="btn" onclick="pkNoStart()">시작 없이</button>';   /* '부터' 를 고를 땐 시작 없이, '까지' 를 고를 땐 끝 없이 */
+    if(m.pickB && m.openEnd) foot += '<button class="btn" onclick="pkNoEnd()">끝 없이</button>';
+    foot += '<button class="btn primary" onclick="pkRangeOk(false)"' + (m.a || m.openStart ? '' : ' disabled') + '>확인</button>';
   }
   return '<div class="overlay modal-ov" onclick="modalAnswer(null)"><div class="modal ok pk-modal pkm-' + m.mode + '" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">' +
     '<div class="md-h" id="modal-title">' + esc(m.title) + '</div><div class="md-b">' + body + '</div><div class="md-f">' + foot + '</div></div></div>';
@@ -10605,7 +10633,7 @@ function cdLeave(){
 function openExport(){ view.exp = view.exp || { from: shiftDate(todayStr(), -30), to: todayStr() }; view.form = {type:"export", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render(); window.scrollTo(0,0); }   /* 화면형 — 닫으면 사장님 메뉴로 */
 function expList(){ var e = view.exp || {}; return store().reservations.filter(function(r){ return (!e.from || r.date >= e.from) && (!e.to || r.date <= e.to); }); }
 /* 09-25 재아: 시작·끝을 따로 고르던 것 → 범위 달력 한 번(특별 기간 고르기와 같은 창). '끝 없이' 되고, 지우면 전체 */
-function expPick(){ uiRange("내보낼 기간", view.exp.from || "", view.exp.to || "", {openEnd:true, clear:true}).then(function(r){ if(!r) return; view.exp = { from:r.from || "", to:r.to || "" }; render(); }); }
+function expPick(){ uiRange("기간 설정", view.exp.from || "", view.exp.to || "", {openEnd:true, openStart:true}).then(function(r){ if(!r) return; view.exp = { from:r.from || "", to:r.to || "" }; render(); }); }
 function expPreset(k){
   var t = todayStr(), m = t.slice(0, 7), pm = monthStr(new Date(new Date(m + "-01T00:00:00").getTime() - 864e5));
   view.exp = k === "30" ? {from:shiftDate(t, -30), to:t} : k === "month" ? {from:m + "-01", to:hrMonthEnd(m)} : k === "prev" ? {from:pm + "-01", to:hrMonthEnd(pm)} : {from:"", to:""};
@@ -11052,7 +11080,9 @@ function dqStatusTag(s){ var c = (s === "답변 완료" || s === "끝") ? "pine"
 
 function sheetDevReq(){
   if(!DQ || DQ.loading) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
-  var open = DQ.list.filter(function(r){ return r.status !== "끝" && r.status !== "답변 완료"; }), done = DQ.list.filter(function(r){ return r.status === "끝" || r.status === "답변 완료"; });
+  /* 09-25 재아: 대기 중은 긴급이 맨 위(그다음 최근 글), 답변 완료는 답변한 순서(최근 답변이 위) */
+  var open = DQ.list.filter(function(r){ return r.status !== "끝" && r.status !== "답변 완료"; }).sort(function(a, b){ return (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0) || String(b.created_at).localeCompare(String(a.created_at)); });
+  var done = DQ.list.filter(function(r){ return r.status === "끝" || r.status === "답변 완료"; }).sort(function(a, b){ return String(b.replied_at || b.created_at).localeCompare(String(a.replied_at || a.created_at)); });
   var row = function(r){
     /* 09-25 재아: 글끼리 구분이 잘 안 됐음 → 한 글 = 한 칸(제목 굵게 · 첫 줄 미리보기 · 오른쪽에 날짜와 상태). 긴급은 왼쪽 빨간 띠 + 날짜·제목 빨강 */
     return '<button class="dq-row' + (r.urgent ? ' urgent' : '') + '" onclick="DQ.open=\'' + esc(r.id) + '\'; render()">' +
@@ -11074,15 +11104,15 @@ function dqFormHtml(){
   return '<div class="overlay" onclick="DQ.draft=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead("개발자에게") +
     /* 09-25 재아: '보통/급함' → '요청·문의 / 오류·긴급', 예시 문구 뺌 */
-    '<div class="f"><div class="seg">' +
+    '<div class="f dq-kind"><div class="seg">' +   /* 설명은 단추 오른쪽에(09-25 재아) */
       '<button class="' + (!d.urgent ? "on" : "") + '" onclick="dqSet(\'urgent\', false); render()">요청·문의</button>' +
       '<button class="' + (d.urgent ? "on rust" : "") + '" onclick="dqSet(\'urgent\', true); render()">오류·긴급</button></div>' +
-      '<div class="f-note">' + (d.urgent ? '기능 결함, 시스템 오류 등 — 개발자에게 즉시 알림이 갑니다.' : '개선 요청, 시스템 문의 등') + '</div></div>' +
+      '<span class="f-note' + (d.urgent ? ' rust' : '') + '">' + (d.urgent ? '기능 결함, 시스템 오류 등 — 개발자에게 즉시 알림이 갑니다.' : '개선 요청, 시스템 문의 등') + '</span></div>' +
     '<label class="f"><div class="lb">제목</div><input id="dq-title" type="text" value="' + esc(d.title) + '" oninput="dqSet(\'title\', this.value)"></label>' +
     '<label class="f big"><div class="lb">내용</div><textarea rows="6" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' +
-    '<div class="f"><div class="lb">화면 사진 <span class="lbl-note">선택</span></div><div class="dq-imgs">' +
-      d.images.map(function(u, i){ return '<span class="dq-img"><img src="' + esc(u) + '" alt=""><button class="x" onclick="DQ.draft.images.splice(' + i + ',1); render()" aria-label="빼기">×</button></span>'; }).join("") +
-      '<button class="btn sm" onclick="saPickFile(\'image\', function(u){ DQ.draft.images.push(u); render(); }, true)">사진 첨부</button></div></div>' +   /* 여러 장 한 번에(09-25) */
+    /* 사진 첨부 단추는 '화면 사진(선택)' 오른쪽, 여러 장 한 번에(09-25 재아) */
+    '<div class="f"><div class="dq-photo-h"><div class="lb">화면 사진(선택)</div><button class="btn sm" onclick="saPickFile(\'image\', function(u){ DQ.draft.images.push(u); render(); }, true)">사진 첨부</button></div>' +
+      (d.images.length ? '<div class="dq-imgs">' + d.images.map(function(u, i){ return '<span class="dq-img"><img src="' + esc(u) + '" alt=""><button class="x" onclick="DQ.draft.images.splice(' + i + ',1); render()" aria-label="빼기">×</button></span>'; }).join("") + '</div>' : '') + '</div>' +
     '<div class="sheet-actions"><button class="btn" onclick="DQ.draft=null; render()">취소</button><button class="btn primary" onclick="dqSend()">보내기</button></div></div></div>';
 }
 async function dqSend(){
@@ -11140,6 +11170,7 @@ var MB_BG_FLOWER = "bg-flower.jpg?v=0925b";   /* 파일을 바꾸면 v 도 바�
 /* 배경: "flower"(기본) · "none"(흰 바탕) · 올린 배경 id(설정 menuBgs) */
 function mbBg(b){
   var v = b && b.data ? b.data.bg : "";
+  if(!v || v === "default") v = mbBgDefault();   /* 비어 있으면 '기본 배경'(09-25 재아: 기본을 바꿀 수 있게) */
   if(v === "none") return "";
   if(v && v !== "flower"){ var g = (typeof mbBgs === "function" ? mbBgs() : []).find(function(x){ return x.id === v; }); if(g) return g.url; }
   return mbAbs(mbAsset(MB_BG_FLOWER));
@@ -11154,10 +11185,10 @@ function mbCssLoad(){ if(document.getElementById("mb-css")) return; var s = docu
 /* ---------- 페이지 모양 ---------- */
 var MB_CSS = [
   /* 꾸미기(data.style)가 바꾸는 값: --mb-ft 제목 글꼴 · --mb-fn 이름·가격 글꼴 · --mb-fd 설명 글꼴 · --mb-c1 제목·강조 색 · --mb-c2 선 색 · --mb-c3 설명 색 · --mb-cb 카드 테두리 · --mb-ci 이름·가격 색 */
-  ".mbp{--mb-ft:'Jua'; --mb-fn:'Jua'; --mb-fd:'Gowun Dodum'; --mb-c1:#A8733A; --mb-c2:#7E5A7B; --mb-c3:#C1935F; --mb-cb:#D9BD9A; --mb-ci:#1d1a17; position:relative; width:794px; height:1123px; background:#fff center/100% 100% no-repeat; overflow:hidden; box-sizing:border-box; color:var(--mb-ci); -webkit-print-color-adjust:exact; print-color-adjust:exact}",
+  ".mbp{--mb-ft:'Jua'; --mb-fn:'Jua'; --mb-fd:'Gowun Dodum'; --mb-c1:#A8733A; --mb-c2:#7E5A7B; --mb-c3:#C1935F; --mb-cb:#D9BD9A; --mb-ci:#1d1a17; --mb-co:1; position:relative; width:794px; height:1123px; background:#fff center/100% 100% no-repeat; overflow:hidden; box-sizing:border-box; color:var(--mb-ci); -webkit-print-color-adjust:exact; print-color-adjust:exact}",
   ".mbp *{box-sizing:border-box}",
   /* 흰 카드 — 지금 메뉴표의 자리(왼 8.8% · 오 7% · 위 4.4% · 아래 6.3%) */
-  ".mbp-card{position:absolute; left:70px; right:55px; top:50px; bottom:70px; background:#fff; border:1.5px solid var(--mb-cb); border-radius:14px; overflow:hidden}",
+  ".mbp-card{position:absolute; left:70px; right:55px; top:50px; bottom:70px; background:rgba(255,255,255,var(--mb-co)); border:1.5px solid var(--mb-cb); border-radius:14px; overflow:hidden}",
   ".mbp-in{position:absolute; top:0; right:0; bottom:0; left:0; padding:42px 56px 34px; display:flex; flex-direction:column}",
   ".mbp-h{text-align:center; flex:none}",
   ".mbp-t{font-family:var(--mb-ft),sans-serif; font-weight:400; font-size:3.1em; line-height:1.15; color:var(--mb-c1); margin:0; letter-spacing:.02em}",
@@ -11239,12 +11270,13 @@ function mbPageHtml(b, pg, zoom){
 }
 
 /* 꾸미기 값 → CSS 변수. 글꼴 이름·색은 목록에 있는 것 / #색 만 받음(따옴표가 style 을 깨지 않게) */
-var MB_STYLE_KEYS = { ft:"--mb-ft", fn:"--mb-fn", fd:"--mb-fd", c1:"--mb-c1", c2:"--mb-c2", c3:"--mb-c3", cb:"--mb-cb", ci:"--mb-ci" };
+var MB_STYLE_KEYS = { ft:"--mb-ft", fn:"--mb-fn", fd:"--mb-fd", c1:"--mb-c1", c2:"--mb-c2", c3:"--mb-c3", cb:"--mb-cb", ci:"--mb-ci", co:"--mb-co" };
 function mbStyleVars(b){
   var st = (b && b.data && b.data.style) || {}, out = "";
   Object.keys(MB_STYLE_KEYS).forEach(function(k){
     var v = st[k]; if(!v) return;
-    if(k.charAt(0) === "f"){ if(MB_FONT_LIST.some(function(f){ return f[0] === v; })) out += MB_STYLE_KEYS[k] + ":'" + v + "';"; }
+    if(k === "co"){ var n = Math.max(0, Math.min(100, Number(v))); if(!isNaN(n)) out += "--mb-co:" + (n / 100) + ";"; }   /* 페이지 투명도 0~100% */
+    else if(k.charAt(0) === "f"){ if(MB_FONT_LIST.some(function(f){ return f[0] === v; })) out += MB_STYLE_KEYS[k] + ":'" + v + "';"; }
     else if(/^#[0-9a-fA-F]{3,8}$/.test(v)) out += MB_STYLE_KEYS[k] + ":" + v + ";";
   });
   return out;
@@ -11302,11 +11334,26 @@ function sheetHeadX(title, onx){ return '<div class="sheet-h"><h2>' + title + '<
 
 /* ---------- 배경 — 기본 꽃 테두리 · 흰 바탕 · 사장님이 올린 그림(설정 menuBgs) ---------- */
 function mbBgs(){ var st = store().settings; return Array.isArray(st.menuBgs) ? st.menuBgs : []; }
-function mbBgOpts(cur){
-  return [{ v:"flower", label:"꽃 테두리", img:mbAbs(mbAsset(MB_BG_FLOWER)), on:!cur || cur === "flower" }, { v:"none", label:"흰 바탕", img:"", on:cur === "none" }]
-    .concat(mbBgs().map(function(g){ return { v:g.id, label:g.name || "올린 배경", img:g.url, on:cur === g.id }; }));
+function mbBgDefault(){ var st = store().settings; return st.menuBgDefault || "flower"; }
+/* 배경 목록 — 기본이 맨 앞, 나머지는 새로 올린 것부터(09-25 재아). 꽃 테두리는 늘 있음(지우기 없음) */
+function mbBgAll(){
+  var list = [{ v:"flower", label:"꽃 테두리", img:mbAbs(mbAsset(MB_BG_FLOWER)), builtin:true }]
+    .concat(mbBgs().slice().reverse().map(function(g){ return { v:g.id, label:g.name || "올린 배경", img:g.url }; }));
+  var def = mbBgDefault(), i = list.findIndex(function(o){ return o.v === def; });
+  if(i > 0) list.unshift(list.splice(i, 1)[0]);
+  return list;
 }
-function mbPickBg(){ var b = mbCur(); if(!b) return; mbPop("배경", mbBgOpts(b.data.bg), function(v){ b.data.bg = v; mbTouch(); render(); }); }
+function mbBgOpts(cur){
+  var def = mbBgDefault();
+  return mbBgAll().map(function(o){ return Object.assign({}, o, { label:o.label + (o.v === def ? " (기본)" : ""), on:(cur || def) === o.v || (!cur && o.v === def) }); })
+    .concat([{ v:"none", label:"흰 바탕", img:"", on:cur === "none" }]);
+}
+/* 편집에서 고르기 — 기본 배경을 고르면 '기본을 따름'(나중에 기본을 바꾸면 같이 바뀜) */
+function mbPickBg(){ var b = mbCur(); if(!b) return; mbPop("배경 변경", mbBgOpts(b.data.bg), function(v){ b.data.bg = v === mbBgDefault() ? "" : v; mbTouch(); render(); }); }
+function mbBgSetDefault(id){
+  var st = store().settings; st.menuBgDefault = id; if(typeof mirrorDraft === "function") mirrorDraft("menuBgDefault"); saveData();
+  logEvent("메뉴판 기본 배경", id); render();
+}
 function mbBgAdd(){
   saPickFile("image", function(u){
     var st = store().settings, a = mbBgs().slice(); a.push({ id:newId("bg"), url:u, name:"배경 " + (a.length + 1) });
@@ -11322,8 +11369,9 @@ async function mbBgRename(id){
 async function mbBgDel(id){
   var g = mbBgs().find(function(x){ return x.id === id; }); if(!g) return;
   var used = MB.list.filter(function(b){ return b.data && b.data.bg === id; }).map(function(b){ return b.name; });
-  if(!await uiConfirm("이 배경을 지울까요?", used.length ? "쓰고 있는 메뉴판(" + used.join(", ") + ")은 꽃 테두리로 바뀝니다." : "", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
-  var st = store().settings; st.menuBgs = mbBgs().filter(function(x){ return x.id !== id; }); if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); render();
+  if(!await uiConfirm("이 배경을 지울까요?", used.length ? "쓰고 있는 메뉴판(" + used.join(", ") + ")은 기본 배경으로 바뀝니다." : "", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
+  var st = store().settings; st.menuBgs = mbBgs().filter(function(x){ return x.id !== id; }); if(st.menuBgDefault === id) st.menuBgDefault = "flower";
+  if(typeof mirrorDraft === "function"){ mirrorDraft("menuBgs"); mirrorDraft("menuBgDefault"); } saveData(); render();
 }
 
 /* ---------- 목록 화면 ---------- */
@@ -11348,9 +11396,15 @@ function sheetMenus(){
         '<div class="btn-row"><button class="btn sm primary" onclick="mbOpen(\'' + esc(b.id) + '\')">열기</button><button class="btn sm" onclick="mbCopy(\'' + esc(b.id) + '\')">복제</button><button class="btn sm ghost danger" onclick="mbDel(\'' + esc(b.id) + '\')">삭제</button></div></div></div>';
     }).join("") + '</div>';
   /* 배경 관리(09-25 재아: 목록에서 배경을 올려 두고 편집에서 골라 씀) */
+  /* 배경 줄(09-25 재아): '배경 추가' 가 맨 앞, 그다음 기본, 새로 올린 것부터. 한 줄로 좌우 스크롤. 단추는 기본 · 수정 · 삭제 */
+  var def = mbBgDefault();
   var bgs = '<div class="subhead" style="margin-top:22px">배경</div><div class="mb-bglist">' +
-    mbBgOpts("").filter(function(o){ return o.v !== "none"; }).map(function(o){ return '<div class="mb-bgit"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' + (o.v === "flower" ? '<small class="muted">기본</small>' : '<span class="mb-bgbtns"><button class="ibtn2" onclick="mbBgRename(\'' + esc(o.v) + '\')" aria-label="이름 수정" title="이름 수정">' + ICON.edit + '</button><button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제" title="삭제">' + ICON.trash + '</button></span>') + '</div>'; }).join("") +
-    '<button class="mb-bgit add" onclick="mbBgAdd()"><span class="mb-bgthumb"></span><small>＋ 배경 추가</small></button></div>';
+    '<button class="mb-bgit add" onclick="mbBgAdd()"><span class="mb-bgthumb"></span><small>＋ 배경 추가</small></button>' +
+    mbBgAll().map(function(o){ var isDef = o.v === def;
+      return '<div class="mb-bgit' + (isDef ? ' def' : '') + '"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' +
+        '<span class="mb-bgbtns"><button class="btn sm' + (isDef ? ' primary' : ' ghost') + '" onclick="mbBgSetDefault(\'' + esc(o.v) + '\')"' + (isDef ? ' disabled' : '') + '>기본</button>' +
+        (o.builtin ? '' : '<button class="ibtn2" onclick="mbBgRename(\'' + esc(o.v) + '\')" aria-label="이름 수정" title="이름 수정">' + ICON.edit + '</button><button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제" title="삭제">' + ICON.trash + '</button>') + '</span></div>';
+    }).join("") + '</div>';
   return '<div class="sheet-h mb-listh"><h2>메뉴판</h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
     (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
     body +
@@ -11359,7 +11413,7 @@ function sheetMenus(){
 async function mbAdd(){
   var name = await uiPrompt("메뉴판 추가", "이름 — 추석 특별 메뉴판, 외국인 메뉴판 등", {value:"", ok:"만들기"}); if(name == null) return;
   name = String(name).trim() || "새 메뉴판";
-  try{ var b = await mbInsert(name, { bg:"flower", pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
+  try{ var b = await mbInsert(name, { bg:"", pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
   catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
 }
 async function mbSeed(){
@@ -11486,7 +11540,7 @@ function sheetMenu(){
   var d = b.data = b.data || {}; d.pages = d.pages || [];
   if(!d.pages.length) d.pages.push(mbNewPage("dish"));
   var pi = Math.min(MB.page || 0, d.pages.length - 1), pg = d.pages[pi]; MB.page = pi;
-  var chips = d.pages.map(function(p, i){ return '<button class="mb-chip' + (i === pi ? ' on' : '') + '" onclick="mbPick(' + i + ')">' + (i + 1) + '. ' + esc(p.title || "(제목 없음)") + '</button>'; }).join("") + '<button class="mb-chip add" onclick="mbAddPage()">＋ 페이지</button>';
+  var chips = '<button class="mb-chip add" onclick="mbAddPage()">＋ 페이지</button>' + d.pages.map(function(p, i){ return '<button class="mb-chip' + (i === pi ? ' on' : '') + '" onclick="mbPick(' + i + ')">' + (i + 1) + '. ' + esc(p.title || "(제목 없음)") + '</button>'; }).join("");   /* '+ 페이지' 맨 앞, 한 줄 좌우 스크롤(09-25 재아) */
   var secs = (pg.sections || []).map(function(s, si){
     var sp = "pages." + pi + ".sections." + si, n = (pg.sections || []).length;
     return '<div class="mb-sec"><div class="mb-sec-h">' +
@@ -11517,6 +11571,12 @@ function sheetMenu(){
 /* ---------- 꾸미기(09-25 재아) — 글꼴 셋, 색 다섯. 메뉴판마다 따로(data.style), 저장해야 남음 ---------- */
 var MB_STYLE_DEF = { ft:"Jua", fn:"Jua", fd:"Gowun Dodum", c1:"#A8733A", c2:"#7E5A7B", c3:"#C1935F", cb:"#D9BD9A", ci:"#1D1A17" };
 var MB_SWATCH = ["#A8733A", "#8C2F2F", "#B3402A", "#2F5D4A", "#2B4C7E", "#7E5A7B", "#1D1A17", "#6D6760", "#C1935F", "#D9BD9A"];
+/* 끌면서 바로 보이게(미리보기만 다시 그림) — 놓으면 전체를 다시 그림 */
+function mbSetStyleLive(k, v, el){
+  var b = mbCur(); if(!b) return; b.data.style = b.data.style || {}; b.data.style[k] = v; mbTouch();
+  var pv = document.querySelector(".mb-stylepv"); if(pv) pv.innerHTML = mbPageHtml(b, b.data.pages[MB.page], 0.34);
+  if(el){ var n = el.parentNode.querySelector(".lbl-note"); if(n) n.textContent = (100 - v) + "%"; }
+}
 function mbSetStyle(k, v){ var b = mbCur(); if(!b) return; b.data.style = b.data.style || {}; b.data.style[k] = v; mbTouch(); render(); }
 function mbStyleReset(){ var b = mbCur(); if(!b) return; b.data.style = {}; mbTouch(); render(); }
 /* 09-25 재아: 펼치기 말고 팝업 — 고치면서 보이게 팝업 안에 지금 페이지 미리보기 */
@@ -11534,7 +11594,9 @@ function mbStyleHtml(d){
     '<input type="color" value="' + esc(st[k]) + '" onchange="mbSetStyle(\'' + k + '\', this.value)" aria-label="다른 색"></div></div>'; };
   return '<div class="mb-style">' +
     '<div class="mb-g3">' + font("ft", "제목 글꼴") + font("fn", "이름·가격 글꼴") + font("fd", "설명 글꼴") + '</div>' +
-    color("c1", "제목·강조 색") + color("ci", "이름·가격 색") + color("c3", "설명 색") + color("c2", "선 색") + color("cb", "카드 테두리 색") + '</div>';
+    color("c1", "제목·강조 색") + color("ci", "이름·가격 색") + color("c3", "설명 색") + color("c2", "선 색") + color("cb", "카드 테두리 색") +
+    /* 흰 페이지 칸을 비치게 — 배경 그림이 뒤로 보이게(09-25 재아) */
+    '<div class="f mb-f"><div class="lb">페이지 투명도 <span class="lbl-note">' + (100 - (d.style && d.style.co != null ? Number(d.style.co) : 100)) + '%</span></div><input type="range" class="mb-range" min="0" max="100" step="5" value="' + (100 - (d.style && d.style.co != null ? Number(d.style.co) : 100)) + '" oninput="mbSetStyleLive(\'co\', 100 - Number(this.value), this)" onchange="render()"></div></div>';
 }
 
 /* ---------- 내보내기 — 지금 화면의 내용 그대로(저장 안 했어도) ---------- */
@@ -11554,6 +11616,9 @@ function mbPrint(){
 }
 /* 사진: 페이지마다 PNG(2배 선명도). html2canvas 는 cdnjs 에서 처음 한 번만 받음 */
 var MB_H2C = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+var MB_ZIP = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+function mbLoadZip(){ return new Promise(function(res, rej){ if(window.JSZip) return res(); var s = document.createElement("script"); s.src = MB_ZIP; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("압축 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
+function mbDownload(blob, name){ var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
 function mbLoadH2c(){ return new Promise(function(res, rej){ if(window.html2canvas) return res(); var s = document.createElement("script"); s.src = MB_H2C; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("사진 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
 function mbPng(){
   var b = mbCur(); if(!b) return;
@@ -11563,21 +11628,27 @@ async function mbPngRun(idx){
   var b = mbCur(); if(!b) return;
   showToast("사진을 만드는 중… (" + idx.length + "장)");
   try{
-    await mbLoadH2c(); if(document.fonts) await document.fonts.ready;
+    await mbLoadH2c(); if(idx.length > 1) await mbLoadZip(); if(document.fonts) await document.fonts.ready;
     var box = document.createElement("div"); box.style.cssText = "position:fixed; left:-12000px; top:0; width:" + MB_W + "px; zoom:1"; document.body.appendChild(box);
+    var zip = idx.length > 1 ? new window.JSZip() : null, base = (b.name || "메뉴판").replace(/[\\/:*?"<>|]/g, "_");
     for(var k = 0; k < idx.length; k++){
       box.innerHTML = mbPageHtml(b, b.data.pages[idx[k]], 0);
       var imgUrl = mbBg(b); if(imgUrl) await new Promise(function(r){ var im = new Image(); im.crossOrigin = "anonymous"; im.onload = im.onerror = r; im.src = imgUrl; });
       var cv = await window.html2canvas(box.firstChild, { scale:2, useCORS:true, backgroundColor:"#ffffff", logging:false });
-      await new Promise(function(r){ cv.toBlob(function(bl){ var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = (b.name || "메뉴판") + "_" + (idx[k] + 1) + ".png"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); r(); }, 300); }, "image/png"); });
+      var blob = await new Promise(function(r){ cv.toBlob(r, "image/png"); });
+      var fname = base + "_" + String(idx[k] + 1).padStart(2, "0") + ".png";
+      if(zip) zip.file(fname, blob); else mbDownload(blob, fname);
     }
-    box.remove(); showToast(idx.length + "장을 저장했습니다"); logEvent("메뉴판 사진", b.name + " " + idx.length + "장");
+    box.remove();
+    /* 여러 장은 압축 파일 하나로(09-25 재아: 한 장씩 따로 받으면 흩어짐) */
+    if(zip) mbDownload(await zip.generateAsync({ type:"blob" }), base + ".zip");
+    showToast(idx.length + "장을 저장했습니다" + (zip ? " (압축 파일)" : "")); logEvent("메뉴판 사진", b.name + " " + idx.length + "장");
   }catch(e){ uiAlert("사진을 만들지 못했습니다", e.message || String(e), "warn"); }
 }
 
 /* ---------- 처음 자료: 지금 쓰는 '2026 통합 메뉴표'(2026-02-07, 11장)를 옮겨 적은 것 ---------- */
 var MB_AFTER = "후식 식사 (짜장 혹은 짬뽕)";
-var MB_SEED = { bg:"flower", pages:[
+var MB_SEED = { bg:"", pages:[
   { id:"pg1", title:"저녁 코스", sub:"(ALL DAY COURSE)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
     { badge:"", name:"오 코스", price:"1인 68000", rows:"게살수프, 사품냉채\n새우 어향가지, 동파육, 유린기, 전가복\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
     { badge:"", name:"촉 코스", price:"1인 50000", rows:"게살수프, 사품냉채\n소고기고추잡채, 팔보채, 탕수육, 깐풍중새우\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
