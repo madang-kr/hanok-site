@@ -1989,7 +1989,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 .th-h{display:flex; align-items:center; justify-content:space-between; gap:var(--s8)}
 .th-info{font-size:var(--fs-sub); color:var(--text-2); margin:var(--s4) 0 var(--s8)}
 .th-kw{grid-template-columns:1fr auto; align-items:center; margin-bottom:var(--s8)}
-.th-text{width:100%; font:inherit; font-size:var(--fs-body); line-height:1.6; padding:var(--s8) var(--s12); border:1px solid var(--border-strong); border-radius:var(--r-sm); resize:none; overflow:auto; max-height:220px; box-sizing:border-box}   /* 09-20: 크기 손잡이 없이 글에 맞춰 늘어나고(thSetText), 220px 넘으면 안에서 스크롤 */
+.th-text{width:100%; font:inherit; font-size:var(--fs-body); line-height:1.6; padding:var(--s8) var(--s12); border:1px solid var(--border-strong); border-radius:var(--r-sm); resize:none; overflow:auto; max-height:360px; box-sizing:border-box}   /* 09-20: 크기 손잡이 없이 글에 맞춰 늘어나고(thSetText). 09-25: 처음 높이도 글에 맞춤(thRows), 360px 넘으면 안에서 스크롤 */
 .th-text.ro{border-color:var(--border); background:var(--surface); white-space:pre-wrap}
 .th-meta{font-size:var(--fs-label); color:var(--text-3); margin-top:var(--s4)}
 /* AI 물결: 어두운 띠 위에 색 선들이 흐름 — 미래 느낌. 글 짓는 동안만 */
@@ -2149,6 +2149,10 @@ button.sa-card:hover{border-color:var(--text-3)}
 @media (max-width:520px){ .hr-pin3{grid-template-columns:1fr 1fr} .hr-pin3 > :first-child{grid-column:1 / -1} }
 /* 수기 예약지에서 돌아왔을 때 '다시 전체화면' (09-25 재아) */
 .fs-back{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:300; height:48px; padding:0 22px; border:none; border-radius:24px; background:#1f1d1a; color:#fff; font-family:inherit; font-size:15px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.25); cursor:pointer}
+
+/* 감사 문자: '직접 입력' 전에는 읽기만(09-25) · 고급 여닫기 삼각형 */
+.th-text.ro{cursor:default; color:var(--text-2)}
+.th-adv{min-width:44px; justify-content:center; font-size:12px}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -5639,7 +5643,7 @@ async function lockNow(){
   if(!await flushBeforeLeave()) return;
   resetOverlays();
   logEvent("잠금", "");
-  AUTHED=false; PIN_BUF=""; PIN_ERR=""; view.storeKey=null; view.draft=null; view.adminOk=false; ADMIN_UNTIL=0;
+  AUTHED=false; PIN_BUF=""; PIN_ERR=""; view.storeKey=null; view.draft=null; view.adminOk=false; ADMIN_UNTIL=0; OWNER_OK=false;
   DATA._session = {authed:false};
   sessionClear(); OFFLINE = null;
   saveData(); render();
@@ -5802,6 +5806,7 @@ async function setTab(t){
      고친 것이 없으면 들어올 때마다 새로 뜹니다 */
   if(t === "settings" && view.draft && !settingsDirty()) view.draft = null;
   if(t === "settings") view.setSec = null;   /* 설정은 늘 목록부터(09-20) */
+  if(t !== "settings" && typeof OWNER_OK !== "undefined") OWNER_OK = false;   /* 다른 탭으로 나감 = 사장님 메뉴를 떠남(09-25) */
   /* 설정에서 나갈 때 저장 안 한 변경이 있으면 물어봅니다 */
   if(view.tab==="settings" && t!=="settings" && settingsDirty()){
     const ok = await uiConfirm("저장하지 않은 변경이 있습니다",
@@ -7487,7 +7492,7 @@ function setFilter(f){ view.filter=f; render(); }
 function moveDate(d){ view.date=shiftDate(view.date,d); render(); }
 /* 다른 날을 보다가 오늘로 한 번에 — 화살표를 여러 번 누르거나 달력을 열 필요가 없게 */
 /* '오늘' 버튼 — 오늘이 아닐 때만 상단바 오른쪽(새로고침 왼쪽)에. 6차-F 에서 뺐다가 6차-K 에서 되살림, 7차-H 에서 자리·글자 조정 */
-function goHomeScreen(){ WZ = null; tmpRes = null; view.form = null; view.calOpen = false; if(view.tab === "settings") return setTab("dash"); render(); }
+function goHomeScreen(){ WZ = null; tmpRes = null; view.form = null; OWNER_OK = false; view.calOpen = false; if(view.tab === "settings") return setTab("dash"); render(); }
 function goToday(){ view.date = todayStr(); view.calMonth = monthStr(); render(); }
 /* '오늘이 아닌 날짜를 보는 중' — 상단바(.topbar.notoday)와 body.notoday 가 같은 조건을 써야 하므로 한 곳에.
    설정 탭은 날짜 개념이 없어 제외. 디스플레이·잠금·인트로는 renderApp 이 renderStore 전에 갈라져 나가므로 여기서도 빼 둡니다 */
@@ -8695,7 +8700,7 @@ function saLiveObj(){ return saMerge(SA.defaults || {}, SA.live ? SA.live.data :
 function saBaseObj(){ return SA.pend ? saMerge(SA.defaults || {}, SA.pend.data || {}) : saLiveObj(); }
 /* 비교할 땐 팝업(따로 올라감)과 빈 특별 기간(아무것도 안 적은 칸)을 뺌 — 빈 칸이 쌓여 '수정사항이 있습니다' 가 안 없어졌음(09-24) */
 function saStrip(o){ var c = deepClone(o || {}); delete c.notices; saSpPrune(c); return JSON.stringify(c); }
-function saSpEmpty(sp){ return !sp || (!(sp.title || "").trim() && !sp.from && !sp.to && !(sp.courses || []).length && !(sp.note || "").trim()); }
+function saSpEmpty(sp){ return !sp || (!(sp.title || "").trim() && !sp.from && !sp.to && !(sp.courses || []).length && !(sp.lunch || []).length && !(sp.note || "").trim()); }
 function saSpPrune(o){ if(o && o.online && Array.isArray(o.online.special)) o.online.special = o.online.special.filter(function(x){ return !saSpEmpty(x); }); }
 function saPending(){ return !!(SA && SA.draft && SA.liveStr != null && saStrip(SA.draft) !== SA.liveStr); }
 var SA_AUTOSAVE = null;
@@ -9077,15 +9082,17 @@ function saTabOnline(){
       saAdd("saArrAdd('reserve.notes', {b:'', s:''})", "줄 추가") +
       saF("reserve.go.lead", "예약하기 상자 안내") + saF("reserve.go.cap", "버튼 아래 작은 글"));
 }
-function saSpAdd(){ var a = saGet("online.special") || []; a.push({title:"", from:"", to:"", courses:[], note:"", open:false, lock:true, openFrom:"", openTo:""}); saSet("online.special", a); SA.open = "sp:" + (a.length - 1); render(); }
+function saSpAdd(){ var a = saGet("online.special") || []; a.push({title:"", from:"", to:"", courses:[], lunch:[], note:"", open:false, lock:true, openFrom:"", openTo:""}); saSet("online.special", a); SA.open = "sp:" + (a.length - 1); render(); }
 function saSpToggle(i){ var p = "online.special." + i, sp = saGet(p); var v = !saSpOpen(sp); saSet(p + ".open", v); saSet(p + ".lock", !v); render(); }
 function saSpCard(sp, i){
   var p = "online.special." + i;
-  var sum = '<span class="sa-card-t">' + esc(sp.title || "(이름 없음)") + '</span><span class="sa-card-s">' + esc(pkRangeText(sp.from, sp.to) || "기간 없음") + ' · 코스 ' + (sp.courses || []).length + '</span>' + saSpStatus(sp);
+  var sum = '<span class="sa-card-t">' + esc(sp.title || "(이름 없음)") + '</span><span class="sa-card-s">' + esc(pkRangeText(sp.from, sp.to) || "기간 없음") + ' · 저녁 ' + (sp.courses || []).length + ((sp.lunch || []).length ? ' · 점심 ' + sp.lunch.length : '') + '</span>' + saSpStatus(sp);
   var open = saSpOpen(sp);
   var edit =
     '<div class="grid2">' + saF(p + ".title", "기간 이름", "", {ph:"예: 추석 연휴"}) + saField("기간", saRangeBtn(p + ".from", p + ".to", "특별 기간")) + '</div>' +
-    '<label class="f sa-f"><div class="lb">특별 기간 코스 <span class="lbl-note">한 줄 당 한 코스 · "이름 | 한자" 또는 "이름" 형식 작성</span></div><textarea class="in-sm" rows="3" placeholder="추석 한상 코스 | 秋夕&#10;명절 가족 코스" oninput="saSetLines(\'' + p + '.courses\', this.value)">' + esc((sp.courses || []).join("\n")) + '</textarea></label>' +
+    /* 09-25 재아: 특별 기간에도 점심·저녁 차림이 다를 수 있음 — 저녁 코스는 종일, 점심 메뉴는 점심 시간(15:30 전) 예약에만 보임 */
+    '<label class="f sa-f"><div class="lb">저녁 코스 <span class="lbl-note">종일 · 한 줄에 한 코스 · "이름 | 한자" 또는 "이름"</span></div><textarea class="in-sm" rows="3" placeholder="추석 한상 코스 | 秋夕&#10;명절 가족 코스" oninput="saSetLines(\'' + p + '.courses\', this.value)">' + esc((sp.courses || []).join("\n")) + '</textarea></label>' +
+    '<label class="f sa-f"><div class="lb">점심 메뉴 <span class="lbl-note">점심 시간 예약에만 · 비우면 점심에도 저녁 코스만</span></div><textarea class="in-sm" rows="3" placeholder="명절 점심 세트 A&#10;명절 점심 세트 B" oninput="saSetLines(\'' + p + '.lunch\', this.value)">' + esc((sp.lunch || []).join("\n")) + '</textarea></label>' +
     saF(p + ".note", "안내", "메뉴 선택 단계에 표시되는 문장입니다", {ph:"예: 연휴 기간에는 코스로만 예약을 받습니다"}) +
     saSwHtml(open, "saSpToggle(" + i + ")", "홈페이지 예약 활성화") +
     (open ? '<div class="sa-sub-in">' + saField("예약 받는 기간", saRangeBtn(p + ".openFrom", p + ".openTo", "예약 받는 기간", {openEnd:true, ph:"비우면 바로부터 계속"})) + '</div>' : "") +
@@ -10289,7 +10296,8 @@ function gsEsc(){ if(GS && view.form && view.form.type === "guests" && GS.open){
    여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · 보안 · 홈페이지 관리.
    화면형(view.form={type:"owner", page:true}) — 큰 단추 격자. 폰에서는 두 줄. */
 async function openOwnerPage(){
-  /* 09-20(재아): 메뉴 자체는 안 묻고, 안의 것을 누를 때마다 묻습니다(10분 유지 체크로 줄일 수 있음) */
+  /* 09-25(재아): 사장님 버튼을 누를 때 한 번 묻고, 안의 메뉴는 다시 안 물음(전엔 메뉴마다 물었음) */
+  if(!OWNER_OK){ if(!await adminGate("사장님 메뉴")) return; OWNER_OK = true; }
   view.form = {type:"owner", page:true}; render();
 }
 /* 사장님 화면에서 고른 설정을 바로 엽니다. 별도 '설정' 목록을 한 번 더 거치지 않습니다. */
@@ -10301,7 +10309,7 @@ async function openOwnerSetting(key){
   view.form = null; view.tab = "settings"; view.setSec = key; render(); window.scrollTo(0,0);
 }
 async function closeSettingsToOwner(){
-  await setTab("dash");
+  var keep = OWNER_OK; await setTab("dash"); OWNER_OK = keep;   /* 사장님 메뉴로 돌아가는 길 — 다시 안 물음 */
   if(view.tab === "dash"){ view.form = {type:"owner", page:true}; render(); window.scrollTo(0,0); }
 }
 function openMessagesPage(){ view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); }
@@ -10670,7 +10678,7 @@ function thStop(){ TH.stop = true; TH.run = null; Object.keys(TH.busy).forEach(f
 function thRunning(){ return !!(TH && (TH.run || Object.keys(TH.busy).some(function(k){ return TH.busy[k]; }))); }
 function thUseTemplate(resId){ var r = store().reservations.find(function(x){ return x.id === resId; }); if(!r) return; var it = thItem(r); it.text = thTemplate(r, thKw(it)); it.made = "template"; it.err = ""; it.manual = true; render(); }
 function thManual(resId){ var it = TH.items[resId]; if(it){ it.manual = true; if(!it.made) it.made = "manual"; render(); setTimeout(function(){ var el = document.getElementById("th-ta-" + resId); if(el) el.focus(); }, 30); } }
-function thSetText(resId, v, el){ var it = TH.items[resId]; if(!it) return; var max = thCfg().maxLen; if(v.length > max){ v = v.slice(0, max); if(el) el.value = v; } it.text = v; it.made = "manual"; it.manual = true; if(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 220) + "px"; var m = el.parentNode.querySelector(".th-meta > span"); if(m) m.textContent = v.length + "자 / " + max + "자 · 직접 입력"; } }
+function thSetText(resId, v, el){ var it = TH.items[resId]; if(!it) return; var max = thCfg().maxLen; if(v.length > max){ v = v.slice(0, max); if(el) el.value = v; } it.text = v; it.made = "manual"; it.manual = true; if(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 360) + "px"; var m = el.parentNode.querySelector(".th-meta > span"); if(m) m.textContent = v.length + "자 / " + max + "자 · 직접 입력"; } }
 /* 키워드 알약 — Enter 나 '등록' 으로 쌓이고 × 로 뺌. 프리셋(설정)은 누르면 바로 들어감 */
 function thAddKw(resId, v){ var it = TH.items[resId]; if(!it) return; v = String(v || "").trim(); if(!v) return; if(it.kws.indexOf(v) < 0) it.kws.push(v); render(); setTimeout(function(){ var el = document.getElementById("th-kw-" + resId); if(el) el.focus(); }, 20); }
 function thDelKw(resId, i){ var it = TH.items[resId]; if(!it) return; it.kws.splice(i, 1); render(); }
@@ -10690,7 +10698,7 @@ async function thSchedule(){
   }catch(e){ await uiAlert("예약 발송 실패", e.message || String(e), "warn"); }
 }
 async function thCancel(id){
-  try{ await sb("/rest/v1/thanks_sms?id=eq." + encodeURIComponent(id) + "&status=eq.%EB%8C%80%EA%B8%B0", { method:"PATCH", body:{status:"취소"}, prefer:"return=minimal" }); await thLoadQueue(); render(); }
+  try{ await sb("/rest/v1/thanks_sms?id=eq." + encodeURIComponent(id) + "&status=in.(" + encodeURIComponent("대기,오류") + ")", { method:"PATCH", body:{status:"취소"}, prefer:"return=minimal" }); await thLoadQueue(); render(); }   /* 오류 건도 취소 가능(09-25) */
   catch(e){ await uiAlert("취소 실패", e.message || String(e), "warn"); }
 }
 async function thSendNow(id){
@@ -10724,9 +10732,11 @@ function thStatusLabel(st){ return st === "보냄" ? "전송 완료" : st === "�
 function thMadeLabel(it){ return it.made === "ai" ? "AI 작성" : it.text ? "직접 입력" : ""; }
 function sheetThanks(){
   if(!TH) return "";
-  var cfg = thCfg(), wait = (TH.queue || []).filter(function(q){ return q.status === "대기"; }).length;
-  var tabs = '<div class="seg" style="margin-bottom:12px"><button class="' + (TH.tab === "make" ? "on" : "") + '" onclick="TH.tab=\'make\'; render()">만들기</button><button class="' + (TH.tab === "queue" ? "on" : "") + '" onclick="TH.tab=\'queue\'; render()">보낸 문자' + (wait ? '<i class="cnt">' + wait + '</i>' : '') + '</button></div>';
-  var body = TH.tab === "queue" ? thQueueHtml() : thMakeHtml();
+  var cfg = thCfg(), wait = (TH.queue || []).filter(function(q){ return q.status === "대기" || q.status === "오류"; }).length;
+  /* 09-25 재아: '만들기' → '문자 작성', '보낸 문자' → '발송 대기'(대기·오류 — 못 보낸 건은 여기 남음) + '발송 완료' */
+  var tb = function(k, l, n){ return '<button class="' + (TH.tab === k ? "on" : "") + '" onclick="TH.tab=\'' + k + '\'; render()">' + l + (n ? '<i class="cnt">' + n + '</i>' : '') + '</button>'; };
+  var tabs = '<div class="seg" style="margin-bottom:12px">' + tb("make", "문자 작성") + tb("queue", "발송 대기", wait) + tb("sent", "발송 완료") + '</div>';
+  var body = TH.tab === "queue" ? thQueueHtml("wait") : TH.tab === "sent" ? thQueueHtml("sent") : thMakeHtml();
   /* AI 가 도는 동안: 화면 위 가운데 동그라미 하나(카드마다·맨 위 띠가 아니라). 중단 가능. 그동안 닫기는 막힘(thGuard) */
   var run = thRunning() ? '<div class="th-dim"></div><div class="th-orb"><canvas class="ai-wave"></canvas><div class="th-orb-t">AI 가 문자를 완성하고 있습니다' + (TH.run ? '<small>' + TH.run.done + ' / ' + TH.run.total + '</small>' : '') + '</div><button class="btn sm" onclick="thStop()">중단</button></div>' : '';
   return run + '<div class="th-top">' + tabs + (TH.aiErr ? '<span class="tag rust sm">AI 기능 오류 발생</span>' : '') + '</div>' + body;   /* 키가 서버로 옮겨 간 뒤로 cfg.key 가 늘 비어 '키 없음' 이 늘 떴음 — 실제로 AI 가 실패했을 때만(09-25 재아) */
@@ -10735,10 +10745,10 @@ function thMakeHtml(){
   var list = thTargets(), cfg = thCfg(), running = thRunning();
   var open = list.filter(function(r){ return !thQueued(r.id); });
   var todo = open.filter(function(r){ var it = thItem(r); return !it.manual && !(it.text && it.made === "ai"); }).length;
-  var head = '<div class="th-ctl"><label class="f"><div class="lb">다녀간 날</div><input type="date" value="' + esc(TH.date) + '" onchange="TH.date=this.value; TH.items={}; render()"></label>' +
+  var head = '<div class="th-ctl"><label class="f"><div class="lb">방문일</div><input type="date" value="' + esc(TH.date) + '" onchange="TH.date=this.value; TH.items={}; render()"></label>' +
     '<label class="f"><div class="lb">공통 키워드</div><input type="text" value="' + esc(cfg.common) + '" placeholder="예: 갑자기 추워진 날씨, 추석 연휴 등" onchange="thSaveCfg({thanksCommon:this.value})"></label>' +
-    '<div class="f"><div class="lb">&nbsp;</div><button class="btn sm ghost" onclick="TH.adv=!TH.adv; render()">' + (TH.adv ? "고급 닫기" : "고급") + '</button></div></div>' +
-    (TH.adv ? '<div class="th-ctl adv"><label class="f"><div class="lb">보낼 시각 <span class="lbl-note">기본은 내일 ' + esc(cfg.hour) + ' — 글도 이 날짜 기준으로 씁니다</span></div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="TH.sendAt=this.value"></label></div>' : '') +
+    '<div class="f"><div class="lb">&nbsp;</div><button class="btn sm ghost th-adv" onclick="TH.adv=!TH.adv; render()" aria-label="' + (TH.adv ? "고급 닫기" : "고급 열기") + '" aria-expanded="' + (TH.adv ? "true" : "false") + '">' + (TH.adv ? "▲" : "▼") + '</button></div></div>' +   /* '고급' 글자 대신 삼각형(09-25 재아) */
+    (TH.adv ? '<div class="th-ctl adv"><label class="f"><div class="lb">전송 시점</div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="TH.sendAt=this.value"></label></div>' : '') +
     '<div class="th-actions"><div class="btn-row">' +
       (todo || !open.length ? '<button class="btn primary" onclick="thMakeAll()" ' + (running || !open.length ? "disabled" : "") + '>' + ICON.spark + ' AI 로 완성하기</button>'
         : '<button class="btn primary" onclick="thMakeAll(true)" ' + (running ? "disabled" : "") + '>' + ICON.refresh + ' AI 다시 돌리기</button>') + '</div>' +
@@ -10761,24 +10771,32 @@ function thMakeHtml(){
       '<div class="th-info">' + info + (tags ? ' <span class="kwtags">' + tags + '</span>' : '') + (extra ? '<div class="th-extra">' + extra + '</div>' : '') + '</div>' +
       '<div class="th-kwrow"><div class="chips"><input id="th-kw-' + r.id + '" type="text" class="chip-in" placeholder="키워드 — 예: 아버님 팔순 (Enter)" onkeydown="thKwKey(event, \'' + r.id + '\')"><button class="btn sm ghost" onclick="var el=document.getElementById(\'th-kw-' + r.id + '\'); thAddKw(\'' + r.id + '\', el.value); el.value=\'\'">등록</button></div>' +
         (presets ? '<div class="chips presets">' + presets + '</div>' : '') + '</div>' +
-      (showText ? '<textarea id="th-ta-' + r.id + '" class="th-text grow" rows="2" placeholder="문자 내용" oninput="thSetText(\'' + r.id + '\', this.value, this)" maxlength="' + cfg.maxLen + '">' + esc(it.text) + '</textarea>' : '') +
+      /* 09-25 재아: '직접 입력' 을 켜야 고칠 수 있음(실수로 AI 글이 바뀌지 않게). 높이는 글 길이에 맞춰 처음부터 — 늘 스크롤이 생겼음 */
+      (showText ? '<textarea id="th-ta-' + r.id + '" class="th-text grow' + (it.manual ? '' : ' ro') + '" rows="' + thRows(it.text) + '" placeholder="문자 내용"' + (it.manual ? '' : ' readonly') + ' oninput="thSetText(\'' + r.id + '\', this.value, this)" maxlength="' + cfg.maxLen + '">' + esc(it.text) + '</textarea>' : '') +
       '<div class="th-meta"><span>' + (it.err ? '<span class="rust">' + esc(it.err) + '</span> · ' : '') + (showText ? (it.text.length + '자 / ' + cfg.maxLen + '자' + (thMadeLabel(it) ? ' · ' + thMadeLabel(it) : '')) : '아직 글이 없습니다') + '</span>' +
         (it.manual ? '<label class="chk th-tpl"><input type="checkbox" ' + (it.made === "template" ? "checked" : "") + ' onchange="thToggleTemplate(\'' + r.id + '\', this.checked)"> 기본양식 적용하기</label>' : '') + '</div>' +
       '</div>';
   }).join("");
-  return head + rows + '<p class="f-note">체크한 건만 보냅니다. 같은 손님이 하루 두 번 다녀갔으면 한 번만. 글은 ' + cfg.maxLen + '자까지 — 넘으면 문자가 나뉘어 요금이 늘거나 실패합니다. 프롬프트·기본 양식·한도·키워드 프리셋은 설정 → 감사 문자 AI 에서.</p>';
+  return head + rows;   /* 아래 설명 글은 뺌(09-25 재아) */
 }
-function thLockedTap(id, status){ showToast(status === "대기" ? "예약 발송 대기 중입니다 — '보낸 문자' 에서 취소해야 다시 열 수 있습니다" : "이미 " + thStatusLabel(status) + " 된 문자입니다 — '보낸 문자' 에서 보세요"); }
+function thLockedTap(id, status){ showToast(status === "대기" || status === "오류" ? "발송 대기 중입니다 — '발송 대기' 에서 취소해야 다시 열 수 있습니다" : "이미 " + thStatusLabel(status) + " 된 문자입니다 — '발송 완료' 에서 보세요"); }
+/* 글 칸 줄 수 — 한 줄 약 36자로 어림. 4~12줄 */
+function thRows(t){ var n = String(t || "").split("\n").reduce(function(a, l){ return a + Math.max(1, Math.ceil(l.length / 36)); }, 0); return Math.max(4, Math.min(12, n + 1)); }
 function thSetManual(resId, on){ var it = TH.items[resId]; if(!it) return; it.manual = !!on; if(on){ if(it.made === "ai" || it.made === "template") it.made = "manual"; if(!it.made) it.made = "manual"; } render(); if(on) setTimeout(function(){ var el = document.getElementById("th-ta-" + resId); if(el) el.focus(); }, 30); }
 function thToggleTemplate(resId, on){ if(on) thUseTemplate(resId); else { var it = TH.items[resId]; if(it && it.made === "template"){ it.text = ""; it.made = ""; it.manual = false; render(); } } }
-function thQueueHtml(){
+/* kind: "wait" = 대기 + 오류(못 보낸 건은 여기 남음), "sent" = 보냄. 취소한 건은 안 보임(09-25 재아) */
+function thQueueHtml(kind){
   var q = TH.queue || [];
-  if(!q.length) return '<div class="empty">아직 예약하거나 보낸 감사 문자가 없습니다.</div>';
-  var f = TH.qf || "all", list = f === "all" ? q : q.filter(function(x){ return x.status === f; });
-  var seg = function(k, l){ var n = k === "all" ? q.length : q.filter(function(x){ return x.status === k; }).length; return '<button class="' + (f === k ? "on" : "") + '" onclick="TH.qf=\'' + k + '\'; render()">' + l + (n ? ' ' + n : '') + '</button>'; };
-  return '<div class="seg" style="margin-bottom:12px">' + seg("all", "전체") + seg("대기", "대기 문자") + seg("보냄", "전송 완료") + seg("오류", "오류") + seg("취소", "취소") + '</div>' +
-    '<div class="card searchbox">' + (list.length ? list.map(function(x){ var at = new Date(x.send_at); return '<div class="rowitem"><span class="grow"><span class="t">' + esc(x.name) + ' <small class="muted">' + esc(phoneNorm(x.phone)) + '</small> <span class="tag ' + (x.status === "보냄" ? "pine" : x.status === "오류" ? "rust" : x.status === "취소" ? "" : "amber") + ' sm">' + thStatusLabel(x.status) + '</span></span><span class="s">' + esc(dateLabel(x.send_at.slice(0, 10))) + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ' · ' + esc(x.text) + '</span></span>' +
-    (x.status === "대기" ? '<span class="btn-row"><button class="btn sm ghost" onclick="thSendNow(\'' + x.id + '\')">지금</button><button class="btn sm ghost danger" onclick="thCancel(\'' + x.id + '\')">취소</button></span>' : '') + '</div>'; }).join("") : '<p class="muted" style="padding:16px">없습니다.</p>') + '</div>';
+  var list = q.filter(function(x){ return kind === "sent" ? x.status === "보냄" : (x.status === "대기" || x.status === "오류"); });
+  if(kind === "sent") list = list.slice().sort(function(a, b){ return String(b.send_at).localeCompare(String(a.send_at)); });
+  else list = list.slice().sort(function(a, b){ return String(a.send_at).localeCompare(String(b.send_at)); });
+  if(!list.length) return '<div class="empty">' + (kind === "sent" ? "보낸 감사 문자가 없습니다." : "발송 대기 중인 감사 문자가 없습니다.") + '</div>';
+  return '<div class="card searchbox">' + list.map(function(x){
+    var at = new Date(x.send_at), err = x.status === "오류";
+    return '<div class="rowitem"><span class="grow"><span class="t">' + esc(x.name) + ' <small class="muted">' + esc(phoneNorm(x.phone)) + '</small>' + (err ? ' <span class="tag rust sm">오류 · 못 보냄</span>' : '') + '</span>' +
+      '<span class="s">' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + (kind === "sent" ? ' 보냄' : ' 예정') + ' · ' + esc(String(x.text || "").slice(0, 60)) + (String(x.text || "").length > 60 ? '…' : '') + '</span></span>' +
+      (kind === "sent" ? '' : '<span class="btn-row"><button class="btn sm ghost" onclick="thSendNow(\'' + x.id + '\')">' + (err ? "다시 보내기" : "지금") + '</button><button class="btn sm ghost danger" onclick="thCancel(\'' + x.id + '\')">취소</button></span>') + '</div>';
+  }).join("") + '</div>';
 }
 /* 설정 → 감사 문자 AI (14-settings 가 부름). draft 의 settings.ai 를 고칩니다 — '적용하기' 로 저장.
    기본 문장(앞 TH_DEF_PROMPT.length 줄)은 고칠 수는 있어도 지울 수 없음. 모델·API 키는 화면에 없음(재아가 코드에서) */
@@ -11225,6 +11243,7 @@ function closeSheet(){
   if(typeof thGuard === "function" && thGuard()) return;   /* 감사 문자 AI 진행 중엔 못 나감(09-20) */
   if(view.form && view.form.type === "site" && typeof saLeaveGuard === "function" && saLeaveGuard()) return;   /* 홈페이지 관리: 적용 안 한 수정은 나갈 때 버림(09-25) */
   view.cdStaff = false; view.cdThanks = false;
+  if(view.form && view.form.type === "owner") OWNER_OK = false;   /* 사장님 메뉴를 닫고 나감 — 다음엔 다시 물음 */
   if(view.form && view.form.page && view.form.back === "owner"){ view.form = {type:"owner", page:true}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "messages"){ view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "guests"){ view.form = {type:"guests", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }
@@ -12617,8 +12636,12 @@ async function saveAdminPw(){
 /* 09-20(재아): '사장님 아이디' 대신 사장님 2차 비밀번호(숫자 6자리). 서버 admin 계정 비밀번호 = 6자리+"00".
    아직 옛 비밀번호(자유 문자열)를 쓰는 서버면 그것도 받아 줍니다 — 6자리 → 안 되면 친 그대로 한 번 더 */
 var ADMIN_UNTIL = 0;
-async function adminGate(what){
+/* 사장님 메뉴에 2차 PIN 으로 들어와 있는 동안 true — 안의 메뉴(워크시프트·설정·홈페이지 관리 …)는 다시 안 물음(09-25 재아).
+   사장님 메뉴를 닫거나(X), 다른 탭으로 나가거나, 잠그면 false. PIN 바꾸기·설정 초기화처럼 중요한 건 따로 물음(force) */
+var OWNER_OK = false;
+async function adminGate(what, opt){
   if(!supaOn()) return true;
+  if(OWNER_OK && !(opt && opt.force)) return true;
   if(ADMIN_UNTIL > Date.now()) return true;
   const r = await uiPin(what, "2차 PIN", 6, {keep:"10분간 다시 묻지 않기"});   /* '6자리' 설명은 뺌(09-25 재아) — 점 여섯 개로 보임 */   /* PIN 화면과 같은 키패드(09-20) */
   if(r == null) return false;
@@ -12644,7 +12667,7 @@ function sheetSetLog(){
 /* 설정 초기화 — 기본표(DEFAULT_DATA)로. 누님과 정한 값이 기본표에 들어간 뒤에 쓸모가 있습니다. 관리자 비밀번호 */
 async function resetSettingsAll(){
   if(!await uiConfirm("설정을 처음 값으로 되돌릴까요?", "좌석·운영시간·코스·경로·문자 등 설정 전부가 기본표로 돌아갑니다. 예약은 그대로 둡니다.\n2차 PIN 을 한 번 더 묻습니다.", {ok:"초기화"})) return;
-  if(!await adminGate("설정 초기화")) return;
+  if(!await adminGate("설정 초기화", {force:true})) return;   /* 되돌릴 수 없는 일 — 사장님 메뉴 안이어도 다시 물음 */
   const keep = store().settings._setlog || [];
   const def = migrate(deepClone(DEFAULT_DATA))[view.storeKey].settings;
   def._setlog = keep.concat([{at:new Date().toISOString(), who:(sessionBy() || "-"), items:["설정 초기화(기본표)"]}]).slice(-60);
