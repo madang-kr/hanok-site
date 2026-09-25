@@ -85,6 +85,22 @@ window.SITE_READY.then(function(){
         <div class="pop-f"><label><input type="checkbox" data-day="${esc(n.id)}"> 오늘 하루 보지 않기</label><button type="button" class="x" data-close>닫기</button></div>
       </div>`).join("");
     document.body.append(wrap);
+    /* 화면 안에 다 들어오게(09-25 재아: 브라우저를 확대하면 팝업이 화면보다 커졌음).
+       확대 자체는 막지 않음 — 글씨를 키우려고 확대하는 손님(어르신)이 많아서. 대신 화면을 넘으면 그만큼 줄임.
+       그림 팝업은 그림 비율대로 폭을 줄이고, 글 팝업은 높이를 넘으면 안에서 스크롤 */
+    const fit = () => {
+      const top = innerWidth > 760 ? 110 : 0, room = innerHeight - top - 40 - 44;   /* 위 여백·아래 여백·'닫기' 띠 */
+      wrap.querySelectorAll(".pop").forEach(p => {
+        if(innerWidth <= 760){ p.style.width = ""; return; }   /* 폰은 CSS 가 위아래로 쌓음 */
+        const img = p.querySelector(".pop-b.only-img img"), base = img ? 420 : 380;
+        let w = Math.min(base, innerWidth - 80);
+        if(img && img.naturalWidth) w = Math.min(w, Math.max(160, room * img.naturalWidth / img.naturalHeight));
+        p.style.width = Math.round(w) + "px";
+        const b = p.querySelector(".pop-b"); if(b && !img){ b.style.maxHeight = Math.max(160, room) + "px"; b.style.overflowY = "auto"; }
+      });
+    };
+    wrap.querySelectorAll(".pop-b.only-img img").forEach(im => im.addEventListener("load", fit));
+    fit(); addEventListener("resize", fit);
     /* 나중에 연 창이 위로 오게 */
     let z = 10 + show.length;
     wrap.querySelectorAll(".pop").forEach(p => {

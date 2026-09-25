@@ -1606,6 +1606,8 @@ label.chk span{width:auto}
 .set-grid{margin-top:var(--s8)}
 .set-grid .set-divider{grid-column:1 / -1; margin:var(--s16) 0 var(--s4)}
 .set-back{margin:var(--s4) 0 var(--s12)}
+/* 설정 구역 하나를 열었을 때 폭 = 홈페이지 관리(.page-wrap 820px)와 같게(09-25 재아: 운영시간·좌석 등이 너무 넓었음) */
+.set-one{max-width:820px; margin-left:auto; margin-right:auto}
 .set-one .fold-h.static{cursor:default}
 .set-one .fold-h.static .fh-t{font-size:var(--fs-title)}
 
@@ -2141,6 +2143,12 @@ button.sa-card:hover{border-color:var(--text-3)}
 .hr-help li{margin-bottom:6px; line-height:1.6; font-size:var(--fs-sub); color:var(--text-2)}
 .hr-help li b{color:var(--text)}
 .hr-pay td small.rust{color:var(--rust)}
+
+/* 직원 창의 PIN 줄: 2차 PIN · PIN · PIN 확인 세 칸(09-25 재아) */
+.hr-pin3{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--s12)}
+@media (max-width:520px){ .hr-pin3{grid-template-columns:1fr 1fr} .hr-pin3 > :first-child{grid-column:1 / -1} }
+/* 수기 예약지에서 돌아왔을 때 '다시 전체화면' (09-25 재아) */
+.fs-back{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:300; height:48px; padding:0 22px; border:none; border-radius:24px; background:#1f1d1a; color:#fff; font-family:inherit; font-size:15px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.25); cursor:pointer}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -3517,7 +3525,9 @@ async function sb(path, opt){
   try{ json = text ? JSON.parse(text) : null; }catch(e){}
   if(!res.ok){
     var he = new Error((json && (json.msg || json.message || json.error_description || json.error)) || ("HTTP " + res.status));
-    he.status = res.status; he.body = json; throw he;
+    he.status = res.status; he.body = json;
+    if(json && json.code === "42501" && !opt.token) pinSessionCheck();   /* 권한 거절 — 이 PIN 이 지워졌거나 막혔는지 확인 */
+    throw he;
   }
   return json;
 }
@@ -3589,8 +3599,21 @@ async function sbRefresh(){
   if(!SESSION.name && name){ SESSION.name = name; sessionSave(); }
 }
 /* 만료 5분 전에 갱신. 1분 타이머에서 부릅니다. 갱신이 거부되면(토큰 폐기) 잠급니다 — 연결만 없는 경우는 그대로 둡니다 */
+/* 직원별 PIN 이 지워지거나(PIN 관리) 퇴사로 막히면, 그 PIN 으로 들어와 있던 기기는 서버가 모든 저장을 거절함
+   (09-25: 홈페이지 관리에서 나올 때 '초안 저장 실패 · row-level security' 가 뜬 원인). 알아채는 즉시 잠그고 알림 */
+var PIN_CHECK_AT = 0;
+async function pinSessionCheck(force){
+  if(!SESSION || !SESSION.email || !/-[0-9a-f]{12}@/.test(SESSION.email)) return;
+  if(!force && Date.now() - PIN_CHECK_AT < 20000) return; PIN_CHECK_AT = Date.now();
+  var rows; try{ rows = await sb("/rest/v1/staff_pins?email=eq." + encodeURIComponent(SESSION.email) + "&select=active"); }catch(e){ return; }
+  if(rows && rows[0] && rows[0].active !== false) return;
+  sessionClear(); AUTHED = false; view.storeKey = null; resetOverlays(); render();
+  uiAlert("이 PIN은 더 이상 쓸 수 없습니다", "삭제되었거나 퇴사 처리된 PIN 입니다. 다른 PIN 으로 들어오세요.", "warn");
+}
+var PIN_TICK = 0;
 async function sessionTick(){
   if(!SESSION || !supaOn()) return;
+  if(++PIN_TICK % 5 === 0) pinSessionCheck(true);   /* 5분마다 */
   if(SESSION.expires_at - Date.now()/1000 > 300) return;
   try{ await sbRefresh(); }
   catch(e){
@@ -3817,11 +3840,21 @@ function tryFullscreen(){
 }
 /* 수기 예약지를 새 탭에 — 새 탭이 열리면 전체화면이 풀리므로, 전체화면이었다면 돌아와서 다시 켤 버튼을 띄웁니다(재아).
    전체화면은 손짓이 있어야 켜져서 팝업 버튼을 누르는 순간에 요청합니다 */
+/* 09-25(재아): 열자마자 묻는 창은 새 탭에 가려 못 봤음 → 이 탭으로 돌아왔을 때 화면 아래에 '다시 전체화면' 단추(네이버 가져오기처럼) */
 async function openSlip(){
   var wasFs = !!document.fullscreenElement;
   window.open((location.pathname.indexOf('/dev/') >= 0 ? '../' : '') + '수기예약지.html', '_blank', 'noopener');
-  if(!wasFs) return;
-  if(await uiConfirm("수기 예약지를 새 탭에 열었습니다", "새 탭이 열리면서 전체화면이 풀립니다.\n인쇄하고 돌아오면 아래 버튼으로 다시 켜세요.", {ok:"다시 전체화면", cancel:"그냥 두기", tone:"ok"})) tryFullscreenForce();
+  if(wasFs) fsBackArm();
+}
+function fsBackArm(){
+  var on = function(){ if(document.visibilityState !== "visible") return; document.removeEventListener("visibilitychange", on); setTimeout(fsBackShow, 300); };
+  document.addEventListener("visibilitychange", on);
+}
+function fsBackShow(){
+  if(document.fullscreenElement || document.querySelector(".fs-back")) return;
+  var b = document.createElement("button"); b.className = "fs-back"; b.type = "button"; b.textContent = "다시 전체화면";
+  b.onclick = function(){ tryFullscreenForce(); b.remove(); };   /* 누르는 손짓이 있어야 전체화면이 켜짐 */
+  document.body.appendChild(b); setTimeout(function(){ if(b.parentNode) b.remove(); }, 30000);
 }
 function toggleFullscreen(){
   try{
@@ -6445,8 +6478,8 @@ function rateChart(endDate, days){
 
   return `
     <div class="legend">
-      <span><i class="sw rb-room"></i>룸 ${st0.roomSeats}개</span>
-      <span><i class="sw rb-hall"></i>테이블 ${st0.hallSeats}개</span>
+      <span><i class="sw rb-room"></i>룸</span>
+      <span><i class="sw rb-hall"></i>테이블</span>
       <span><i class="sw ln total"></i>전체 예약률</span>
     </div>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="예약률 추이">
@@ -6458,7 +6491,7 @@ function rateChart(endDate, days){
       <span>평균 <b>${avg}%</b></span>
       <span>최고 <b>${peak.rate}%</b> (${dateLabel(peak.date)})</span>
       <span>최저 <b>${low.rate}%</b> (${dateLabel(low.date)})</span>
-      <span class="muted">노쇼·취소는 빠진 값입니다</span>
+      <span class="muted">기준 좌석 룸 ${st0.roomSeats} · 테이블 ${st0.hallSeats} · 노쇼·취소는 빠진 값입니다</span>   <!-- 좌석 수를 범례에 두니 예약 수로 읽혔음(09-25 재아) -->
     </div>`;
 }
 
@@ -9685,7 +9718,7 @@ async function hrPinApply(e, label){
   var pin = (e.pinNew || "").trim(); if(!pin) return true;
   if(!/^\d{4}$/.test(pin)){ await uiAlert("PIN은 숫자 4자리여야 합니다", "", "warn"); return false; }
   if(pin !== (e.pinNew2 || "").trim()){ await uiAlert("PIN 확인이 서로 다릅니다", "", "warn"); return false; }
-  var tok = await adminTok("직원 PIN " + (hrPinOf(e.id) ? "변경" : "만들기")); if(!tok) return false;
+  var tok = await pinAdminTok((e.pinAdm || "").trim(), "직원 PIN " + (hrPinOf(e.id) ? "변경" : "만들기")); if(!tok) return false;   /* 워크시프트에 들어올 때와 따로, PIN 을 만들 때마다 2차 PIN(09-25 재아) */
   var cur = hrPinOf(e.id);
   try{
     if(cur) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:cur.id, p_pin:pin, p_base:SUPA_CFG.staffEmail } });
@@ -9967,7 +10000,8 @@ function hrEditHtml(){
     '<label class="f"><div class="lb">이름</div><input type="text" value="' + esc(e.name || "") + '" oninput="hrEditSet(\'name\', this.value)"></label></div>' +
     /* PIN — 새 직원은 여기서 만들고, 있는 직원은 바꿀 때만 넣음(09-25 재아). 번호는 서버에만(bcrypt), 화면·표에는 안 남음 */
     (function(){ var cur = hrPinOf(e.id);
-      return '<div class="grid2"><label class="f"><div class="lb">PIN <span class="lbl-note">' + (cur ? (cur.active === false ? "있음 · 퇴사로 막힘" : "있음 · 바꿀 때만 입력") : "기기에 들어올 때 쓰는 4자리") + '</span></div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="' + (cur ? "••••  (그대로 두기)" : "••••") + '" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
+      return '<div class="hr-pin3"><label class="f"><div class="lb">2차 PIN</div><input type="password" inputmode="numeric" maxlength="6" autocomplete="off" value="' + esc(e.pinAdm || "") + '" oninput="hrEditSet(\'pinAdm\', this.value)"></label>' +
+        '<label class="f"><div class="lb">PIN <span class="lbl-note">' + (cur ? (cur.active === false ? "있음 · 퇴사로 막힘" : "있음 · 바꿀 때만") : "4자리") + '</span></div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="' + (cur ? "그대로 두기" : "••••") + '" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
         '<label class="f"><div class="lb">PIN 확인</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew2 || "") + '" oninput="hrEditSet(\'pinNew2\', this.value)"></label></div>'; })() +
     '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + tab("pay", "급여·퇴직금") + tab("etc", "기타") + '</div>' +
     '<div class="searchbox" style="flex:1; min-height:0; overflow:auto">' + body + '</div>' +
@@ -10406,17 +10440,37 @@ function cdLeave(){
   logEvent("퇴근", day);
   setTimeout(function(){ ov.classList.add("out"); setTimeout(function(){ ov.remove(); view.form = null; lockNow(); }, 450); }, 5500);
 }
+/* ---------- 메뉴판(09-25 재아) — 사장님이 메뉴판을 여러 개 만들고 고치고 PDF·사진으로 뽑는 도구. 방식 확정 뒤 만듦 ---------- */
+function openMenuBoards(){ uiAlert("메뉴판은 만드는 중입니다", "여러 메뉴판(2026 통합, 추석 특별, 외국인용 …)을 만들고 PDF·사진으로 뽑는 화면이 여기 들어옵니다.", "ok"); }
 /* ---------- 예약 내보내기(CSV, 09-20 재아) — 엑셀에서 바로 열림(UTF-8 BOM). 기간은 물어봄 ---------- */
+/* 09-25(재아): 날짜를 글로 치던 두 번 묻기 → 기간 양식. 시작을 비우면 '처음부터', 끝을 비우면 '끝까지' */
+function openExport(){ view.exp = view.exp || { from: shiftDate(todayStr(), -30), to: todayStr() }; view.form = {type:"export", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render(); window.scrollTo(0,0); }   /* 화면형 — 닫으면 사장님 메뉴로 */
+function expList(){ var e = view.exp || {}; return store().reservations.filter(function(r){ return (!e.from || r.date >= e.from) && (!e.to || r.date <= e.to); }); }
+function expPick(k){ uiDate(k === "from" ? "시작일" : "마지막 날", view.exp[k] || "", {clear:true}).then(function(v){ if(v == null) return; view.exp[k] = v; if(view.exp.from && view.exp.to && view.exp.from > view.exp.to){ var t = view.exp.from; view.exp.from = view.exp.to; view.exp.to = t; } render(); }); }
+function expPreset(k){
+  var t = todayStr(), m = t.slice(0, 7), pm = monthStr(new Date(new Date(m + "-01T00:00:00").getTime() - 864e5));
+  view.exp = k === "30" ? {from:shiftDate(t, -30), to:t} : k === "month" ? {from:m + "-01", to:hrMonthEnd(m)} : k === "prev" ? {from:pm + "-01", to:hrMonthEnd(pm)} : {from:"", to:""};
+  render();
+}
+function sheetExport(){
+  var e = view.exp || {}, n = expList().length;
+  var btn = function(k, empty){ return '<button type="button" class="sa-pick" onclick="expPick(\'' + k + '\')">' + (e[k] ? esc(dateLabel(e[k])) : '<span class="muted">' + empty + '</span>') + '</button>'; };
+  return sheetHead("예약 내보내기") +
+    '<div class="grid2"><div class="f"><div class="lb">시작</div>' + btn("from", "처음부터") + '</div><div class="f"><div class="lb">끝</div>' + btn("to", "끝까지") + '</div></div>' +
+    '<div class="btn-row" style="margin:4px 0 10px"><button class="btn sm" onclick="expPreset(\'30\')">최근 30일</button><button class="btn sm" onclick="expPreset(\'month\')">이번 달</button><button class="btn sm" onclick="expPreset(\'prev\')">지난 달</button><button class="btn sm" onclick="expPreset(\'all\')">전체</button></div>' +
+    '<p class="f-note">날짜를 누르면 고르고, 비우면 ' + "'처음부터' · '끝까지'" + ' 입니다. 지금 기간에 예약 <b>' + n + '건</b>.</p>' +
+    '<div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button><button class="btn primary" onclick="exportCsv()"' + (n ? '' : ' disabled') + '>내보내기</button></div>';
+}
 async function exportCsv(){
-  var from = await uiPrompt("예약 내보내기", "시작일 (YYYY-MM-DD)", {value: shiftDate(todayStr(), -30), ok:"다음"}); if(from == null) return;
-  var to = await uiPrompt("예약 내보내기", "마지막 날 (YYYY-MM-DD)", {value: todayStr(), ok:"내보내기"}); if(to == null) return;
-  var list = store().reservations.filter(function(r){ return r.date >= from && r.date <= to; }).sort(function(a,b){ return (a.date + a.time).localeCompare(b.date + b.time); });
+  var e = view.exp || {}, from = e.from || "", to = e.to || "";
+  var list = expList().sort(function(a,b){ return (a.date + a.time).localeCompare(b.date + b.time); });
+  if(!list.length){ await uiAlert("이 기간에는 예약이 없습니다", "", "warn"); return; }
   var head = ["예약번호","날짜","시각","이름","전화","인원","어린이","좌석","상태","경로","코스·세트","요청사항","메모","등록일시"];
   var q = function(v){ v = String(v == null ? "" : v); return '"' + v.replace(/"/g, '""') + '"'; };
   var lines = [head.map(q).join(",")].concat(list.map(function(r){ return [resCode(r), r.date, r.time, r.name, r.phone || "", pplOf(r), r.infants || 0, resSeatLabel(r), r.status, r.source || "", (typeof courseSummary === "function" ? courseSummary(r.courses) : "") || (r.courseUndecided ? "미정" : ""), r.request || "", r.memo || "", r.createdAt || ""].map(q).join(","); }));
   var blob = new Blob(["\ufeff" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
-  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "한옥반점_예약_" + from + "_" + to + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  logEvent("예약 내보내기", from + "~" + to + " " + list.length + "건"); showToast(list.length + "건을 내보냈습니다");
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "한옥반점_예약_" + (from || "처음") + "_" + (to || "끝") + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  logEvent("예약 내보내기", (from || "처음") + "~" + (to || "끝") + " " + list.length + "건"); showToast(list.length + "건을 내보냈습니다");
 }
 function sheetOwner(){
   var item = function(fn, icon, title, sub){ return '<button class="own-it" onclick="' + fn + '">' + icon + '<b>' + title + '</b><small>' + sub + '</small></button>'; };
@@ -10428,6 +10482,7 @@ function sheetOwner(){
     item("openGuestsPage()", ICON.users, "손님 관리", "단골·메모 · 노쇼 관리") +
     item("openMessagesPage()", ICON.sms, "문자 관리", "감사 문자 · 직접 보내기 · 기록") +
     item("openCloseDay()", ICON.home, "퇴근하기", st._closedDay === bizToday() ? "오늘 퇴근 완료" : "방문 처리 · 근무 · 감사 문자 차례로") +
+    item("openRate('owner')", ICON.chart, "예약률 추이", "최근 예약률과 흐름") +   /* 관리 → 사장님 칸으로(09-25 재아) */
     '</div></div><div class="own-section"><h2>설정</h2><div class="own-grid">' +
     item("openOwnerSetting('hours')", ICON.clock, "운영시간", hoursFor(todayStr()).open + " ~ " + hoursFor(todayStr()).close) +
     item("openOwnerSetting('rules')", ICON.rules, "예약 규칙", "단체 " + (st.groupSize||8) + "명") +
@@ -10442,8 +10497,8 @@ function sheetOwner(){
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
     item("openSlip()", ICON.print, "수기 예약지", "전화 예약을 손으로 적는 종이") +
     item("openDevPage()", ICON.sos, "개발자에게", "고칠 것 · 급한 것 글로 남기기") +
-    item("exportCsv()", ICON.download, "예약 내보내기", "엑셀로 여는 CSV") +
-    item("openRate('owner')", ICON.chart, "예약률 추이", "최근 예약률과 흐름") +
+    item("openMenuBoards()", ICON.print, "메뉴판", "메뉴판 만들기 · PDF · 사진") +
+    item("openExport()", ICON.download, "예약 내보내기", "엑셀로 여는 CSV") +
     item("openOwnerSetting('admin')", ICON.key, "보안", "PIN · 2차 PIN · 로그") +
     '</div></div>';
 }
@@ -11205,7 +11260,7 @@ function toastSaved(rec){
 }
 
 function renderSheet(){
-  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
+  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, export:sheetExport, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
   /* 검색은 창 높이를 고정해 두고 결과만 안에서 스크롤 — 칠 때마다 창이 늘었다 줄었다 하지 않게(재아) */
   const wide = view.form.type==="rate" ? " sheet-wide" : ((view.form.type==="search" || (view.form.type==="reqs" && reqPending().length >= 3)) ? " sheet-tall" : "");   /* 홈페이지 예약은 3건부터 높이를 고정하고 목록만 스크롤(재아 09-17). 0~2건이면 빈 상자를 길게 안 보임(검토 D3) */
   if(view.form.page) return `<div class="sheet page-sheet">${inner}</div>`;   /* 화면형: 덮개 없이 본문 자리에 */
@@ -12562,15 +12617,6 @@ async function saveAdminPw(){
 /* 09-20(재아): '사장님 아이디' 대신 사장님 2차 비밀번호(숫자 6자리). 서버 admin 계정 비밀번호 = 6자리+"00".
    아직 옛 비밀번호(자유 문자열)를 쓰는 서버면 그것도 받아 줍니다 — 6자리 → 안 되면 친 그대로 한 번 더 */
 var ADMIN_UNTIL = 0;
-/* 방금 2차 PIN 으로 받은 사장님 토큰(메모리에만, 10분). 워크시프트에서 직원 PIN 을 만들 때 2차 PIN 을 또 묻지 않으려고(09-25 재아).
-   없거나 지났으면 한 번 묻습니다 */
-var ADMIN_TOK = null;
-async function adminTok(what){
-  if(ADMIN_TOK && ADMIN_TOK.until > Date.now()) return ADMIN_TOK.t;
-  const r = await uiPin(what, "2차 PIN", 6); if(!r || !r.code) return null;
-  const t = await pinAdminTok(r.code, what); if(t) ADMIN_TOK = { t:t, until: Date.now() + 10 * 60000 };
-  return t;
-}   /* '10분간 다시 묻지 않기' 를 켜고 맞힌 시각 + 10분 */
 async function adminGate(what){
   if(!supaOn()) return true;
   if(ADMIN_UNTIL > Date.now()) return true;
@@ -12578,7 +12624,7 @@ async function adminGate(what){
   if(r == null) return false;
   if(!r || !r.code) return false;   /* 바깥 누름·취소 */
   const pw = r.code;
-  try{ ADMIN_TOK = { t: await adminAuth(pw), until: Date.now() + 10 * 60000 }; logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
+  try{ await adminAuth(pw); logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
   catch(e){ await uiAlert("2차 PIN 이 다릅니다", "", "warn"); return false; }
 }
 /* 사장님 계정 로그인 — 6자리면 '6자리+00' 먼저, 안 되면 친 그대로(6자리 자체를 비밀번호로 만든 서버도 있음 — 실서비스가 그렇게 만들어짐, 09-24 재아).
