@@ -9434,6 +9434,7 @@ async function hrLoad(){
   try{
     HR.staff = await sb("/rest/v1/staff?store=eq." + key + "&select=*&order=sort,name");
     var cs = await sb("/rest/v1/hr_settings?store=eq." + key + "&select=data"); HR.cfg = cs[0] ? cs[0].data : {};
+    if(typeof pinUsersLoad === "function") await pinUsersLoad();   /* 직원마다 PIN 이 있는지(30차) */
     HR.err = null;
   }catch(e){ HR.err = e.message || String(e); }
   await hrLoadRange();
@@ -9677,9 +9678,28 @@ function hrEditSchedAdd(){ var h = HR.edit.sched_hist, last = h[h.length - 1]; h
 function hrEditSchedDel(i){ if(HR.edit.sched_hist.length > 1){ HR.edit.sched_hist.splice(i, 1); render(); } }
 function hrEditPayAdd(){ var h = HR.edit.pay_hist, last = h[h.length - 1]; h.push({ from: monthStr(new Date(Date.now() + 32 * 864e5)) + "-01", pay:last.pay }); render(); }
 function hrEditPayDel(i){ if(HR.edit.pay_hist.length > 1){ HR.edit.pay_hist.splice(i, 1); render(); } }
+/* 워크시프트 직원의 PIN(30차) — 직원 하나에 PIN 하나. 없으면 null */
+function hrPinOf(id){ return (typeof PIN_USERS !== "undefined" ? PIN_USERS : []).find(function(u){ return u.staff_id === id; }) || null; }
+/* PIN 만들기·바꾸기 — 직원 저장보다 먼저(겹치는 번호면 여기서 멈추고 고칠 수 있게). 성공하면 true */
+async function hrPinApply(e, label){
+  var pin = (e.pinNew || "").trim(); if(!pin) return true;
+  if(!/^\d{4}$/.test(pin)){ await uiAlert("PIN은 숫자 4자리여야 합니다", "", "warn"); return false; }
+  if(pin !== (e.pinNew2 || "").trim()){ await uiAlert("PIN 확인이 서로 다릅니다", "", "warn"); return false; }
+  var tok = await adminTok("직원 PIN " + (hrPinOf(e.id) ? "변경" : "만들기")); if(!tok) return false;
+  var cur = hrPinOf(e.id);
+  try{
+    if(cur) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:cur.id, p_pin:pin, p_base:SUPA_CFG.staffEmail } });
+    else await sb("/rest/v1/rpc/hanok_pin_add", { method:"POST", token:tok, body:{ p_name:label.slice(0, 20), p_pin:pin, p_base:SUPA_CFG.staffEmail, p_staff:e.id } });
+  }catch(err){ await uiAlert("PIN을 저장하지 못했습니다", pinErrKo(err), "warn"); return false; }
+  logEvent(cur ? "PIN 변경" : "PIN 추가", label);
+  return true;
+}
 async function hrStaffSave(){
   var e = HR.edit; if(!e) return;
   if(!(e.name || "").trim() && !(e.nick || "").trim()){ await uiAlert("이름이나 별칭을 적어 주세요", "", "warn"); return; }
+  /* 새 직원인데 PIN 을 안 넣었으면 묻기만(막지 않음 — 기기를 안 쓰는 직원도 있음) */
+  if(e._new && !(e.pinNew || "").trim() && !await uiConfirm("PIN 없이 저장할까요?", "PIN 이 없으면 이 직원 이름으로 기기에 들어올 수 없습니다. 나중에 직원 정보에서 넣을 수 있습니다.", {ok:"PIN 없이 저장", cancel:"PIN 넣기"})) return;
+  if(!await hrPinApply(e, (e.nick || "").trim() || (e.name || "").trim())) return;
   var sh = e.sched_hist.map(function(x){ return { from:x.from || "", days:x.days, spans:x.spans.filter(function(sp){ return sp.start && sp.end; }).map(function(sp){ return {start:sp.start, end:sp.end, break:Number(sp.break || 0)}; }) }; }).sort(function(a, b){ return a.from.localeCompare(b.from); });
   var ph = e.pay_hist.map(function(x){ return { from:x.from || "", pay:Number(x.pay || 0) }; }).sort(function(a, b){ return a.from.localeCompare(b.from); });
   var cur = sh[sh.length - 1], sp0 = cur.spans[0] || {start:"10:00", end:"22:00", break:0};
@@ -9689,14 +9709,14 @@ async function hrStaffSave(){
               start_date:e.start_date || null, end_date:e.end_date || null, memo:(e.memo || "").trim(), active:e.active !== false, sort:Number(e.sort || 0) };
   try{
     await sb("/rest/v1/staff?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
-    logEvent(e._new ? "직원 추가" : "직원 수정", row.nick || row.name);
+    logEvent(e._new ? "직원 추가" : "직원 수정", row.nick || row.name);   /* 퇴사·재직·이름이 바뀌면 서버 트리거가 PIN 도 맞춤(30차) */
     HR.edit = null; HR.loading = true; render(); await hrLoad(); render();
   }catch(err){ await uiAlert("저장 실패", err.message || String(err), "warn"); }
 }
 async function hrStaffRetire(){
   var e = HR.edit; if(!e || e._new) return;
   var goOn = e.active === false;
-  if(!goOn && !await uiConfirm("퇴사 처리할까요?", hrLabel(e) + " 님이 주간표에서 빠집니다(급여에는 퇴사한 달까지 남음). 다시 '재직' 으로 되돌릴 수 있습니다.", {ok:"퇴사 처리", cancel:"취소"})) return;
+  if(!goOn && !await uiConfirm("퇴사 처리할까요?", hrLabel(e) + " 님이 주간표에서 빠지고, PIN 도 막힙니다(급여에는 퇴사한 달까지 남음). 다시 '재직' 으로 되돌리면 PIN 도 다시 됩니다.", {ok:"퇴사 처리", cancel:"취소"})) return;
   e.active = goOn; if(!goOn && !e.end_date) e.end_date = todayStr(); if(goOn) e.end_date = null;
   await hrStaffSave();
 }
@@ -9945,6 +9965,10 @@ function hrEditHtml(){
     sheetHead(e._new ? "직원 추가" : "직원") +
     '<div class="grid2"><label class="f"><div class="lb">별칭 <span class="lbl-note">화면에 먼저 보임</span></div><input type="text" value="' + esc(e.nick || "") + '" placeholder="예: 만두언니" oninput="hrEditSet(\'nick\', this.value)"></label>' +
     '<label class="f"><div class="lb">이름</div><input type="text" value="' + esc(e.name || "") + '" oninput="hrEditSet(\'name\', this.value)"></label></div>' +
+    /* PIN — 새 직원은 여기서 만들고, 있는 직원은 바꿀 때만 넣음(09-25 재아). 번호는 서버에만(bcrypt), 화면·표에는 안 남음 */
+    (function(){ var cur = hrPinOf(e.id);
+      return '<div class="grid2"><label class="f"><div class="lb">PIN <span class="lbl-note">' + (cur ? (cur.active === false ? "있음 · 퇴사로 막힘" : "있음 · 바꿀 때만 입력") : "기기에 들어올 때 쓰는 4자리") + '</span></div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="' + (cur ? "••••  (그대로 두기)" : "••••") + '" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
+        '<label class="f"><div class="lb">PIN 확인</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew2 || "") + '" oninput="hrEditSet(\'pinNew2\', this.value)"></label></div>'; })() +
     '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + tab("pay", "급여·퇴직금") + tab("etc", "기타") + '</div>' +
     '<div class="searchbox" style="flex:1; min-height:0; overflow:auto">' + body + '</div>' +
     '<div class="sheet-actions">' + (e._new ? '' : '<button class="btn ghost ' + (e.active === false ? "" : "danger") + '" onclick="hrStaffRetire()">' + (e.active === false ? "재직으로" : "퇴사") + '</button>') +
@@ -11054,25 +11078,26 @@ async function naverApply(){
 
 function openNoshow(back){ view.form={type:"noshow", page:!!back, back:back||""}; render(); window.scrollTo(0,0); }
 function openSearch(){ view.form={type:"search"}; view.searchGuest=false; view.searchOpen=null; render(); }   /* 열 때는 늘 예약 검색부터 */
-function openPin(){ view.form={type:"pin"}; render(); }
 /* 보안 화면은 들어올 때 2차 PIN 을 이미 물었으므로(설정 열기) 안의 목록·로그는 다시 안 묻습니다(09-25 재아).
    번호를 바꾸거나 추가·삭제할 때만 그 창 안에서 2차 PIN 을 넣습니다 — 서버가 사장님 토큰으로만 받아 줌 */
 async function openPinManage(){ view.form={type:"pinlist"}; render(); await pinUsersLoad(); render(); }
 async function pinUsersLoad(){
   if(!supaOn()) return;
-  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=id,name,email,created_at&order=created_at")) || []; view.pinErr = ""; }
+  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=*&order=created_at")) || []; view.pinErr = ""; }
   catch(e){ view.pinErr = e.status === 404 ? "서버 준비 전(29차)" : (e.network ? "서버에 연결할 수 없습니다" : e.message); }
 }
 function sheetPinList(){
-  const rows = PIN_USERS.map(u=>`<div class="rowitem"><span class="grow"><span class="t">${esc(u.name)}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
-      <button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button></div>`).join("");
+  /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차, 09-25 재아) */
+  const rows = PIN_USERS.map(u=>`<div class="rowitem${u.active === false ? " off" : ""}"><span class="grow"><span class="t">${esc(u.name)} ${u.staff_id ? `<span class="tag">워크시프트</span>` : ""}${u.active === false ? ` <span class="tag rust">퇴사 · 막힘</span>` : ""}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
+      <span class="btn-row"><button class="btn sm" onclick="openPin('${esc(u.id)}')">PIN 바꾸기</button>${u.staff_id ? "" : `<button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button>`}</span></div>`).join("");
   return `
     ${sheetHead("PIN 관리")}
     <div class="rowitem"><span class="grow"><span class="t">공용 PIN <span class="tag pine">사용 중</span></span><span class="s">직원 모두가 쓰는 번호 · 로그에 '공용 PIN' 으로 남음</span></span>
       <button class="btn sm" onclick="openPin()">번호 바꾸기</button></div>
     <div class="subhead" style="margin-top:14px">직원별 PIN</div>
     ${view.pinErr ? `<p class="f-note rust">불러오지 못했습니다: ${esc(view.pinErr)}</p>` : (rows || `<div class="empty">아직 없습니다.</div>`)}
-    <div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openPinAdd()">＋ 직원 PIN 추가</button></div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openPinAdd()">＋ PIN 따로 추가</button></div>
+    <p class="f-note">직원 PIN 은 워크시프트에서 직원을 추가할 때 같이 만듭니다. 여기서는 번호를 바꾸거나, 직원 목록에 없는 사람용 PIN 을 따로 만듭니다. 워크시프트 직원 PIN 은 퇴사 처리하면 자동으로 막힙니다.</p>
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
 function openPinAdd(){ view.form={type:"pinadd"}; render(); }
@@ -11116,7 +11141,7 @@ async function pinDel(id){
   if(!await uiConfirm(u.name + " PIN 을 지울까요?", "지우면 그 번호로는 들어올 수 없습니다.", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
   const r = await uiPin("PIN 삭제", "2차 PIN", 6); if(!r || !r.code) return;
   const tok = await pinAdminTok(r.code, "PIN 삭제"); if(!tok) return;
-  try{ await sb("/rest/v1/rpc/hanok_pin_del", { method:"POST", token:tok, body:{ p_id:id } }); }
+  try{ await sb("/rest/v1/rpc/hanok_pin_del", { method:"POST", token:tok, body:{ p_id:id } }); }   /* 워크시프트 직원 PIN 이면 서버가 거절 */
   catch(e){ await uiAlert("PIN 을 지우지 못했습니다", pinErrKo(e), "warn"); return; }
   logEvent("PIN 삭제", u.name);
   await pinUsersLoad(); render();
@@ -12453,11 +12478,13 @@ async function delOverride(date){
 /* ---------- 공용 PIN 변경 ----------
    09-25(재아): 현재 PIN 은 안 묻고 2차 PIN · 새 PIN · 새 PIN 확인. 보안 화면이 사장님 것이라 현재 PIN 을 몰라도 바꿀 수 있어야 함.
    예전엔 현재 PIN 으로 staff 에 로그인해 그 토큰으로 바꿨는데, 이제는 사장님 토큰으로 서버 함수(hanok_set_staff_pin, 29차)가 바꿈 */
+function openPin(id){ view.form = {type:"pin", target:id || ""}; render(); }
 function sheetPin(){
+  const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null;
   if(!supaOn()) return `${sheetHead("PIN 변경")}<p class="f-note">서버 미연결 빌드에서는 PIN 이 없습니다(아무 번호나 통과). 실서비스 빌드에서 바꿉니다.</p>
     <div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button></div>`;
   return `
-    ${sheetHead("공용 PIN 변경")}
+    ${sheetHead(tg ? esc(tg.name) + " PIN 변경" : "공용 PIN 변경")}
     <label class="f big"><div class="lb">2차 PIN</div>
       <input id="pin-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
     </label>
@@ -12488,13 +12515,16 @@ async function savePin(){
   const adm = g("pin-admin"), a = g("pin-new"), b = g("pin-new2");
   if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
   if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
+  const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null;
   const tok = await pinAdminTok(adm, "PIN 변경"); if(!tok) return;
-  try{ await sb("/rest/v1/rpc/hanok_set_staff_pin", { method:"POST", token:tok, body:{ p_pin:a, p_base:SUPA_CFG.staffEmail } }); }
-  catch(e){ await uiAlert("PIN을 바꾸지 못했습니다", pinErrKo(e), "warn"); return; }
-  pinHashSave(a);
-  logEvent("PIN 변경", "공용 PIN");
-  view.form = {type:"pinlist"}; render();
-  await uiAlert2("공용 PIN이 변경되었습니다.\n다른 기기는 다음 로그인부터 새 PIN 을 씁니다.");
+  try{
+    if(tg) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:tg.id, p_pin:a, p_base:SUPA_CFG.staffEmail } });
+    else await sb("/rest/v1/rpc/hanok_set_staff_pin", { method:"POST", token:tok, body:{ p_pin:a, p_base:SUPA_CFG.staffEmail } });
+  }catch(e){ await uiAlert("PIN을 바꾸지 못했습니다", pinErrKo(e), "warn"); return; }
+  if(!tg) pinHashSave(a);
+  logEvent("PIN 변경", tg ? tg.name : "공용 PIN");
+  view.form = {type:"pinlist"}; await pinUsersLoad(); render();
+  await uiAlert2((tg ? tg.name + " PIN이" : "공용 PIN이") + " 변경되었습니다.\n다음 로그인부터 새 PIN 을 씁니다.");
 }
 /* 2차 PIN 변경 — 사장님 본인 토큰으로. 09-25(재아): '현재 2차 비밀번호' → '2차 PIN', 설명 글 뺌 */
 function sheetAdminPw(){
@@ -12531,7 +12561,16 @@ async function saveAdminPw(){
 /* 관리자 비밀번호 한 번 묻기 — 서버가 없는 빌드는 그냥 통과 */
 /* 09-20(재아): '사장님 아이디' 대신 사장님 2차 비밀번호(숫자 6자리). 서버 admin 계정 비밀번호 = 6자리+"00".
    아직 옛 비밀번호(자유 문자열)를 쓰는 서버면 그것도 받아 줍니다 — 6자리 → 안 되면 친 그대로 한 번 더 */
-var ADMIN_UNTIL = 0;   /* '10분간 다시 묻지 않기' 를 켜고 맞힌 시각 + 10분 */
+var ADMIN_UNTIL = 0;
+/* 방금 2차 PIN 으로 받은 사장님 토큰(메모리에만, 10분). 워크시프트에서 직원 PIN 을 만들 때 2차 PIN 을 또 묻지 않으려고(09-25 재아).
+   없거나 지났으면 한 번 묻습니다 */
+var ADMIN_TOK = null;
+async function adminTok(what){
+  if(ADMIN_TOK && ADMIN_TOK.until > Date.now()) return ADMIN_TOK.t;
+  const r = await uiPin(what, "2차 PIN", 6); if(!r || !r.code) return null;
+  const t = await pinAdminTok(r.code, what); if(t) ADMIN_TOK = { t:t, until: Date.now() + 10 * 60000 };
+  return t;
+}   /* '10분간 다시 묻지 않기' 를 켜고 맞힌 시각 + 10분 */
 async function adminGate(what){
   if(!supaOn()) return true;
   if(ADMIN_UNTIL > Date.now()) return true;
@@ -12539,7 +12578,7 @@ async function adminGate(what){
   if(r == null) return false;
   if(!r || !r.code) return false;   /* 바깥 누름·취소 */
   const pw = r.code;
-  try{ await adminAuth(pw); logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
+  try{ ADMIN_TOK = { t: await adminAuth(pw), until: Date.now() + 10 * 60000 }; logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
   catch(e){ await uiAlert("2차 PIN 이 다릅니다", "", "warn"); return false; }
 }
 /* 사장님 계정 로그인 — 6자리면 '6자리+00' 먼저, 안 되면 친 그대로(6자리 자체를 비밀번호로 만든 서버도 있음 — 실서비스가 그렇게 만들어짐, 09-24 재아).

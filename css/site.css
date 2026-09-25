@@ -223,6 +223,7 @@ html.shot .band{height:580px}
 .plain li:first-child{border-top:1px solid var(--line)}
 .hours div:nth-child(2){padding-bottom:18px; border-bottom:1px solid var(--line)} .hours div:nth-child(3){padding-top:16px}
 .sketch svg{width:100%; height:auto; border:1px solid var(--line); background:var(--bg-2); border-radius:6px}
+.sketch .map-img{display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:6px}   /* 재아가 그린 약도(09-25) — 옛 SVG 와 같은 테두리 */
 .sketch .road{font-family:var(--sans); font-size:13px; font-weight:600; fill:#9A9186; letter-spacing:.02em}
 .sketch .lbl{font-family:var(--sans); font-size:17px; font-weight:700; fill:#fff; letter-spacing:-.01em}
 .sketch .lbl.light{fill:#0E0D0C}
@@ -442,11 +443,14 @@ body.rv-open{overflow:hidden}
 .pop-f input{width:15px; height:15px; margin:0; accent-color:#fff}
 .pop-f .x{background:none; border:0; color:#fff; font:600 13px var(--sans); cursor:pointer; padding:8px 0 8px 16px; letter-spacing:0}
 .pop-f .x:hover{text-decoration:underline; text-underline-offset:3px}
+/* 닫은 팝업은 자리를 그대로 차지한 채 안 보이게 — 지우면 오른쪽 팝업이 왼쪽으로 밀려 옴(09-25 재아). 폰은 위아래로 쌓여서 그냥 뺌 */
+.pop.gone{visibility:hidden; pointer-events:none}
 /* 폰: 위에서부터 차례로 쌓임, 뒤는 어둡게 */
 @media (max-width:760px){
   .pops{display:block; pointer-events:auto; overflow:auto; background:rgba(0,0,0,.6); padding:calc(var(--nav) + 16px) 16px 80px}
   .pop{position:static; width:auto!important; margin:0 auto 14px; max-width:420px}
   .pop-b{padding:24px 22px 20px}
+  .pop.gone{display:none}
   .pop-b img{margin:-24px -22px 0; width:calc(100% + 44px)}   /* 폰 안쪽 여백(24/22)에 맞춤 — 예전 -30px 은 그림이 옆으로 삐져나감 */
 }
 

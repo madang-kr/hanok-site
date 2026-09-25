@@ -92,7 +92,7 @@ window.SITE_READY.then(function(){
       p.querySelector("[data-close]").addEventListener("click", () => {
         const chk = p.querySelector("[data-day]");
         try{ if(chk.checked) localStorage.setItem("hanok-pop-"+chk.dataset.day, ymd); sessionStorage.setItem("hanok-pop-"+chk.dataset.day, "1"); }catch(e){}
-        p.remove(); if(!wrap.querySelector(".pop")) wrap.remove();
+        p.classList.add("gone"); if(!wrap.querySelector(".pop:not(.gone)")) wrap.remove();   /* 자리는 남김(.gone) — 다른 팝업이 움직이지 않게 */
       });
       const rv = p.querySelector("[data-reserve]"); if(rv) rv.addEventListener("click", () => p.querySelector("[data-close]").click());
     });
