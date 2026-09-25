@@ -1667,6 +1667,14 @@ label.chk span{width:auto}
 .sched-when .sw-l{display:block; font-weight:700; font-size:var(--fs-label); color:var(--text-2); margin-bottom:6px}
 .sched-when .sw-note{margin-top:8px; width:100%}
 .sched-when .sw-s{margin-top:6px; font-size:var(--fs-label); color:var(--text-2)}
+.sched-when .sw-s:first-child{margin-top:0}
+/* 구역 제목 오른쪽 '적용 시점 정하기' 체크(09-25) */
+.sched-chk{display:inline-flex; align-items:center; gap:7px; margin-left:12px; vertical-align:middle}
+.sched-chk .sc-box{position:relative; width:20px; height:20px; padding:0; border:1.5px solid var(--border-strong); border-radius:5px; background:var(--surface); cursor:pointer}
+.sched-chk.on .sc-box{background:var(--text); border-color:var(--text)}
+.sched-chk.on .sc-box:after{content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg)}
+.sched-chk .sc-t{border:none; background:none; padding:0; font:inherit; font-size:13.5px; color:var(--text); cursor:pointer}
+.sched-chk.on .sc-t{font-weight:700; text-decoration:underline; text-underline-offset:3px}
 .sched-note{background:#FBF1DC; color:#7A5712; border-radius:10px; padding:8px 12px; margin:0 0 12px; font-weight:600}
 .dev-only{font-weight:500; color:var(--text-3); margin-left:6px; font-size:var(--fs-label)}
 /* ---------- 홈페이지 관리 (14b-site-admin.js) ----------
@@ -3697,11 +3705,10 @@ const DEFAULT_DATA = {
       holidays:[],              /* 사장이 직접 등록하는 공휴일(내장표에 없는 임시공휴일·선거일 등). holidaysOff 는 내장표에서 뺄 날짜 */
       holidaysOff:[],
       holidayAsWeekend:true,    /* 코스 시간대에서 공휴일을 주말로 봄 */
-      /* web·info = 홈페이지 차림 장·예약 창에 보이는 이름·한자·구성(09-25 — 원본은 여기, 홈페이지 관리는 보기만) */
       courseGroups:[
-        {"id": "cg_dinner", "label": "저녁 (종일)", "items": ["오", "촉", "한", "위"], "when": ["종일"], "web": {"title": "저녁 코스 (종일)", "sub": "종일 주문하실 수 있습니다."}, "info": {"오": {"name": "오 코스", "cn": "吳", "dishes": ["게살수프", "사품냉채", "새우 어향가지", "동파육", "유린기", "전가복", "새우쇼마이 & 샤오롱바오", "후식 식사", "디저트음료"]}, "촉": {"name": "촉 코스", "cn": "蜀", "dishes": ["게살수프", "사품냉채", "소고기고추잡채", "팔보채", "탕수육", "깐풍중새우", "새우쇼마이 & 샤오롱바오", "후식 식사", "디저트음료"]}, "한": {"name": "한 코스", "cn": "漢", "dishes": ["게살수프", "사품냉채", "유산슬", "깐풍중새우", "탕수육", "고추잡채", "새우쇼마이 & 샤오롱바오", "후식 식사", "디저트음료"]}, "위": {"name": "위 코스", "cn": "魏", "dishes": ["게살수프", "사품냉채", "유린기", "칠리중새우", "유산슬", "새우쇼마이 & 샤오롱바오", "후식 식사"]}}},
-        {"id": "cg_wdlunch", "label": "평일 점심", "items": ["요리사", "동한", "서한"], "when": ["평일점심"], "web": {"title": "평일 점심세트"}, "info": {"요리사": {"name": "요리사 추천세트", "badge": "BEST", "dishes": ["사품냉채", "유린기", "소고기고추잡채", "깐풍중새우", "샤오롱바오 & 새우쇼마이", "후식 식사", "디저트음료"]}, "동한": {"name": "동한 세트", "dishes": ["깐풍기", "가지튀김", "고추잡채", "유산슬", "샤오롱바오 & 새우만두", "후식 식사"]}, "서한": {"name": "서한 세트", "dishes": ["탕수육", "가지튀김", "고추잡채", "샤오롱바오 & 새우만두", "후식 식사"]}}},
-        {"id": "cg_welunch", "label": "주말 점심", "items": ["요리사", "B", "A"], "when": ["주말점심"], "web": {"title": "주말 점심세트", "sub": "토·일·공휴일"}, "info": {"요리사": {"name": "요리사 추천세트", "badge": "BEST", "dishes": ["사품냉채", "유린기", "소고기고추잡채", "깐풍중새우", "샤오롱바오 & 새우쇼마이", "후식 식사", "디저트음료"]}, "B": {"name": "B 세트", "dishes": ["칠리중새우", "가지튀김", "고추잡채", "탕수육", "샤오롱바오 & 새우만두", "후식 식사"]}, "A": {"name": "A 세트", "dishes": ["크림새우", "가지튀김", "고추잡채", "샤오롱바오 & 새우만두", "후식 식사"]}}}
+        { id:"cg_dinner",  label:"저녁 (종일)", items:["오","촉","한","위"],    when:["종일"] },
+        { id:"cg_wdlunch", label:"평일 점심",   items:["요리사","동한","서한"], when:["평일점심"] },
+        { id:"cg_welunch", label:"주말 점심",   items:["요리사","B","A"],       when:["주말점심"] }
       ],
       specials:[],              /* 특별 기간(명절 한정 코스 등) — 설정 → 코스·세트 아래(09-25) */
       /* ---------- 좌석 (8차, 누님 답) ----------
@@ -5538,15 +5545,23 @@ async function askScheduleOnApply(before, after){
   return true;
 }
 /* 설정 묶음 화면 맨 위 '적용 시점' 줄 — 바로 / 날짜 정해서(예정). 날짜는 내일부터, 끝은 비우면 계속 */
+/* 09-25 재아: 적용 시점은 구역 제목 오른쪽 '적용 시점 정하기' 체크로 — 누르면 기간 팝업, 그냥 닫으면 체크 안 됨.
+   체크된 채로 다시 누르면 해제(= 적용하기 누르면 바로). 날짜 글자를 누르면 다시 고름.
+   본문에는 날짜를 정했을 때·이미 걸린 예정이 있을 때만 한 줄 */
+function schedChkHtml(g){
+  const at = (view.schedAt || {})[g], on = !!(at && at.from);
+  return `<span class="sched-chk${on ? " on" : ""}"><button type="button" class="sc-box" role="checkbox" aria-checked="${on}" aria-label="적용 시점 정하기" onclick="schedChk('${g}')"></button>${on
+    ? `<button type="button" class="sc-t" onclick="schedAtPick('${g}')">${esc(pkRangeText(at.from, at.to))} 적용</button>`
+    : `<button type="button" class="sc-t" onclick="schedChk('${g}')">적용 시점 정하기</button>`}</span>`;
+}
+function schedChk(g){ const at = (view.schedAt || {})[g]; if(at && at.from) schedAtSet(g, null); else schedAtPick(g); }
 function schedWhenHtml(g){
   const at = (view.schedAt || {})[g], on = !!(at && at.from);
   const n = schedFor(g).length;
+  if(!on && !n) return "";
   return `<div class="sched-when">
-    <span class="sw-l">적용 시점</span>
-    <div class="seg"><button class="${on?'':'on'}" onclick="schedAtSet('${g}', null)">적용하기 누르면 바로</button><button class="${on?'on':''}" onclick="schedAtPick('${g}')">${on ? esc(pkRangeText(at.from, at.to)) : "날짜 정해서 (예정)"}</button></div>
-    ${on ? `<input class="sw-note" value="${esc(at.note||"")}" placeholder="메모 (선택)" onchange="(view.schedAt['${g}']||{}).note=this.value">` : ""}
-    ${on ? `<div class="sw-s">이 화면에서 고친 것은 '적용하기' 를 누르면 ${esc(pkShort(at.from))}부터 쓰도록 오른쪽 위 '예정' 에 들어갑니다. 그 전까지는 지금 설정 그대로.</div>` : ""}
-    ${n ? `<div class="sw-s">이미 걸린 예정 ${n}건 — <button class="linkbtn" onclick="openScheduled()">오른쪽 위 '예정' 에서 보기</button></div>` : ""}
+    ${on ? `<div class="sw-s">'적용하기' 를 누르면 ${esc(pkShort(at.from))}부터${at.to ? ` ${esc(pkShort(at.to))}까지` : ""} 쓰도록 예정에 들어갑니다. 그 전까지는 지금 설정 그대로.</div>` : ""}
+    ${n ? `<div class="sw-s">이미 걸린 예정 ${n}건 — <button class="linkbtn" onclick="openScheduled()">보기</button></div>` : ""}
   </div>`;
 }
 function schedAtSet(g, v){ view.schedAt = view.schedAt || {}; if(v) view.schedAt[g] = v; else delete view.schedAt[g]; render(); }
@@ -5554,7 +5569,7 @@ async function schedAtPick(g){
   const cur = (view.schedAt || {})[g] || {};
   const r = await uiRange("언제부터 적용할까요? (끝을 정하면 그 날까지만)", cur.from || shiftDate(todayStr(), 1), cur.to || "", {openEnd:true});
   if(!r || !r.from) return;
-  if(r.from <= todayStr()){ await uiAlert("내일부터 정할 수 있습니다", "오늘부터면 '적용하기 누르면 바로' 를 고르세요.", "warn"); return; }
+  if(r.from <= todayStr()){ await uiAlert("내일부터 정할 수 있습니다", "오늘부터면 체크하지 않고 '적용하기' 를 누르세요.", "warn"); return; }
   schedAtSet(g, {from:r.from, to:r.to || null, note:cur.note || ""});
 }
 /* 오른쪽 위 '예정' 개수 — 예정 설정 + 앞으로 시작할 운영시간 */
@@ -5574,7 +5589,7 @@ function sheetScheduled(){
         <button class="btn sm" onclick="schedApplyNow('${e.id}')">지금 적용</button>
         <button class="btn sm danger" onclick="schedDelete('${e.id}')">삭제</button></div>
     </div>`; }).join("")
-    : `<div class="empty">예정된 설정 변경이 없습니다.<br><span class="s">좌석·예약 규칙·코스 화면 맨 위 '적용 시점' 에서 날짜를 정하고 '적용하기' 를 누르면 여기에 쌓입니다.</span></div>`;
+    : `<div class="empty">예정된 설정 변경이 없습니다.<br><span class="s">좌석·예약 규칙·코스 화면 오른쪽 위 '적용 시점 정하기' 로 날짜를 정하고 '적용하기' 를 누르면 여기에 쌓입니다.</span></div>`;
   const fh = futureHours().map(sc => `<div class="rowitem" style="display:block">
       <div class="t"><b>${esc(dateLabel(sc.from))} 부터</b> <span class="tag">운영시간</span></div>
       <div class="s">새 운영시간 — 설정 → 운영시간 에서 고치거나 지웁니다</div></div>`).join("");
@@ -8451,7 +8466,7 @@ const SET_ICON = { thanks:"spark", site:"site", hours:"clock", rules:"rules", se
 function sec(key, title, extra, inner, help){   /* help: 제목 오른쪽 ⓘ 설명(보안, 09-25 재아) */
   if(view.setSec === key) return `
     <section class="card fold on set-one">
-      <div class="fold-h static"><span class="fh-t">${title}${help ? infoBtn(help) : ""}</span><span class="fh-x">${extra||""}</span></div>
+      <div class="fold-h static"><span class="fh-t">${title}${help ? infoBtn(help) : ""}</span><span class="fh-x">${extra||""}${SCHED_GROUPS[key] ? schedChkHtml(key) : ""}</span></div>
       <div class="fold-b">${infoize(inner)}</div>
     </section>`;
   if(view.setSec) return "";   /* 다른 구역이 열려 있으면 안 그림 */
@@ -8639,7 +8654,6 @@ function renderSettings(){
           ${WHEN_UI.map(w=>`<button class="wbtn ${(g.when||[]).includes(w)||(g.when||[]).includes("종일")?'on':''}" onclick="toggleWhen(${i},'${w}')">${w}</button>`).join("")}
           <button class="btn sm danger" style="margin-left:auto" onclick="delCourseRow(${i})">행 삭제</button>
         </div>
-        ${cgWebHtml(g, i)}
       </div>`).join("")}
     <div class="btn-row" style="margin-top:10px">
       <button class="btn" onclick="addCourseRow()">＋ 행 추가</button>
@@ -8909,10 +8923,7 @@ function toggleHolidayWeekend(){
 function courseSet(){ const st=draft(); if(!st.courseGroups) st.courseGroups=deepClone(DEFAULT_COURSE_GROUPS); return st.courseGroups; }
 function setCourseField(i,f,v){ courseSet()[i][f]=v; render(); }
 function setCourseItems(i,v){
-  const g = courseSet()[i], old = (g.items || []).slice(), nw = v.split(",").map(x=>x.trim()).filter(Boolean);
-  /* 이름만 고친 경우(개수 같음) 홈페이지 정보(g.info)도 같은 자리의 새 이름으로 옮김 — 안 그러면 '오' 를 '오(吳)' 로 고치는 순간 구성이 사라짐 */
-  if(g.info && old.length === nw.length){ const inf = {}; nw.forEach((n, k) => { if(g.info[old[k]]) inf[n] = g.info[old[k]]; else if(g.info[n]) inf[n] = g.info[n]; }); g.info = inf; }
-  g.items = nw; render();
+  courseSet()[i].items = v.split(",").map(x=>x.trim()).filter(Boolean); render();
 }
 /* 적용 시간대 — '종일' 칸은 뺌(넷 다 켜면 종일, 09-25 재아). 옛 자료의 '종일' 은 넷 다 켠 것으로 풀어서 고침 */
 const WHEN_UI = ["평일점심","평일저녁","주말점심","주말저녁"];
@@ -8923,42 +8934,6 @@ function toggleWhen(i,w){
   render();
 }
 function addCourseRow(){ courseSet().push({id:newId("cg"), label:"새 행", items:[], when:[]}); render(); }
-
-/* ---------- 홈페이지 표시(09-25 재아) ----------
-   코스·세트의 원본은 이 설정 하나 — 홈페이지 차림 장과 예약 창이 여기 값을 받아 보여 줍니다(홈페이지 관리에서는 보기만).
-   가게 안에서는 짧은 이름('오' '요리사'), 홈페이지에는 손님이 읽을 이름('오 코스' '요리사 추천세트')·한자·구성.
-   g.web = {title, sub} 묶음 제목 · g.info[짧은 이름] = {name, cn, dishes[], badge} */
-function cgIsLunch(g){ const w = g.when || []; return w.length > 0 && w.indexOf("종일") < 0 && w.indexOf("평일저녁") < 0 && w.indexOf("주말저녁") < 0; }
-function cgWebName(g, it){ const x = (g.info || {})[it] || {}; return x.name || (cgIsLunch(g) ? it + " 세트" : it + " 코스"); }
-function cgWebHtml(g, i){
-  const open = !!(view.cgWeb && view.cgWeb[i]), web = g.web || {}, info = g.info || {};
-  const sum = `${esc(web.title || g.label)}${web.sub ? ` · ${esc(web.sub)}` : ""}`;
-  if(!open) return `<button type="button" class="cg-web-t" onclick="cgWebToggle(${i})"><span>홈페이지 표시</span><small>${sum}</small><i>고치기</i></button>`;
-  return `<div class="cg-web open">
-    <div class="cg-web-h"><b>홈페이지 표시</b><button class="btn sm" onclick="cgWebToggle(${i})">완료</button></div>
-    <div class="grid2">
-      <label class="f"><div class="lb">묶음 제목</div><input value="${esc(web.title || "")}" placeholder="${esc(g.label)}" onchange="setCgWeb(${i},'title',this.value)"></label>
-      <label class="f"><div class="lb">제목 아래 글 <span class="lbl-note">선택</span></div><input value="${esc(web.sub || "")}" placeholder="예: 토·일·공휴일" onchange="setCgWeb(${i},'sub',this.value)"></label>
-    </div>
-    ${(g.items || []).map(it => { const x = info[it] || {}; const k = jsq(it); return `<div class="cg-item">
-      <div class="cg-item-h">${esc(it)}</div>
-      <div class="grid2">
-        <label class="f"><div class="lb">홈페이지 이름</div><input value="${esc(x.name || "")}" placeholder="${esc(cgWebName({when:g.when}, it))}" onchange="setCgInfo(${i},'${k}','name',this.value)"></label>
-        <label class="f"><div class="lb">${cgIsLunch(g) ? "표시 <span class=\"lbl-note\">예: BEST</span>" : "한자 <span class=\"lbl-note\">선택</span>"}</div><input value="${esc((cgIsLunch(g) ? x.badge : x.cn) || "")}" onchange="setCgInfo(${i},'${k}','${cgIsLunch(g) ? "badge" : "cn"}',this.value)"></label>
-      </div>
-      <label class="f big"><div class="lb">구성 <span class="lbl-note">한 줄에 한 가지</span></div><textarea rows="${Math.max(3, (x.dishes || []).length + 1)}" onchange="setCgInfo(${i},'${k}','dishes',this.value)">${esc((x.dishes || []).join("\n"))}</textarea></label>
-    </div>`; }).join("")}
-    <p class="f-note">가격은 홈페이지에 안 나옵니다. 적용하기를 눌러야 홈페이지에도 바뀝니다.</p>
-  </div>`;
-}
-function cgWebToggle(i){ view.cgWeb = view.cgWeb || {}; view.cgWeb[i] = !view.cgWeb[i]; render(); }
-function setCgWeb(i, f, v){ const g = courseSet()[i]; g.web = Object.assign({}, g.web || {}); v = String(v).trim(); if(v) g.web[f] = v; else delete g.web[f]; render(); }
-function setCgInfo(i, it, f, v){
-  const g = courseSet()[i]; g.info = Object.assign({}, g.info || {}); const x = Object.assign({}, g.info[it] || {});
-  if(f === "dishes") x.dishes = String(v).split("\n").map(s => s.trim()).filter(Boolean);
-  else { v = String(v).trim(); if(v) x[f] = v; else delete x[f]; }
-  g.info[it] = x; render();
-}
 
 /* ---------- 특별 기간(09-25 재아) ----------
    명절·크리스마스처럼 그 기간에는 따로 정한 코스만 받는 날. 전에는 홈페이지 관리에서 정했는데, 예약 시스템과 홈페이지가
@@ -9651,8 +9626,8 @@ function saTabOnline(){
     saBox("특별 기간 예약", saSysSpecials(), saGoBtn());   /* '예약 페이지 안내 문구' 는 예약 장을 없애며 뺌(09-25 재아) */
 }
 /* ---------- 예약 시스템에서 받아 보여 주기만(09-25 재아) ----------
-   "메뉴도 예약 시스템에서 바꾸고 홈페이지 관리에서는 열람 정도" — 코스·점심 세트·특별 기간의 원본은 설정 → 코스·세트.
-   홈페이지는 그 값을 공개 뷰(38차 public_screen)에서 바로 읽으므로 여기서 '적용' 할 것이 없음. 설정에서 '적용하기' 하면 바로 홈페이지에도 */
+   특별 기간과 홈페이지 예약 창의 코스 목록은 설정 → 코스·세트가 원본(홈페이지는 공개 뷰 38차 public_screen 에서 바로 읽음).
+   차림 장의 구성(이름·한자·구성)은 여기 차림 탭에서 그대로 — 예약 창은 이름이 같으면 여기 이름·한자로 보여 줌(09-25 재아) */
 function saGoBtn(){ return '<button type="button" class="btn sm" onclick="saGoCourse()">설정에서 고치기</button>'; }
 function saGoCourse(){
   if(saLeaveGuard()) return;   /* 적용 안 한 홈페이지 수정이 있으면 먼저 물음 — 버리면 닫히고, 한 번 더 누르면 감 */
@@ -9660,13 +9635,7 @@ function saGoCourse(){
   var go = function(){ view.setSec = "course"; render(); window.scrollTo(0, 0); };
   if(view.tab !== "settings") setTab("settings").then(function(){ if(view.tab === "settings") go(); }); else go();
 }
-function saSysGroups(){ return (store().settings.courseGroups || DEFAULT_COURSE_GROUPS); }
-function saSysItemHtml(g, it, lunch){
-  var x = (g.info || {})[it] || {};
-  var name = x.name || it + (lunch ? " 세트" : " 코스");
-  return '<div class="sa-ro"><div class="sa-ro-t"><b>' + esc(name) + '</b>' + (x.cn ? '<small>' + esc(x.cn) + '</small>' : '') + (x.badge ? '<span class="tag sm">' + esc(x.badge) + '</span>' : '') + '</div>' +
-    ((x.dishes || []).length ? '<div class="sa-ro-s">' + x.dishes.map(esc).join(" · ") + '</div>' : '<div class="sa-ro-s muted">구성 없음 — 설정 → 코스·세트 → 홈페이지 표시에서 적으세요</div>') + '</div>';
-}
+function saSysNote(){ return '<div class="sa-ro-h"><span>홈페이지 예약 창의 코스는 설정 → 코스·세트를 따릅니다</span>' + saGoBtn() + '</div>'; }
 function saSysSpecials(){
   var list = store().settings.specials || [], today = todayStr();
   var cur = list.filter(function(x){ return !(x.to && x.to < today); });
@@ -9806,13 +9775,6 @@ function saTabMenu(){
   var C = saGet("menu.courses.items") || [], L = saGet("menu.lunch") || [], D = saGet("menu.dishes") || [], DM = saGet("menu.dumplings.items") || [], DR = saGet("menu.drinks") || [];
   var itemLines = function(items, withTag){ return items.map(function(x){ return x.name + (withTag && x.tag ? " | " + x.tag : ""); }); };
   var done = '<button class="btn sm primary" onclick="saCardDone()">완료</button>';
-  /* 코스·점심 세트는 예약 시스템 설정에서 받아 보여 주기만(09-25) — 옛 편집 칸(C·L)은 자료만 남아 있음 */
-  var G = saSysGroups(), GD = G.filter(function(g){ return !cgIsLunch(g); }), GL = G.filter(cgIsLunch);
-  var nD = GD.reduce(function(a, g){ return a + (g.items || []).length; }, 0);
-  var roNote = '<div class="sa-ro-h"><span>예약 시스템 설정 → 코스·세트에서 고칩니다. 적용하면 홈페이지에도 바로 바뀝니다.</span>' + saGoBtn() + '</div>';
-  var coursesRo = roNote + GD.map(function(g){ var w = g.web || {}; return '<div class="sa-ro-g"><b>' + esc(w.title || g.label) + '</b>' + (w.sub ? '<small>' + esc(w.sub) + '</small>' : '') + '</div>' + (g.items || []).map(function(it){ return saSysItemHtml(g, it, false); }).join(""); }).join("");
-  var lunchRo = '<div class="grid2 sa-sechead">' + saF("menuPage.lunch.title", "홈페이지 제목") + saF("menuPage.lunch.sub", "제목 아래 글") + '</div>' + roNote +
-    GL.map(function(g){ var w = g.web || {}; return '<div class="sa-ro-g"><b>' + esc(w.title || g.label) + '</b>' + (w.sub ? '<small>' + esc(w.sub) + '</small>' : '') + '</div>' + (g.items || []).map(function(it){ return saSysItemHtml(g, it, true); }).join(""); }).join("");
   var courses = C.map(function(c, i){ var p = "menu.courses.items." + i + ".";
     return saCard("mc" + i, '<span class="sa-card-t">' + esc(c.name || "(이름 없음)") + '</span><span class="sa-card-s">' + esc(c.cn || "") + ' · 구성 ' + (c.dishes || []).length + '</span>',
       '<div class="grid2">' + saF(p + "name", "이름") + saF(p + "cn", "한자(선택)") + '</div>' + saL(p + "dishes", "구성", "", Math.max(4, (c.dishes || []).length + 1)) +
@@ -9836,8 +9798,9 @@ function saTabMenu(){
   var T = function(k, d){ return saGet("menuPage." + k + ".title") || d; };
   return saBox("차림표 PDF", saFile("info.menuPdf", "", "", true)) +   /* 09-25 재아: 삭제하면 홈페이지 '메뉴판 PDF' 단추·예약 창 링크도 사라짐 */
     '<p class="f-note" style="margin:0 0 12px">가격은 홈페이지에 안 나옵니다.</p>' +
-    saFold("courses", (GD[0] && GD[0].web && GD[0].web.title) || T("courses", "저녁 코스"), nD + "개", coursesRo) +
-    saFold("lunch", T("lunch", "점심 세트"), GL.length + "묶음", lunchRo) +
+    /* 09-25 재아: 차림 장의 구성은 여기서. 홈페이지 예약 창의 코스 목록만 예약 시스템(설정 → 코스·세트)을 따름 — 이름이 같으면 여기 이름·한자로 보임 */
+    saFold("courses", T("courses", "저녁 코스"), C.length + "개", saSysNote() + secHead("courses") + courses + saAdd("saArrAdd('menu.courses.items', {name:'', cn:'', dishes:[]}); SA.open='mc" + C.length + "'; render()", "코스 추가")) +
+    saFold("lunch", T("lunch", "점심 세트"), L.length + "묶음", saSysNote() + secHead("lunch") + lunch + saAdd("saArrAdd('menu.lunch', {title:'', sub:'', items:[]}); SA.open='ml" + L.length + "'; render()", "묶음 추가")) +
     saFold("dishes", T("dishes", "요리"), D.length + "분류", secHead("dishes") + dishes + saAdd("saArrAdd('menu.dishes', {group:'', items:[]}); SA.open='md" + D.length + "'; render()", "분류 추가")) +
     saFold("dump", T("dumplings", "만두"), DM.length + "가지", secHead("dumplings") + saMenuLines("menu.dumplings.items", "메뉴", itemLines(DM), false)) +
     saFold("drinks", T("drinks", "주류"), DR.length + "분류", secHead("drinks") + drinks + saAdd("saArrAdd('menu.drinks', {group:'', items:[]}); SA.open='mr" + DR.length + "'; render()", "분류 추가"));
@@ -11195,7 +11158,7 @@ async function cdLeave(){
 /* 화면은 14i-menu.js */
 /* ---------- 예약 내보내기(CSV, 09-20 재아) — 엑셀에서 바로 열림(UTF-8 BOM). 기간은 물어봄 ---------- */
 /* 09-25(재아): 날짜를 글로 치던 두 번 묻기 → 기간 양식. 시작을 비우면 '처음부터', 끝을 비우면 '끝까지' */
-function openExport(){ view.exp = view.exp || { from: shiftDate(todayStr(), -30), to: todayStr() }; view.form = {type:"export", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render(); window.scrollTo(0,0); }   /* 화면형 — 닫으면 사장님 메뉴로 */
+function openExport(){ view.exp = { from:"", to:"" };   /* 기본은 전체 기간(09-25 재아) — 열 때마다 비운 채로 */ view.form = {type:"export", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render(); window.scrollTo(0,0); }   /* 화면형 — 닫으면 사장님 메뉴로 */
 function expList(){ var e = view.exp || {}; return store().reservations.filter(function(r){ return (!e.from || r.date >= e.from) && (!e.to || r.date <= e.to); }); }
 /* 09-25 재아: 시작·끝을 따로 고르던 것 → 범위 달력 한 번(특별 기간 고르기와 같은 창). '끝 없이' 되고, 지우면 전체 */
 function expPick(){ uiRange("기간 설정", view.exp.from || "", view.exp.to || "", {openEnd:true, openStart:true}).then(function(r){ if(!r) return; view.exp = { from:r.from || "", to:r.to || "" }; render(); }); }
@@ -11207,7 +11170,7 @@ function expPreset(k){
 function sheetExport(){
   var e = view.exp || {}, n = expList().length;
   return sheetHead("예약 내보내기") +
-    '<div class="f"><div class="lb">기간</div><button type="button" class="sa-pick" onclick="expPick()">' + esc((e.from ? dateLabel(e.from) : "처음부터") + " ~ " + (e.to ? dateLabel(e.to) : "끝까지")) + '</button></div>' +
+    '<div class="f"><div class="lb">기간</div><button type="button" class="sa-pick" onclick="expPick()">' + esc(!e.from && !e.to ? "전체 기간" : (e.from ? dateLabel(e.from) : "처음부터") + " ~ " + (e.to ? dateLabel(e.to) : "끝까지")) + '</button></div>' +
     '<div class="btn-row" style="margin:4px 0 10px"><button class="btn sm" onclick="expPreset(\'30\')">최근 30일</button><button class="btn sm" onclick="expPreset(\'month\')">이번 달</button><button class="btn sm" onclick="expPreset(\'prev\')">지난 달</button><button class="btn sm" onclick="expPreset(\'all\')">전체</button></div>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button><button class="btn primary" onclick="exportCsv()"' + (n ? '' : ' disabled') + '>내보내기</button></div>';
 }
@@ -14406,11 +14369,13 @@ function specialGroups(sp, date){
   if(!sp.lunchOff && (sp.lunch || []).length) g.push(grp("l", t + " 점심 세트", sp.lunch, ["평일점심","주말점심"]));
   return g;
 }
-/* 이름 → 평소 코스 키. 짧은 이름('오')이나 홈페이지 이름('오 코스')이 같으면. 둘 이상이면(요리사 = 평일·주말 점심) 그 날(평일/주말)에 맞는 쪽 */
+/* 이름 → 평소 코스 키. 짧은 이름('오')이 같거나, 뒤의 '코스'·'세트'·'추천세트' 를 떼면 같으면('오 코스' · 'A 세트' · '요리사 추천세트').
+   둘 이상이면(요리사 = 평일·주말 점심) 그 날(평일/주말)에 맞는 쪽 */
+function courseShort(n){ return String(n || "").trim().replace(/\s*(코스|세트)$/, "").replace(/\s*추천$/, "").trim(); }
 function regKeyOf(reg, n, we){
   n = String(n || "").trim(); if(!n) return "";
-  const hits = [];
-  reg.forEach(g => (g.items || []).forEach(it => { const x = (g.info || {})[it] || {}; if(it === n || x.name === n || cgWebName(g, it) === n) hits.push({ g, it }); }));
+  const hits = [], sn = courseShort(n);
+  reg.forEach(g => (g.items || []).forEach(it => { if(it === n || it === sn) hits.push({ g, it }); }));
   if(!hits.length) return "";
   const want = (we ? "주말" : "평일") + "점심";
   const h = hits.find(x => (x.g.when || []).indexOf(want) >= 0) || hits[0];

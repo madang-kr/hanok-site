@@ -4,9 +4,8 @@
    서버가 없거나(js/config.js 없음) 느리거나 죽으면 기본값으로 그립니다. 마지막으로 받은 값은 localStorage 에 두고
    다음 방문 때 먼저 씁니다(글이 바뀌어 있어도 깜빡임 없이).
    화면은 값이 정해질 때까지 잠깐 숨깁니다(html.pending — 1.5초 넘으면 그냥 보여줌).
-   ★ 코스·점심 세트·특별 기간은 예약 시스템 설정이 원본(09-25 재아) — 공개 뷰 public_screen(38차)에서 받아
-     차림 장(MENU.courses · MENU.lunch)과 예약 창(SITE.online.special)을 덮습니다. 홈페이지 관리에서는 보기만.
-     받지 못하면(38차 전·서버 죽음) 홈페이지 자료에 있던 값 그대로 */
+   ★ 홈페이지 예약 창의 코스 목록·특별 기간은 예약 시스템 설정이 원본(09-25 재아) — 공개 뷰 public_screen(38차)에서 받음.
+     차림 장은 홈페이지 자료(홈페이지 관리 → 차림) 그대로. 받지 못하면(서버 죽음) 예약 창도 홈페이지 자료로 */
 (function(){
   const preview = /[?&]preview=1/.test(location.search);
   const CACHE = "hanok-site-live";
@@ -17,21 +16,14 @@
     Object.keys(over).forEach(k => { out[k] = (base && typeof base[k] === "object" && !Array.isArray(base[k])) ? merge(base[k], over[k]) : over[k]; });
     return out;
   };
-  /* 예약 시스템의 코스 묶음 → 홈페이지 모양. 저녁/종일 묶음 = 코스, 점심에만 파는 묶음 = 점심 세트.
-     key 'cg:묶음id|짧은 이름' 을 접수에 실어 보내면 예약 시스템이 이름 맞추기 없이 그 코스로 넣습니다(11b reqCourses) */
-  const isLunch = g => { const w = g.when || []; return w.length > 0 && w.indexOf("종일") < 0 && w.indexOf("평일저녁") < 0 && w.indexOf("주말저녁") < 0; };
-  const sysItem = (g, it, lunch) => { const x = (g.info || {})[it] || {}; return { name: x.name || it + (lunch ? " 세트" : " 코스"), cn: x.cn || "", badge: x.badge || "", dishes: x.dishes || [], key: "cg:" + g.id + "|" + it }; };
+  /* 예약 시스템 설정 → 홈페이지 예약 창. 차림 장(MENU)은 홈페이지 자료 그대로 두고,
+     window.SYS_MENU(코스 묶음)와 SITE.online.special(특별 기간)만 예약 시스템 값으로 — 예약 창(reserve.js menuGroups)이 씀.
+     접수 코스 키는 'cg:묶음id|이름' — 예약 시스템이 이름 맞추기 없이 그 코스로 넣습니다(11b reqCourses) */
   const withSys = (S, set) => {
-    if(!set || !Array.isArray(set.courseGroups)) return S;
-    const G = set.courseGroups, dinner = G.filter(g => !isLunch(g)), lunch = G.filter(isLunch);
-    const out = Object.assign({}, S, { menu: Object.assign({}, S.menu), menuPage: Object.assign({}, S.menuPage), online: Object.assign({}, S.online) });
-    out.menu.courses = Object.assign({}, S.menu.courses, { items: dinner.reduce((a, g) => a.concat((g.items || []).map(it => sysItem(g, it, false))), []) });
-    const d0 = dinner[0];
-    if(d0 && d0.web) out.menuPage.courses = Object.assign({}, S.menuPage.courses, { title: d0.web.title || d0.label, sub: d0.web.sub || "" });
-    out.menu.lunch = lunch.map(g => ({ title: (g.web && g.web.title) || g.label, sub: (g.web && g.web.sub) || "", when: g.when || [], items: (g.items || []).map(it => sysItem(g, it, true)) })).filter(g => g.items.length);
-    /* 평소 코스와 이름이 같으면 그 코스의 키·한자로(예약 시스템 specialGroups 와 같은 규칙 — 평일/주말 구분은 시스템이 다시 맞춤) */
-    const reg = n => { let h = null; G.forEach(g => (g.items || []).forEach(it => { if(!h && (it === n || sysItem(g, it, isLunch(g)).name === n)) h = sysItem(g, it, isLunch(g)); })); return h; };
-    const sn = (sp, k, names) => (names || []).map(n => { const r = reg(n), cn = ((sp.info || {})[n] || {}).cn; return { name: n, cn: cn || (r ? r.cn : ""), key: r ? r.key : "cg:sp_" + sp.id + "_" + k + "|" + n }; });
+    window.SYS_MENU = (set && Array.isArray(set.courseGroups)) ? set : null;
+    if(!window.SYS_MENU) return S;
+    const out = Object.assign({}, S, { online: Object.assign({}, S.online) });
+    const sn = (sp, k, names) => (names || []).map(n => ({ name: n, cn: ((sp.info || {})[n] || {}).cn || "", key: "cg:sp_" + sp.id + "_" + k + "|" + n }));   /* 평소 코스와 같은 이름이면 예약 시스템이 평소 코스로 이어 줌 */
     out.online.special = (set.specials || []).filter(sp => sp && sp.from && sp.to).map(sp => ({
       title: sp.title || "", from: sp.from, to: sp.to, note: sp.note || "", open: !!sp.open, openFrom: sp.openFrom || "", openTo: sp.openTo || "",
       lunchOff: !!sp.lunchOff, courses: sn(sp, "d", sp.dinner), lunch: sn(sp, "l", sp.lunch) }));

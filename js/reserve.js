@@ -418,12 +418,22 @@
     return (!sp.openFrom || t >= sp.openFrom) && (!sp.openTo || t <= sp.openTo);
   }
   function lockedOf(date){ return (R().special || []).find(sp => sp && sp.from && sp.to && date >= sp.from && date <= sp.to && !spOpenNow(sp)) || null; }
+  /* 홈페이지 차림에서 예약 시스템 코스 이름('오' · '요리사' · 'B')에 맞는 항목 찾기 — '오 코스' · '요리사 추천세트' · 'B 세트' */
+  const cShort = n => String(n || "").trim().replace(/\s*(코스|세트)$/, "").replace(/\s*추천$/, "").trim();
+  function siteLunchGroup(we){ return (MENU.lunch || []).filter(g => String(g.title || "").indexOf(we ? "주말" : "평일") === 0)[0] || null; }
+  function siteDisp(it, lunch, we){
+    const lg = siteLunchGroup(we);
+    const pool = lunch ? ((lg ? lg.items : []) || []).concat((MENU.lunch || []).reduce((a, g) => a.concat(g.items || []), []))
+                       : (MENU.courses.items || []).concat((MENU.lunch || []).reduce((a, g) => a.concat(g.items || []), []));
+    const n = String(it || "").trim(), sn = cShort(n);
+    return pool.filter(x => x && (x.name === n || cShort(x.name) === n || cShort(x.name) === sn))[0] || null;
+  }
   function menuGroups(){
     const sp = specialOf(S.date);
     if(sp){
       /* 특별 기간도 점심·저녁 차림이 다를 수 있음(09-25 재아): 저녁 코스는 종일, 점심 메뉴는 점심 시간 예약에만 */
       /* 09-25: 예약 시스템에서 온 것은 {name, cn, key}. 옛 홈페이지 자료는 "이름 | 한자" 글 */
-      const row = (x, kind) => { if(x && typeof x === "object") return {key:x.key || kind+":"+x.name, name:x.name, cn:x.cn || ""}; const m = String(x).split("|"); const name = m[0].trim(); return {key:kind+":"+name, name, cn:(m[1]||"").trim()}; };
+      const row = (x, kind) => { if(x && typeof x === "object"){ const d = x.cn ? null : siteDisp(x.name, kind === "set", isWeekend(S.date)); return {key:x.key || kind+":"+x.name, name:x.name, cn:x.cn || (d && d.name === x.name ? d.cn || "" : "")}; } const m = String(x).split("|"); const name = m[0].trim(); return {key:kind+":"+name, name, cn:(m[1]||"").trim()}; };
       const spLunch = sp.lunchOff ? [] : (sp.lunch || []);   /* 점심 세트를 끈 특별 기간(09-25) */
       const dinner = sp.courses || [], lunch = mins(S.time) < LUNCH_END ? spLunch : [], both = spLunch.length > 0, t = sp.title || "특별";
       const g = [];
@@ -431,8 +441,27 @@
       if(lunch.length) g.push({ title: t + " · 점심 세트", items: lunch.map(x => row(x, "set")) });
       if(g.length){ g[0].note = sp.note || ""; return g; }
     }
-    /* 묶음 이름은 홈페이지 관리 → 차림에서 정한 제목을 따름(09-25 — '저녁 코스' 를 '코스' 로 바꿀 수 있게). 비운 묶음은 안 나옴 */
     const MP = (window.SITE && SITE.menuPage) || {};
+    /* 09-25 재아: 예약 창의 코스는 예약 시스템 설정 → 코스·세트를 따름(그 시간대에 파는 묶음만).
+       보이는 이름·한자는 홈페이지 차림에서 같은 코스를 찾아서('오' → '오 코스 吳'), 묶음 제목도 차림 제목 */
+    const SM = window.SYS_MENU;
+    if(SM && (SM.courseGroups || []).length){
+      const we = isWeekend(S.date) || new Date(S.date + "T00:00:00").getDay() === 0, lunchT = mins(S.time) < LUNCH_END;
+      const slot = (we ? "주말" : "평일") + (lunchT ? "점심" : "저녁"), lg = siteLunchGroup(we);
+      const dn = [], ln = [];
+      SM.courseGroups.forEach(g => {
+        const w = g.when || [], items = (g.items || []).filter(Boolean);
+        if(!items.length || (w.length && w.indexOf("종일") < 0 && w.indexOf(slot) < 0)) return;
+        const lunchOnly = w.length > 0 && w.indexOf("종일") < 0 && w.indexOf("평일저녁") < 0 && w.indexOf("주말저녁") < 0;
+        const rows = items.map(it => { const d = siteDisp(it, lunchOnly, we); return { key:"cg:" + g.id + "|" + it, name:d ? d.name : it, cn:d ? (d.cn || "") : "" }; });
+        (lunchOnly ? ln : dn).push({ g, rows, lunchOnly });
+      });
+      /* 저녁(종일) 코스가 먼저 — 비싼 것부터(재아). 첫 저녁 묶음 제목 = 차림 '저녁 코스' 제목, 점심 묶음 = 그 날(평일·주말) 차림 점심 묶음 제목 */
+      return dn.concat(ln).map((x, i) => ({
+        title: x.lunchOnly ? ((lg && lg.title) || x.g.label) : (i === 0 ? ((MP.courses && MP.courses.title) || x.g.label) + ((MP.courses && MP.courses.sub) ? " · " + MP.courses.sub : "") : x.g.label),
+        items: x.rows }));
+    }
+    /* 예약 시스템 값을 못 받았을 때 — 홈페이지 차림 그대로(묶음 이름은 차림 제목, 비운 묶음은 안 나옴) */
     const out = (MENU.courses.items || []).length ? [{ title: ((MP.courses && MP.courses.title) || "저녁 코스") + ((MP.courses && MP.courses.sub) ? " · " + MP.courses.sub : ""), items: MENU.courses.items.map(c => ({key:c.key || "course:"+c.name, name:c.name, cn:c.cn})) }] : [];
     if(mins(S.time) < LUNCH_END && (MENU.lunch || []).length){
       const want = isWeekend(S.date) ? "주말" : "평일";
