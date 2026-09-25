@@ -239,6 +239,7 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}   /* 링크
 .numbig button{width:66px; height:66px; border:1px solid var(--border-strong); background:var(--surface); font-size:var(--fs-num); color:var(--text-2); border-radius:var(--r-sm)}
 .numbig button:disabled{opacity:.35}
 .numbig .nv{min-width:100px; text-align:center; font-size:var(--fs-big); font-weight:700}
+.numbig .nv small{margin-left:6px; font-size:var(--fs-sub); font-weight:600; color:var(--text-3)}   /* 단위(분 안·회부터) — 09-25 숫자 줄 없앤 창 */
 .numgrid{display:grid; grid-template-columns:repeat(6,1fr); gap:var(--s8)}
 .numgrid button{border:1px solid var(--border-strong); background:var(--surface); padding:var(--s12) 0; font-size:var(--fs-body); font-weight:700; color:var(--text); border-radius:var(--r-sm)}
 .numgrid button.on{background:var(--pine); border-color:var(--pine); color:#fff}
@@ -8541,23 +8542,22 @@ function renderSettings(){
 
   /* ---------- 예약 규칙 ---------- */
   const ruleBody = `${schedWhenHtml("rules")}
-    <p class="f-note" style="margin:0 0 12px"><b>점유 시간·접수 마감</b>은 운영시간의 <b>세션</b>(점심/저녁)에서 요일마다 정합니다 (운영시간 → 고치기).</p>
 
     <div class="subhead">인원</div>
     <label class="f"><div class="lb">룸 최소 인원 기준</div>
       <div class="seg"><button class="${st.minCountAdultsOnly!==false?'on':''}" onclick="setPolicy('minCountAdultsOnly',true)">성인만</button><button class="${st.minCountAdultsOnly===false?'on':''}" onclick="setPolicy('minCountAdultsOnly',false)">어린이 포함 총원</button></div></label>
     <label class="f"><div class="lb">단체 기준 인원</div>
-      <button class="numbtn" onclick="openNum('groupSize','단체 기준 인원',2,40)">${st.groupSize||8}<small>명</small></button></label>
+      <button class="numbtn" onclick="openNum('groupSize','단체 기준 인원',2,40,{noGrid:true})">${st.groupSize||8}<small>명</small></button></label>
 
     <div class="subhead">경고 기준</div>
     <label class="f"><div class="lb">예약 충돌 경고</div>
-      <button class="numbtn" onclick="openNum('closeGapMin','같은 좌석에 몇 분 안이면 예약 충돌 경고',10,240,{step:10, def:60})">${st.closeGapMin != null ? st.closeGapMin : 60}<small>분 안</small></button></label>
+      <button class="numbtn" onclick="openNum('closeGapMin','예약 충돌 경고',10,240,{step:10, def:60, noGrid:true, unit:'분 안'})">${st.closeGapMin != null ? st.closeGapMin : 60}<small>분 안</small></button></label>
     <label class="f"><div class="lb">분 단위 예약</div>
       <div class="seg"><button class="${st.minuteSteps!==false?'on':''}" onclick="setSetting('minuteSteps', true)">5분 단위</button><button class="${st.minuteSteps===false?'on':''}" onclick="setSetting('minuteSteps', false)">30분 단위</button></div></label>
     <label class="f"><div class="lb">예약 취소 노쇼 적용 기준</div>
       <div class="seg">${[["none","안 함"],["sameday","당일"],["day1","전날부터"],["day2","이틀 전부터"]].map(([v,l])=>`<button class="${noshowRule(st)===v?'on':''}" onclick="setSetting('noshowCancelRule','${v}')">${l}</button>`).join("")}</div></label>
     <label class="f"><div class="lb">노쇼 경고 기준</div>
-      <button class="numbtn" onclick="openNum('noshowWarnCount','노쇼 몇 회부터 경고',1,10)">${st.noshowWarnCount != null ? st.noshowWarnCount : 1}<small>회부터</small></button></label>`;
+      <button class="numbtn" onclick="openNum('noshowWarnCount','노쇼 경고 기준',1,10,{noGrid:true, unit:'회부터'})">${st.noshowWarnCount != null ? st.noshowWarnCount : 1}<small>회부터</small></button></label>`;
   /* 브레이크타임 방식 설정은 뺌(09-25 재아: 브레이크엔 직원이 쉬니 늘 '매장을 비움' — 브레이크 전에 식사가 끝나야 함) */
 
   /* ---------- 좌석 (8차) ---------- */
@@ -8783,7 +8783,7 @@ function renderSettings(){
   };
   return `<div class="${view.setSec ? "set-open" : "own-grid set-grid"}">
     ${sec("hours","운영시간",`${hoursFor(todayStr()).open} ~ ${hoursFor(todayStr()).close}`, schedBody)}
-    ${sec("rules","예약 규칙",`단체 ${st.groupSize||8}명`, ruleBody)}
+    ${sec("rules","예약 규칙","", ruleBody)}
     ${sec("seats","좌석",`룸 ${st.rooms.filter(isRoom).length} · 테이블 ${st.rooms.filter(isTable).length}`, seatBody)}
     ${sec("course","코스·세트","", courseBody)}
     ${sec("source","예약경로",`${(st.sources||[]).length}개`, srcBody)}
@@ -13236,12 +13236,12 @@ function sheetNum(){
     ${sheetHead(f.title)}
     <div class="numbig">
       <button onclick="numAdj(-1)" ${v<=f.min?"disabled":""}>−</button>
-      <div class="nv">${v}</div>
+      <div class="nv">${v}${f.ctx && f.ctx.unit ? `<small>${esc(f.ctx.unit)}</small>` : ""}</div>
       <button onclick="numAdj(1)" ${v>=f.max?"disabled":""}>＋</button>
     </div>
-    <div class="numgrid">
+    ${f.ctx && f.ctx.noGrid ? "" : `<div class="numgrid">
       ${quick.map(n=>`<button class="${v===n?'on':''}" onclick="numSet(${n})">${n}</button>`).join("")}
-    </div>
+    </div>`}
     <p class="f-note">${f.min} ~ ${f.max} 사이로 정할 수 있습니다.${step!==1?` (${step} 단위)`:""}</p>
     <div class="sheet-actions">
       <button class="btn ghost" onclick="closeSheet()">취소</button>
