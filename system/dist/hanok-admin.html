@@ -2179,6 +2179,12 @@ button.sa-card:hover{border-color:var(--text-3)}
 .dq-kind .f-note{margin:0}
 .dq-photo-h{display:flex; align-items:center; gap:12px; margin-bottom:8px}
 .dq-photo-h .lb{margin:0}
+
+/* 사장님 메뉴 타일의 BETA — 오른쪽 위(09-25) */
+.own-it{position:relative}
+.own-beta{position:absolute; top:10px; right:10px; padding:2px 8px; border-radius:980px; background:var(--text); color:var(--surface); font-size:11px; font-weight:700; letter-spacing:.04em}
+/* 개발자에게 목록: 다섯 건까지 보이고 그 뒤는 안에서 스크롤(09-25 재아) */
+.dq-list{max-height:calc(5 * 72px); overflow-y:auto}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -2250,8 +2256,6 @@ button.sa-card:hover{border-color:var(--text-3)}
 
 /* 09-25 2차: 아이콘 단추 · 페이지 줄 · 고르기 창 · 배경 */
 .ibtn2 svg{width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
-.mb-pagebar{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:-4px 0 var(--s12)}
-.mb-pagebar .muted{font-size:13px; margin-right:4px}
 .mb-sec .btn-row{margin-top:2px}
 .mb-popbox{max-width:420px}
 .mb-popopts{display:flex; flex-direction:column; gap:8px}
@@ -2290,6 +2294,23 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-bgit.def{border-color:var(--text)}
 .mb-bgbtns{display:inline-flex; gap:4px; align-items:center}
 .mb-range{width:100%}
+
+/* 09-25 4차: 기본 알약 · 강조 단추 · 페이지 알약 도구 · 투명도 줄 · BETA */
+.mb-bgit, .mb-popopt{position:relative}
+.mb-defpill{position:absolute; top:6px; right:6px; z-index:1; padding:2px 8px; border-radius:980px; background:var(--text); color:var(--surface); font-size:11px; font-weight:700}
+.mb-bgname{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.mb-popopt b{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.mb-popopt.pri{background:var(--text); border-color:var(--text); color:var(--surface)}
+.mb-chip.on{display:inline-flex; align-items:center; gap:8px; padding-right:6px; cursor:default}
+.mb-chip-tools{display:inline-flex; gap:2px}
+.mb-chip-tools button{width:26px; height:26px; border:0; border-radius:50%; background:rgba(255,255,255,.15); color:inherit; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:0}
+.mb-chip-tools button:disabled{opacity:.3; cursor:default}
+.mb-chip-tools svg{width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+.mb-rangerow{display:flex; align-items:center; gap:10px}
+.mb-rangerow .mb-range{flex:1}
+.mb-rnum{display:inline-flex; align-items:center; gap:4px; font-size:14px}
+.mb-rnum input{width:64px!important; height:32px!important; min-height:32px!important; padding:0 8px!important; text-align:right}
+.mb-beta{vertical-align:3px; margin-left:4px; background:var(--text)!important; color:var(--surface)!important; border-color:var(--text)!important}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -4013,11 +4034,10 @@ function fsBackArm(){
   var on = function(){ if(document.visibilityState !== "visible") return; document.removeEventListener("visibilitychange", on); setTimeout(fsBackShow, 300); };
   document.addEventListener("visibilitychange", on);
 }
+/* 09-25 재아 2차: 아래 작은 단추 말고 네이버 가져오기처럼 창으로. '전체화면' 을 누르는 손짓으로 켬 */
 function fsBackShow(){
-  if(document.fullscreenElement || document.querySelector(".fs-back")) return;
-  var b = document.createElement("button"); b.className = "fs-back"; b.type = "button"; b.textContent = "다시 전체화면";
-  b.onclick = function(){ tryFullscreenForce(); b.remove(); };   /* 누르는 손짓이 있어야 전체화면이 켜짐 */
-  document.body.appendChild(b); setTimeout(function(){ if(b.parentNode) b.remove(); }, 30000);
+  if(document.fullscreenElement) return;
+  uiConfirm("수기 예약지에서 돌아왔습니다", "", {ok:"전체화면으로", cancel:"그대로", tone:"ok"}).then(function(ok){ if(ok) tryFullscreenForce(); });
 }
 function toggleFullscreen(){
   try{
@@ -10700,7 +10720,7 @@ function sheetOwner(){
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
     item("openSlip()", ICON.print, "수기 예약지", "전화 예약을 손으로 적는 종이") +
     item("openDevPage()", ICON.sos, "개발자에게", "고칠 것 · 급한 것 글로 남기기") +
-    item("openMenuBoards()", ICON.menu, "메뉴판", "메뉴판 만들기 · PDF · 사진") +
+    item("openMenuBoards()", ICON.menu, "메뉴판 <span class=\"own-beta\">BETA</span>", "메뉴판 만들기 · PDF · 사진") +
     item("openExport()", ICON.download, "예약 내보내기", "엑셀 파일 · 비밀번호") +
     item("openOwnerSetting('admin')", ICON.key, "보안", "PIN · 2차 PIN · 로그") +
     '</div></div>';
@@ -11170,7 +11190,7 @@ var MB_BG_FLOWER = "bg-flower.jpg?v=0925b";   /* 파일을 바꾸면 v 도 바�
 /* 배경: "flower"(기본) · "none"(흰 바탕) · 올린 배경 id(설정 menuBgs) */
 function mbBg(b){
   var v = b && b.data ? b.data.bg : "";
-  if(!v || v === "default") v = mbBgDefault();   /* 비어 있으면 '기본 배경'(09-25 재아: 기본을 바꿀 수 있게) */
+  if(!v || v === "default") v = "flower";   /* 이미 있는 메뉴판은 기본 배경을 따라가지 않음(09-25 재아) — 비어 있으면 예전처럼 꽃 테두리 */
   if(v === "none") return "";
   if(v && v !== "flower"){ var g = (typeof mbBgs === "function" ? mbBgs() : []).find(function(x){ return x.id === v; }); if(g) return g.url; }
   return mbAbs(mbAsset(MB_BG_FLOWER));
@@ -11274,7 +11294,7 @@ var MB_STYLE_KEYS = { ft:"--mb-ft", fn:"--mb-fn", fd:"--mb-fd", c1:"--mb-c1", c2
 function mbStyleVars(b){
   var st = (b && b.data && b.data.style) || {}, out = "";
   Object.keys(MB_STYLE_KEYS).forEach(function(k){
-    var v = st[k]; if(!v) return;
+    var v = st[k]; if(v == null || v === "") return;   /* 0(투명도 100%)도 값 — 예전엔 0 을 빈 값으로 봐서 100% 가 0% 로 돌아갔음 */
     if(k === "co"){ var n = Math.max(0, Math.min(100, Number(v))); if(!isNaN(n)) out += "--mb-co:" + (n / 100) + ";"; }   /* 페이지 투명도 0~100% */
     else if(k.charAt(0) === "f"){ if(MB_FONT_LIST.some(function(f){ return f[0] === v; })) out += MB_STYLE_KEYS[k] + ":'" + v + "';"; }
     else if(/^#[0-9a-fA-F]{3,8}$/.test(v)) out += MB_STYLE_KEYS[k] + ":" + v + ";";
@@ -11326,52 +11346,57 @@ function mbPopHtml(){
   var p = MB && MB.pop; if(!p) return "";
   return '<div class="overlay" onclick="MB.pop=null; render()"><div class="sheet mb-popbox" onclick="event.stopPropagation()">' + sheetHeadX(p.title, "MB.pop=null; render()") +
     '<div class="mb-popopts' + (p.opts.some(function(o){ return o.img != null; }) ? ' imgs' : '') + '">' + p.opts.map(function(o, i){
-      return '<button class="mb-popopt' + (o.on ? ' on' : '') + '" onclick="mbPopPick(' + i + ')">' + (o.img != null ? '<span class="mb-bgthumb"' + (o.img ? ' style="background-image:url(\'' + esc(o.img) + '\')"' : '') + '></span>' : '') + '<b>' + esc(o.label) + '</b>' + (o.sub ? '<small>' + esc(o.sub) + '</small>' : '') + '</button>';
+      return '<button class="mb-popopt' + (o.on ? ' on' : '') + (o.primary ? ' pri' : '') + '" onclick="mbPopPick(' + i + ')">' + (o.def ? '<span class="mb-defpill">기본</span>' : '') + (o.img != null ? '<span class="mb-bgthumb"' + (o.img ? ' style="background-image:url(\'' + esc(o.img) + '\')"' : '') + '></span>' : '') + '<b>' + esc(o.label) + '</b>' + (o.sub ? '<small>' + esc(o.sub) + '</small>' : '') + '</button>';
     }).join("") + '</div></div></div>';
 }
 /* 창 제목 + 오른쪽 위 × (화면형 안의 창이라 sheetHead 의 × 가 안 나옴) */
 function sheetHeadX(title, onx){ return '<div class="sheet-h"><h2>' + title + '</h2><button class="x" onclick="' + onx + '" aria-label="닫기">×</button></div>'; }
 
-/* ---------- 배경 — 기본 꽃 테두리 · 흰 바탕 · 사장님이 올린 그림(설정 menuBgs) ---------- */
+/* ---------- 배경 ----------
+   꽃 테두리(처음부터 있는 것) · 사장님이 올린 그림(설정 menuBgs) · 흰 바탕("none").
+   기본 배경(menuBgDefault) = 새로 만드는 메뉴판에 처음 넣는 배경일 뿐 — 이미 있는 메뉴판은 자기 배경(data.bg)을 그대로(09-25 재아).
+   기본을 한 번 더 누르면 해제 → 새 메뉴판은 흰 바탕. 삭제는 목록에서만 숨김 — 그 배경을 쓰던 메뉴판은 그대로 보임 */
 function mbBgs(){ var st = store().settings; return Array.isArray(st.menuBgs) ? st.menuBgs : []; }
-function mbBgDefault(){ var st = store().settings; return st.menuBgDefault || "flower"; }
-/* 배경 목록 — 기본이 맨 앞, 나머지는 새로 올린 것부터(09-25 재아). 꽃 테두리는 늘 있음(지우기 없음) */
+function mbFlowerOn(){ return !store().settings.menuBgFlowerOff; }
+function mbFlowerName(){ return store().settings.menuBgFlowerName || "꽃 테두리"; }
+function mbBgDefault(){ var d = store().settings.menuBgDefault; return d == null || d === "" ? "flower" : d; }
+function mbBgSaveSettings(keys){ if(typeof mirrorDraft === "function") keys.forEach(function(k){ mirrorDraft(k); }); saveData(); render(); }
+/* 목록 순서: 기본이 맨 앞, 나머지는 새로 올린 것부터 */
 function mbBgAll(){
-  var list = [{ v:"flower", label:"꽃 테두리", img:mbAbs(mbAsset(MB_BG_FLOWER)), builtin:true }]
-    .concat(mbBgs().slice().reverse().map(function(g){ return { v:g.id, label:g.name || "올린 배경", img:g.url }; }));
+  var list = (mbFlowerOn() ? [{ v:"flower", label:mbFlowerName(), img:mbAbs(mbAsset(MB_BG_FLOWER)) }] : [])
+    .concat(mbBgs().filter(function(g){ return !g.hidden; }).slice().reverse().map(function(g){ return { v:g.id, label:g.name || "올린 배경", img:g.url }; }));
   var def = mbBgDefault(), i = list.findIndex(function(o){ return o.v === def; });
   if(i > 0) list.unshift(list.splice(i, 1)[0]);
-  return list;
+  return list.concat([{ v:"none", label:"흰 바탕", img:"", plain:true }]);
 }
-function mbBgOpts(cur){
-  var def = mbBgDefault();
-  return mbBgAll().map(function(o){ return Object.assign({}, o, { label:o.label + (o.v === def ? " (기본)" : ""), on:(cur || def) === o.v || (!cur && o.v === def) }); })
-    .concat([{ v:"none", label:"흰 바탕", img:"", on:cur === "none" }]);
-}
-/* 편집에서 고르기 — 기본 배경을 고르면 '기본을 따름'(나중에 기본을 바꾸면 같이 바뀜) */
-function mbPickBg(){ var b = mbCur(); if(!b) return; mbPop("배경 변경", mbBgOpts(b.data.bg), function(v){ b.data.bg = v === mbBgDefault() ? "" : v; mbTouch(); render(); }); }
+/* '기본' 은 이름 뒤가 아니라 카드 오른쪽 위 알약(이름이 길면 줄이 늘어서, 09-25 재아) */
+function mbBgOpts(cur){ var def = mbBgDefault(); return mbBgAll().map(function(o){ return Object.assign({}, o, { def:o.v === def, on:cur === o.v }); }); }
+function mbPickBg(){ var b = mbCur(); if(!b) return; mbPop("배경 변경", mbBgOpts(b.data.bg || "flower"), function(v){ b.data.bg = v; mbTouch(); render(); }); }
 function mbBgSetDefault(id){
-  var st = store().settings; st.menuBgDefault = id; if(typeof mirrorDraft === "function") mirrorDraft("menuBgDefault"); saveData();
-  logEvent("메뉴판 기본 배경", id); render();
+  var st = store().settings, now = mbBgDefault() === id && id !== "none";
+  st.menuBgDefault = now ? "none" : id;   /* 기본을 한 번 더 누르면 해제 → 흰 바탕 */
+  logEvent("메뉴판 기본 배경", st.menuBgDefault); mbBgSaveSettings(["menuBgDefault"]);
 }
 function mbBgAdd(){
   saPickFile("image", function(u){
     var st = store().settings, a = mbBgs().slice(); a.push({ id:newId("bg"), url:u, name:"배경 " + (a.length + 1) });
-    st.menuBgs = a; if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); logEvent("메뉴판 배경 추가", u.split("/").pop()); render();
+    st.menuBgs = a; logEvent("메뉴판 배경 추가", u.split("/").pop()); mbBgSaveSettings(["menuBgs"]);
   });
 }
 async function mbBgRename(id){
-  var g = mbBgs().find(function(x){ return x.id === id; }); if(!g) return;
-  var n = await uiPrompt("배경 이름", "", {value:g.name || "", ok:"바꾸기"}); if(n == null) return;
-  var st = store().settings; st.menuBgs = mbBgs().map(function(x){ return x.id === id ? Object.assign({}, x, { name:String(n).trim() || x.name }) : x; });
-  if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); render();
+  var st = store().settings, cur = id === "flower" ? mbFlowerName() : ((mbBgs().find(function(x){ return x.id === id; }) || {}).name || "");
+  var n = await uiPrompt("배경 이름", "", {value:cur, ok:"바꾸기"}); if(n == null) return; n = String(n).trim(); if(!n) return;
+  if(id === "flower"){ st.menuBgFlowerName = n; mbBgSaveSettings(["menuBgFlowerName"]); return; }
+  st.menuBgs = mbBgs().map(function(x){ return x.id === id ? Object.assign({}, x, { name:n }) : x; }); mbBgSaveSettings(["menuBgs"]);
 }
 async function mbBgDel(id){
-  var g = mbBgs().find(function(x){ return x.id === id; }); if(!g) return;
-  var used = MB.list.filter(function(b){ return b.data && b.data.bg === id; }).map(function(b){ return b.name; });
-  if(!await uiConfirm("이 배경을 지울까요?", used.length ? "쓰고 있는 메뉴판(" + used.join(", ") + ")은 기본 배경으로 바뀝니다." : "", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
-  var st = store().settings; st.menuBgs = mbBgs().filter(function(x){ return x.id !== id; }); if(st.menuBgDefault === id) st.menuBgDefault = "flower";
-  if(typeof mirrorDraft === "function"){ mirrorDraft("menuBgs"); mirrorDraft("menuBgDefault"); } saveData(); render();
+  var used = MB.list.filter(function(b){ return (b.data && (b.data.bg || "flower")) === id; }).map(function(b){ return b.name; });
+  if(!await uiConfirm("이 배경을 목록에서 지울까요?", used.length ? "쓰고 있는 메뉴판(" + used.join(", ") + ")은 지금 배경을 그대로 씁니다." : "", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
+  var st = store().settings, keys = [];
+  if(id === "flower"){ st.menuBgFlowerOff = true; keys.push("menuBgFlowerOff"); }
+  else { st.menuBgs = mbBgs().map(function(x){ return x.id === id ? Object.assign({}, x, { hidden:true }) : x; }); keys.push("menuBgs"); }   /* 쓰던 메뉴판이 깨지지 않게 주소는 남김 */
+  if(mbBgDefault() === id){ st.menuBgDefault = "none"; keys.push("menuBgDefault"); }
+  logEvent("메뉴판 배경 삭제", id); mbBgSaveSettings(keys);
 }
 
 /* ---------- 목록 화면 ---------- */
@@ -11396,16 +11421,16 @@ function sheetMenus(){
         '<div class="btn-row"><button class="btn sm primary" onclick="mbOpen(\'' + esc(b.id) + '\')">열기</button><button class="btn sm" onclick="mbCopy(\'' + esc(b.id) + '\')">복제</button><button class="btn sm ghost danger" onclick="mbDel(\'' + esc(b.id) + '\')">삭제</button></div></div></div>';
     }).join("") + '</div>';
   /* 배경 관리(09-25 재아: 목록에서 배경을 올려 두고 편집에서 골라 씀) */
-  /* 배경 줄(09-25 재아): '배경 추가' 가 맨 앞, 그다음 기본, 새로 올린 것부터. 한 줄로 좌우 스크롤. 단추는 기본 · 수정 · 삭제 */
-  var def = mbBgDefault();
+  /* 배경 줄(09-25 재아): '배경 추가' 가 맨 앞, 그다음 기본, 새로 올린 것부터, 끝에 흰 바탕. 한 줄 좌우 스크롤.
+     '기본' 은 카드 오른쪽 위 알약. 단추는 기본(다시 누르면 해제) · 수정 · 삭제 */
   var bgs = '<div class="subhead" style="margin-top:22px">배경</div><div class="mb-bglist">' +
     '<button class="mb-bgit add" onclick="mbBgAdd()"><span class="mb-bgthumb"></span><small>＋ 배경 추가</small></button>' +
-    mbBgAll().map(function(o){ var isDef = o.v === def;
-      return '<div class="mb-bgit' + (isDef ? ' def' : '') + '"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' +
-        '<span class="mb-bgbtns"><button class="btn sm' + (isDef ? ' primary' : ' ghost') + '" onclick="mbBgSetDefault(\'' + esc(o.v) + '\')"' + (isDef ? ' disabled' : '') + '>기본</button>' +
-        (o.builtin ? '' : '<button class="ibtn2" onclick="mbBgRename(\'' + esc(o.v) + '\')" aria-label="이름 수정" title="이름 수정">' + ICON.edit + '</button><button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제" title="삭제">' + ICON.trash + '</button>') + '</span></div>';
+    mbBgOpts("").map(function(o){
+      return '<div class="mb-bgit' + (o.def ? ' def' : '') + '">' + (o.def ? '<span class="mb-defpill">기본</span>' : '') + '<span class="mb-bgthumb"' + (o.img ? ' style="background-image:url(\'' + esc(o.img) + '\')"' : '') + '></span><small class="mb-bgname">' + esc(o.label) + '</small>' +
+        '<span class="mb-bgbtns"><button class="btn sm' + (o.def ? ' primary' : ' ghost') + '" onclick="mbBgSetDefault(\'' + esc(o.v) + '\')" title="' + (o.def ? '기본 해제' : '새 메뉴판의 기본 배경으로') + '">기본</button>' +
+        (o.plain ? '' : '<button class="ibtn2" onclick="mbBgRename(\'' + esc(o.v) + '\')" aria-label="이름 수정" title="이름 수정">' + ICON.edit + '</button><button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제" title="삭제">' + ICON.trash + '</button>') + '</span></div>';
     }).join("") + '</div>';
-  return '<div class="sheet-h mb-listh"><h2>메뉴판</h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
+  return '<div class="sheet-h mb-listh"><h2>메뉴판 <span class="tag sm mb-beta">BETA</span></h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
     (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
     body +
     (MB && !MB.loading && !MB.err ? bgs : '') + mbPopHtml();
@@ -11413,11 +11438,11 @@ function sheetMenus(){
 async function mbAdd(){
   var name = await uiPrompt("메뉴판 추가", "이름 — 추석 특별 메뉴판, 외국인 메뉴판 등", {value:"", ok:"만들기"}); if(name == null) return;
   name = String(name).trim() || "새 메뉴판";
-  try{ var b = await mbInsert(name, { bg:"", pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
+  try{ var b = await mbInsert(name, { bg:mbBgDefault(), pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
   catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
 }
 async function mbSeed(){
-  try{ var b = await mbInsert("2026 통합 메뉴표", deepClone(MB_SEED)); logEvent("메뉴판 추가", b.name + "(지금 메뉴표)"); mbOpen(b.id); }
+  try{ var sd = deepClone(MB_SEED); sd.bg = mbBgDefault(); var b = await mbInsert("2026 통합 메뉴표", sd); logEvent("메뉴판 추가", b.name + "(지금 메뉴표)"); mbOpen(b.id); }
   catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
 }
 async function mbCopy(id){
@@ -11451,7 +11476,7 @@ function mbOpen(id){
 function mbBack(){
   var go = function(){ MB.edit = null; MB.dirty = false; MB.pop = null; view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0); };
   if(!MB || !MB.dirty) return go();
-  mbPop("저장하지 않은 변경이 있습니다", [{ v:"save", label:"저장하고 나가기" }, { v:"drop", label:"저장하지 않고 나가기" }], async function(v){ if(v === "save"){ if(await mbSave()) go(); } else go(); });
+  mbPop("저장하지 않은 변경이 있습니다", [{ v:"save", label:"저장하고 나가기", primary:true }, { v:"drop", label:"저장하지 않고 나가기" }], async function(v){ if(v === "save"){ if(await mbSave()) go(); } else go(); });
 }
 function mbNewPage(kind){
   return { id:newId("pg"), title:"", sub:"", foot:"", scale:100, sections:[{ title:"", kind:kind, items:[mbNewItem(kind)] }] };
@@ -11505,7 +11530,7 @@ function mbKind(si, k){
 function mbPriceAdd(si, ii){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; (it.prices = it.prices || []).push({label:"", price:""}); mbTouch(); render(); }
 function mbPriceDel(si, ii, pi){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; it.prices.splice(pi, 1); mbTouch(); render(); }
 function mbPick(i){ MB.page = i; render(); }
-function mbScale(d){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.scale = Math.max(70, Math.min(130, (Number(pg.scale) || 100) + d)); mbTouch(); render(); }
+function mbScale(d){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.scale = d === 0 ? 100 : Math.max(70, Math.min(130, (Number(pg.scale) || 100) + d)); mbTouch(); render(); }   /* 0 = 100%로 되돌리기 */
 
 /* 입력칸 한 개 — 고칠 때마다 미리보기만 다시 그림(전체를 다시 그리면 입력 중 커서가 튐). 안내 글은 '~ 등' 꼴(09-25 재아) */
 function mbIn(path, v, label, opt){
@@ -11540,7 +11565,17 @@ function sheetMenu(){
   var d = b.data = b.data || {}; d.pages = d.pages || [];
   if(!d.pages.length) d.pages.push(mbNewPage("dish"));
   var pi = Math.min(MB.page || 0, d.pages.length - 1), pg = d.pages[pi]; MB.page = pi;
-  var chips = '<button class="mb-chip add" onclick="mbAddPage()">＋ 페이지</button>' + d.pages.map(function(p, i){ return '<button class="mb-chip' + (i === pi ? ' on' : '') + '" onclick="mbPick(' + i + ')">' + (i + 1) + '. ' + esc(p.title || "(제목 없음)") + '</button>'; }).join("");   /* '+ 페이지' 맨 앞, 한 줄 좌우 스크롤(09-25 재아) */
+  /* '+ 페이지' 맨 앞, 한 줄 좌우 스크롤. 고른 페이지 알약에 앞으로·뒤로·복제·삭제 아이콘(09-25 재아) */
+  var n = d.pages.length;
+  var chips = '<button class="mb-chip add" onclick="mbAddPage()">＋ 페이지</button>' + d.pages.map(function(p, i){
+    var t = (i + 1) + '. ' + esc(p.title || "(제목 없음)");
+    if(i !== pi) return '<button class="mb-chip" onclick="mbPick(' + i + ')">' + t + '</button>';
+    return '<span class="mb-chip on"><b>' + t + '</b><span class="mb-chip-tools">' +
+      '<button onclick="mbArr(\'pages\', \'up\', ' + i + ')"' + (i ? '' : ' disabled') + ' aria-label="앞으로" title="앞으로">◀</button>' +
+      '<button onclick="mbArr(\'pages\', \'down\', ' + i + ')"' + (i < n - 1 ? '' : ' disabled') + ' aria-label="뒤로" title="뒤로">▶</button>' +
+      '<button onclick="mbArr(\'pages\', \'dup\', ' + i + ')" aria-label="페이지 복제" title="페이지 복제">' + ICON.copy + '</button>' +
+      '<button onclick="mbArrDel(\'pages\', ' + i + ', \'이 페이지\')"' + (n > 1 ? '' : ' disabled') + ' aria-label="페이지 삭제" title="페이지 삭제">' + ICON.trash + '</button></span></span>';
+  }).join("");
   var secs = (pg.sections || []).map(function(s, si){
     var sp = "pages." + pi + ".sections." + si, n = (pg.sections || []).length;
     return '<div class="mb-sec"><div class="mb-sec-h">' +
@@ -11557,12 +11592,10 @@ function sheetMenu(){
       '<span class="mb-stat" id="mb-stat">' + mbStatusText() + '</span>' +
       '<span class="btn-row"><button class="btn sm" onclick="mbPrint()">PDF로 저장</button><button class="btn sm" onclick="mbPng()">사진으로 저장</button><button class="btn sm primary" onclick="mbSave()">저장</button></span></div>' +
     '<div class="mb-chips">' + chips + '</div>' +
-    /* 페이지 순서·복제·삭제는 제목 칸과 떨어진 따로 한 줄(09-25 재아) */
-    '<div class="mb-pagebar"><span class="muted">' + (pi + 1) + '장</span><button class="btn sm ghost" onclick="mbArr(\'pages\', \'up\', ' + pi + ')"' + (pi ? '' : ' disabled') + '>◀ 앞으로</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'down\', ' + pi + ')"' + (pi < d.pages.length - 1 ? '' : ' disabled') + '>뒤로 ▶</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'dup\', ' + pi + ')">페이지 복제</button><button class="btn sm ghost danger" onclick="mbArrDel(\'pages\', ' + pi + ', \'이 페이지\')"' + (d.pages.length > 1 ? '' : ' disabled') + '>페이지 삭제</button></div>' +
     '<div class="mb-grid"><div class="mb-form">' +
       '<div class="mb-pagebox"><div class="mb-g2">' + mbIn("pages." + pi + ".title", pg.title, "페이지 제목", {ph:"요리메뉴 등", change:true}) + mbIn("pages." + pi + ".sub", pg.sub, "페이지 부제목", {ph:"(오전 11:00 - 오후 3:30) 등"}) + '</div>' +
         mbIn("pages." + pi + ".foot", pg.foot, "페이지 하단", {area:true, rows:2, ph:"한옥반점의 만두는 매장에서 직접 빚습니다 등"}) +
-        '<span class="mb-scale">글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button></span></div>' +
+        '<span class="mb-scale">페이지 글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button><button class="ibtn2" onclick="mbScale(0)" aria-label="100%로" title="100%로">' + ICON.refresh + '</button></span></div>' +
       secs +
     '</div><div class="mb-side"><div class="mb-prev-h"><b>' + (pi + 1) + ' / ' + d.pages.length + '</b><span id="mb-over" class="tag rust sm" style="display:none">한 장을 넘칩니다 — 글씨를 줄이거나 페이지를 나누세요</span></div><div class="mb-prev" id="mb-prev"></div></div></div>' +
     (MB.styleOpen ? mbStylePop(b, pg) : '') + mbPopHtml();
@@ -11575,7 +11608,7 @@ var MB_SWATCH = ["#A8733A", "#8C2F2F", "#B3402A", "#2F5D4A", "#2B4C7E", "#7E5A7B
 function mbSetStyleLive(k, v, el){
   var b = mbCur(); if(!b) return; b.data.style = b.data.style || {}; b.data.style[k] = v; mbTouch();
   var pv = document.querySelector(".mb-stylepv"); if(pv) pv.innerHTML = mbPageHtml(b, b.data.pages[MB.page], 0.34);
-  if(el){ var n = el.parentNode.querySelector(".lbl-note"); if(n) n.textContent = (100 - v) + "%"; }
+  if(el){ var row = el.closest(".mb-rangerow"); if(row) row.querySelectorAll("input").forEach(function(x){ if(x !== el) x.value = 100 - v; }); }
 }
 function mbSetStyle(k, v){ var b = mbCur(); if(!b) return; b.data.style = b.data.style || {}; b.data.style[k] = v; mbTouch(); render(); }
 function mbStyleReset(){ var b = mbCur(); if(!b) return; b.data.style = {}; mbTouch(); render(); }
@@ -11583,7 +11616,7 @@ function mbStyleReset(){ var b = mbCur(); if(!b) return; b.data.style = {}; mbTo
 function mbStylePop(b, pg){
   return '<div class="overlay" onclick="MB.styleOpen=false; render()"><div class="sheet sheet-wide mb-stylepop" onclick="event.stopPropagation()">' + sheetHeadX("꾸미기", "MB.styleOpen=false; render()") +
     '<div class="mb-stylegrid">' + mbStyleHtml(b.data) + '<div class="mb-stylepv">' + mbPageHtml(b, pg, 0.34) + '</div></div>' +
-    '<div class="sheet-actions"><button class="btn ghost" onclick="mbStyleReset()">기본으로</button><button class="btn primary" onclick="MB.styleOpen=false; render()">완료</button></div></div></div>';
+    '<div class="sheet-actions"><button class="btn ghost" onclick="mbStyleReset()">초기화</button><button class="btn primary" onclick="MB.styleOpen=false; render()">완료</button></div></div></div>';
 }
 function mbStyleHtml(d){
   var st = Object.assign({}, MB_STYLE_DEF, d.style || {});
@@ -11595,8 +11628,9 @@ function mbStyleHtml(d){
   return '<div class="mb-style">' +
     '<div class="mb-g3">' + font("ft", "제목 글꼴") + font("fn", "이름·가격 글꼴") + font("fd", "설명 글꼴") + '</div>' +
     color("c1", "제목·강조 색") + color("ci", "이름·가격 색") + color("c3", "설명 색") + color("c2", "선 색") + color("cb", "카드 테두리 색") +
-    /* 흰 페이지 칸을 비치게 — 배경 그림이 뒤로 보이게(09-25 재아) */
-    '<div class="f mb-f"><div class="lb">페이지 투명도 <span class="lbl-note">' + (100 - (d.style && d.style.co != null ? Number(d.style.co) : 100)) + '%</span></div><input type="range" class="mb-range" min="0" max="100" step="5" value="' + (100 - (d.style && d.style.co != null ? Number(d.style.co) : 100)) + '" oninput="mbSetStyleLive(\'co\', 100 - Number(this.value), this)" onchange="render()"></div></div>';
+    /* 흰 페이지 칸을 비치게 — 배경 그림이 뒤로 보이게(09-25 재아). 막대 오른쪽 숫자 칸에서도 바꿈 */
+    '<div class="f mb-f"><div class="lb">페이지 투명도</div><div class="mb-rangerow"><input type="range" class="mb-range" min="0" max="100" step="5" value="' + (100 - (d.style && d.style.co != null && d.style.co !== "" ? Number(d.style.co) : 100)) + '" oninput="mbSetStyleLive(\'co\', 100 - Number(this.value), this)" onchange="render()">' +
+    '<label class="mb-rnum"><input type="number" min="0" max="100" step="1" value="' + (100 - (d.style && d.style.co != null && d.style.co !== "" ? Number(d.style.co) : 100)) + '" oninput="mbSetStyleLive(\'co\', 100 - Math.max(0, Math.min(100, Number(this.value) || 0)), this)" onchange="render()">%</label></div></div></div>';
 }
 
 /* ---------- 내보내기 — 지금 화면의 내용 그대로(저장 안 했어도) ---------- */
