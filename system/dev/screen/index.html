@@ -2219,17 +2219,35 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-f textarea{width:100%; resize:vertical}
 .mb-g2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
 .mb-g3{display:grid; grid-template-columns:1.2fr .8fr 1.2fr; gap:8px}
-.mb-g4{display:grid; grid-template-columns:1.4fr .8fr .6fr .9fr; gap:8px}
-@media (max-width:640px){ .mb-g3, .mb-g4{grid-template-columns:1fr 1fr} }
+.mb-g3c{display:grid; grid-template-columns:1.4fr .8fr 1fr; gap:8px}
+@media (max-width:640px){ .mb-g3, .mb-g3c{grid-template-columns:1fr 1fr} }
 .mb-pr{display:grid; grid-template-columns:1fr 130px 34px; gap:6px; margin-bottom:6px; align-items:center}
-.mb-addsec{align-items:center; margin:4px 0 var(--s12)}
-.mb-bg{display:flex; align-items:center; gap:10px; margin-top:4px}
 /* 한 줄 높이 맞춤(audit_rows 09-25): 윗줄 단추·이름 칸, 가격 줄 입력·× 를 40px 로 */
 .mb-top .btn, .mb-top .mb-name{height:40px!important; min-height:40px!important; box-sizing:border-box}
 .mb-top .btn{display:inline-flex; align-items:center}
 .mb-pr{grid-template-columns:1fr 130px 40px}
 .mb-pr input{height:40px!important; min-height:40px!important; box-sizing:border-box}
 .mb-pr .ibtn2{width:40px; height:40px}
+
+/* 09-25 2차: 아이콘 단추 · 페이지 줄 · 고르기 창 · 배경 */
+.ibtn2 svg{width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+.mb-pagebar{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:-4px 0 var(--s12)}
+.mb-pagebar .muted{font-size:13px; margin-right:4px}
+.mb-sec .btn-row{margin-top:2px}
+.mb-popbox{max-width:420px}
+.mb-popopts{display:flex; flex-direction:column; gap:8px}
+.mb-popopt{display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; padding:14px 16px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); font:inherit; text-align:left; cursor:pointer}
+.mb-popopt b{font-size:16px}
+.mb-popopt small{color:var(--text-3)}
+.mb-popopt.on{border-color:var(--text); box-shadow:inset 0 0 0 1px var(--text)}
+.mb-popopts.imgs{display:grid; grid-template-columns:repeat(3, 1fr)}
+.mb-popopts.imgs .mb-popopt{align-items:center; padding:10px}
+.mb-bgthumb{display:block; width:100%; aspect-ratio:210/297; border-radius:6px; border:1px solid var(--border); background:#fff center/100% 100% no-repeat}
+.mb-bglist{display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:12px}
+.mb-bgit{display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); font:inherit}
+.mb-bgit.add{cursor:pointer; border-style:dashed; color:var(--text-2)}
+.mb-bgit.add .mb-bgthumb{background:var(--surface-2, #f4f1ec)}
+.mb-stat .amber{color:var(--amber, #a8680e)}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -5096,6 +5114,9 @@ function shopState(st){
 
 /* 아이콘 (선으로만 그린 최소한의 아이콘) */
 const ICON = {
+  trash:'<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
+  copy:'<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+  menu:'<svg viewBox="0 0 24 24"><path d="M3 5.5c3-1.3 6-1.3 9 .8 3-2.1 6-2.1 9-.8v13c-3-1.3-6-1.3-9 .8-3-2.1-6-2.1-9-.8z"/><path d="M12 6.3v13.5"/></svg>',
   spark:'<svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8zM5 15l.6 1.6L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.4z"/></svg>',
   sms:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>',
   key:'<svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15 12v2"/></svg>',
@@ -10605,7 +10626,7 @@ function sheetOwner(){
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
     item("openSlip()", ICON.print, "수기 예약지", "전화 예약을 손으로 적는 종이") +
     item("openDevPage()", ICON.sos, "개발자에게", "고칠 것 · 급한 것 글로 남기기") +
-    item("openMenuBoards()", ICON.print, "메뉴판", "메뉴판 만들기 · PDF · 사진") +
+    item("openMenuBoards()", ICON.menu, "메뉴판", "메뉴판 만들기 · PDF · 사진") +
     item("openExport()", ICON.download, "예약 내보내기", "엑셀 파일 · 비밀번호") +
     item("openOwnerSetting('admin')", ICON.key, "보안", "PIN · 2차 PIN · 로그") +
     '</div></div>';
@@ -11069,7 +11090,14 @@ var MB_W = 794, MB_H = 1123;
 
 function mbAsset(n){ return (location.pathname.indexOf("/dev/") >= 0 ? "../" : "") + "menu/" + n; }
 function mbAbs(u){ try{ return new URL(u, location.href).href; }catch(e){ return u; } }
-function mbBg(b){ return (b && b.data && b.data.bg === "none") ? "" : mbAbs(mbAsset("bg-flower.jpg?v=0925b"))   /* 파일을 바꾸면 v 도 바꿈(기기 캐시) */; }
+var MB_BG_FLOWER = "bg-flower.jpg?v=0925b";   /* 파일을 바꾸면 v 도 바꿈(기기 캐시) */
+/* 배경: "flower"(기본) · "none"(흰 바탕) · 올린 배경 id(설정 menuBgs) */
+function mbBg(b){
+  var v = b && b.data ? b.data.bg : "";
+  if(v === "none") return "";
+  if(v && v !== "flower"){ var g = (typeof mbBgs === "function" ? mbBgs() : []).find(function(x){ return x.id === v; }); if(g) return g.url; }
+  return mbAbs(mbAsset(MB_BG_FLOWER));
+}
 /* 메뉴판 글꼴 — 지금 메뉴표와 비슷한 둥근 손글씨(Jua) + 설명은 고운돋움. 처음 열 때 한 번만 */
 var MB_FONTS = "https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap";
 function mbFontsLoad(){ if(document.getElementById("mb-fonts")) return; var l = document.createElement("link"); l.id = "mb-fonts"; l.rel = "stylesheet"; l.href = MB_FONTS; document.head.appendChild(l); }
@@ -11081,7 +11109,6 @@ var MB_CSS = [
   ".mbp *{box-sizing:border-box}",
   /* 흰 카드 — 지금 메뉴표의 자리(왼 8.8% · 오 7% · 위 4.4% · 아래 6.3%) */
   ".mbp-card{position:absolute; left:70px; right:55px; top:50px; bottom:70px; background:#fff; border:1.5px solid #D9BD9A; border-radius:14px; overflow:hidden}",
-  ".mbp.nobg .mbp-card{left:40px; right:40px; top:40px; bottom:40px}",
   ".mbp-in{position:absolute; top:0; right:0; bottom:0; left:0; padding:42px 56px 34px; display:flex; flex-direction:column}",
   ".mbp-h{text-align:center; flex:none}",
   ".mbp-t{font-family:'Jua',sans-serif; font-weight:400; font-size:3.1em; line-height:1.15; color:#A8733A; margin:0; letter-spacing:.02em}",
@@ -11123,7 +11150,7 @@ var MB_CSS = [
   ".mbp-empty{flex:1; display:flex; align-items:center; justify-content:center; color:#b9b2aa; font-family:'Gowun Dodum',sans-serif; font-size:1.2em}"
 ].join("\n");
 
-function mbWon(v){ var s = String(v == null ? "" : v).trim(); return /^\d+$/.test(s) ? Number(s).toLocaleString("ko-KR") : s; }
+function mbWon(v){ return String(v == null ? "" : v).trim().replace(/\d{4,}/g, function(n){ return Number(n).toLocaleString("ko-KR"); }); }   /* "1인 30000" → "1인 30,000" */
 /* "후식 식사 (짜장 혹은 짬뽕)" → 이름 + 작은 글 */
 function mbDishCell(t){
   t = String(t || "").trim(); if(!t) return "";
@@ -11175,32 +11202,67 @@ async function mbLoad(){
   }
   MB.loading = false; render();
 }
-function mbCur(){ return MB && view.form && MB.list.find(function(b){ return b.id === view.form.id; }); }
+/* 편집 중에는 사본(MB.edit)을 고치고, '저장' 을 눌러야 서버로(09-25 재아: 바로 저장 말고) */
+function mbCur(){ return MB && MB.edit && view.form && view.form.type === "menu" ? MB.edit : null; }
 async function mbInsert(name, data){
   var row = { id:newId("mb"), store:view.storeKey || "hanok", name:name, data:data, sort:MB.list.reduce(function(a, b){ return Math.max(a, b.sort || 0); }, 0) + 1, by:sessionBy() };
   if(MB.demo){ row.updated_at = new Date().toISOString(); MB.list.push(row); mbDemoSave(); return row; }
   var r = await sb("/rest/v1/menu_boards", { method:"POST", body:row, prefer:"return=representation" });
   MB.list.push(r[0] || row); return r[0] || row;
 }
-function mbSaveSoon(){ if(!MB) return; clearTimeout(MB.saveT); MB.dirty = true; mbStatus(); MB.saveT = setTimeout(mbSaveNow, 800); }
-async function mbSaveNow(){
-  if(!MB || !MB.dirty) return true;
-  clearTimeout(MB.saveT);
-  var b = mbCur() || MB.lastB; if(!b){ MB.dirty = false; return true; }
-  MB.dirty = false; MB.saving = true; mbStatus();
+function mbTouch(){ if(!MB) return; MB.dirty = true; mbStatus(); }
+async function mbSave(){
+  var b = mbCur(); if(!b) return true;
+  MB.saving = true; mbStatus();
   try{
-    if(MB.demo){ b.updated_at = new Date().toISOString(); mbDemoSave(); }
+    if(MB.demo){ b.updated_at = new Date().toISOString(); }
     else await sb("/rest/v1/menu_boards?id=eq." + encodeURIComponent(b.id), { method:"PATCH", body:{ name:b.name, data:b.data, by:sessionBy() }, prefer:"return=minimal" });
-    MB.saving = false; MB.savedAt = Date.now(); MB.saveErr = ""; mbStatus(); return true;
-  }catch(e){ MB.saving = false; MB.dirty = true; MB.saveErr = e.network ? "연결 없음" : (e.message || "저장 실패"); mbStatus(); return false; }
+    var i = MB.list.findIndex(function(x){ return x.id === b.id; }); if(i >= 0) MB.list[i] = deepClone(b); b.updated_at = new Date().toISOString(); if(i >= 0) MB.list[i].updated_at = b.updated_at;
+    if(MB.demo) mbDemoSave();
+    MB.saving = false; MB.dirty = false; MB.saveErr = ""; mbStatus(); logEvent("메뉴판 저장", b.name); showToast("저장했습니다"); return true;
+  }catch(e){ MB.saving = false; MB.saveErr = e.network ? "연결 없음" : (e.message || "저장 실패"); mbStatus(); return false; }
 }
 function mbStatus(){ var el = document.getElementById("mb-stat"); if(el) el.innerHTML = mbStatusText(); }
-function mbStatusText(){ if(!MB) return ""; if(MB.saveErr) return '<span class="rust">저장 안 됨 · ' + esc(MB.saveErr) + '</span>'; if(MB.saving || MB.dirty) return '저장 중…'; return MB.savedAt ? '저장됨' : (MB.demo ? '이 기기에만 저장(연습)' : ''); }
+function mbStatusText(){ if(!MB) return ""; if(MB.saveErr) return '<span class="rust">저장 안 됨 · ' + esc(MB.saveErr) + '</span>'; if(MB.saving) return '저장 중…'; if(MB.dirty) return '<span class="amber">저장 안 한 변경</span>'; return MB.demo ? '이 기기에만 저장(연습)' : ''; }
+
+/* ---------- 작은 고르기 창(페이지 추가·사진 저장·배경) — 06-modal 선택지 창은 값이 글자면 깨져서 따로 ---------- */
+function mbPop(title, opts, cb){ MB.pop = { title:title, opts:opts, cb:cb }; render(); }
+function mbPopPick(i){ var p = MB.pop; MB.pop = null; render(); if(p && p.cb) p.cb(p.opts[i].v); }
+function mbPopHtml(){
+  var p = MB && MB.pop; if(!p) return "";
+  return '<div class="overlay" onclick="MB.pop=null; render()"><div class="sheet mb-popbox" onclick="event.stopPropagation()">' + sheetHeadX(p.title, "MB.pop=null; render()") +
+    '<div class="mb-popopts' + (p.opts.some(function(o){ return o.img != null; }) ? ' imgs' : '') + '">' + p.opts.map(function(o, i){
+      return '<button class="mb-popopt' + (o.on ? ' on' : '') + '" onclick="mbPopPick(' + i + ')">' + (o.img != null ? '<span class="mb-bgthumb"' + (o.img ? ' style="background-image:url(\'' + esc(o.img) + '\')"' : '') + '></span>' : '') + '<b>' + esc(o.label) + '</b>' + (o.sub ? '<small>' + esc(o.sub) + '</small>' : '') + '</button>';
+    }).join("") + '</div></div></div>';
+}
+/* 창 제목 + 오른쪽 위 × (화면형 안의 창이라 sheetHead 의 × 가 안 나옴) */
+function sheetHeadX(title, onx){ return '<div class="sheet-h"><h2>' + title + '</h2><button class="x" onclick="' + onx + '" aria-label="닫기">×</button></div>'; }
+
+/* ---------- 배경 — 기본 꽃 테두리 · 흰 바탕 · 사장님이 올린 그림(설정 menuBgs) ---------- */
+function mbBgs(){ var st = store().settings; return Array.isArray(st.menuBgs) ? st.menuBgs : []; }
+function mbBgOpts(cur){
+  return [{ v:"flower", label:"꽃 테두리", img:mbAbs(mbAsset(MB_BG_FLOWER)), on:!cur || cur === "flower" }, { v:"none", label:"흰 바탕", img:"", on:cur === "none" }]
+    .concat(mbBgs().map(function(g){ return { v:g.id, label:g.name || "올린 배경", img:g.url, on:cur === g.id }; }));
+}
+function mbPickBg(){ var b = mbCur(); if(!b) return; mbPop("배경", mbBgOpts(b.data.bg), function(v){ b.data.bg = v; mbTouch(); render(); }); }
+function mbBgAdd(){
+  saPickFile("image", function(u){
+    var st = store().settings, a = mbBgs().slice(); a.push({ id:newId("bg"), url:u, name:"배경 " + (a.length + 1) });
+    st.menuBgs = a; if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); logEvent("메뉴판 배경 추가", u.split("/").pop()); render();
+  });
+}
+async function mbBgDel(id){
+  var g = mbBgs().find(function(x){ return x.id === id; }); if(!g) return;
+  var used = MB.list.filter(function(b){ return b.data && b.data.bg === id; }).map(function(b){ return b.name; });
+  if(!await uiConfirm("이 배경을 지울까요?", used.length ? "쓰고 있는 메뉴판(" + used.join(", ") + ")은 꽃 테두리로 바뀝니다." : "", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
+  var st = store().settings; st.menuBgs = mbBgs().filter(function(x){ return x.id !== id; }); if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); render();
+}
 
 /* ---------- 목록 화면 ---------- */
 async function openMenuBoards(){
   mbFontsLoad(); mbCssLoad();
   if(!MB) MB = { list:[], loading:true, page:0 };
+  MB.edit = null; MB.dirty = false; MB.pop = null;
   view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0);
   await mbLoad();
 }
@@ -11209,7 +11271,7 @@ function sheetMenus(){
   var body;
   if(!MB || MB.loading) body = '<p class="muted" style="padding:16px 0">불러오는 중…</p>';
   else if(MB.err) body = '<p class="f-note rust">불러오지 못했습니다: ' + esc(MB.err) + '</p>';
-  else if(!list.length) body = '<div class="mb-empty"><p>아직 메뉴판이 없습니다.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="mbSeed()">지금 메뉴표(2026 통합)로 시작</button><button class="btn" onclick="mbAdd()">빈 메뉴판</button></div><p class="f-note">지금 쓰는 11장짜리 메뉴표를 옮겨 적어 두었습니다. 그걸로 시작해 고치는 게 빠릅니다.</p></div>';
+  else if(!list.length) body = '<div class="mb-empty"><p>아직 메뉴판이 없습니다.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="mbSeed()">지금 메뉴표(2026 통합)로 시작</button><button class="btn" onclick="mbAdd()">빈 메뉴판</button></div></div>';
   else body = '<div class="mb-list">' + list.map(function(b){
       var n = ((b.data || {}).pages || []).length, pg = ((b.data || {}).pages || [])[0];
       var at = b.updated_at ? new Date(b.updated_at) : null;
@@ -11217,13 +11279,18 @@ function sheetMenus(){
         '<div class="mb-it-b"><b>' + esc(b.name || "(이름 없음)") + '</b><small>' + n + '장' + (at ? ' · ' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ' 고침' : '') + '</small>' +
         '<div class="btn-row"><button class="btn sm primary" onclick="mbOpen(\'' + esc(b.id) + '\')">열기</button><button class="btn sm" onclick="mbCopy(\'' + esc(b.id) + '\')">복제</button><button class="btn sm ghost danger" onclick="mbDel(\'' + esc(b.id) + '\')">삭제</button></div></div></div>';
     }).join("") + '</div>';
+  /* 배경 관리(09-25 재아: 목록에서 배경을 올려 두고 편집에서 골라 씀) */
+  var bgs = '<div class="subhead" style="margin-top:22px">배경</div><div class="mb-bglist">' +
+    mbBgOpts("").filter(function(o){ return o.v !== "none"; }).map(function(o){ return '<div class="mb-bgit"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' + (o.v === "flower" ? '<small class="muted">기본</small>' : '<button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제">' + ICON.trash + '</button>') + '</div>'; }).join("") +
+    '<button class="mb-bgit add" onclick="mbBgAdd()"><span class="mb-bgthumb"></span><small>＋ 배경 추가</small></button></div>';
   return sheetHead("메뉴판") +
     (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
     body +
-    (list.length ? '<div class="btn-row" style="margin-top:14px"><button class="btn" onclick="mbAdd()">＋ 메뉴판 추가</button></div>' : '');
+    (list.length ? '<div class="btn-row" style="margin-top:14px"><button class="btn" onclick="mbAdd()">＋ 메뉴판 추가</button></div>' : '') +
+    (MB && !MB.loading && !MB.err ? bgs : '') + mbPopHtml();
 }
 async function mbAdd(){
-  var name = await uiPrompt("메뉴판 추가", "이름 — 예: 추석 특별 메뉴판, 외국인 메뉴판", {value:"", ok:"만들기"}); if(name == null) return;
+  var name = await uiPrompt("메뉴판 추가", "이름 — 추석 특별 메뉴판, 외국인 메뉴판 등", {value:"", ok:"만들기"}); if(name == null) return;
   name = String(name).trim() || "새 메뉴판";
   try{ var b = await mbInsert(name, { bg:"flower", pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
   catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
@@ -11249,20 +11316,35 @@ async function mbDel(id){
 }
 
 /* ---------- 편집 화면 ---------- */
-function mbOpen(id){ MB.page = 0; MB.savedAt = 0; MB.saveErr = ""; view.form = {type:"menu", page:true, back:"menus", wide:true, id:id}; MB.lastB = mbCur(); render(); window.scrollTo(0, 0); }
-async function mbBack(){ await mbSaveNow(); view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0); }
-function mbNewPage(kind){
-  var it = kind === "course" ? {badge:"", name:"", label:"1인", price:"", rows:""} : kind === "list" ? {name:"", price:""} : {badge:"", name:"", side:"", desc:"", prices:[{label:"", price:""}]};
-  return { id:newId("pg"), title:"", sub:"", foot:"", scale:100, sections:[{ title:"", kind:kind, items:[it] }] };
+/* 옛 자료 고치기: 코스 '가격 앞(1인)' 칸을 없애고 가격 글에 합침(09-25 재아: '1인 30,000' 처럼 한 칸에) */
+function mbMigrate(d){
+  (d.pages || []).forEach(function(pg){ (pg.sections || []).forEach(function(s){ if(s.kind === "course") (s.items || []).forEach(function(it){ if(it.label){ it.price = (it.label + " " + (it.price || "")).trim(); delete it.label; } }); }); });
+  return d;
 }
-function mbNewItem(kind){ return mbNewPage(kind).sections[0].items[0]; }
+function mbOpen(id){
+  var src = MB.list.find(function(b){ return b.id === id; }); if(!src) return;
+  MB.edit = deepClone(src); MB.edit.data = mbMigrate(MB.edit.data || {}); MB.page = 0; MB.dirty = false; MB.saveErr = ""; MB.pop = null;
+  view.form = {type:"menu", page:true, back:"menus", wide:true, id:id}; render(); window.scrollTo(0, 0);
+}
+/* 나갈 때 저장 안 한 변경이 있으면 물어봄 */
+function mbBack(){
+  var go = function(){ MB.edit = null; MB.dirty = false; MB.pop = null; view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0); };
+  if(!MB || !MB.dirty) return go();
+  mbPop("저장하지 않은 변경이 있습니다", [{ v:"save", label:"저장하고 나가기" }, { v:"drop", label:"저장하지 않고 나가기", sub:"고친 내용이 사라집니다" }], async function(v){ if(v === "save"){ if(await mbSave()) go(); } else go(); });
+}
+function mbNewPage(kind){
+  return { id:newId("pg"), title:"", sub:"", foot:"", scale:100, sections:[{ title:"", kind:kind, items:[mbNewItem(kind)] }] };
+}
+function mbNewItem(kind){ return kind === "course" ? {badge:"", name:"", price:"", rows:""} : kind === "list" ? {name:"", price:""} : {badge:"", name:"", side:"", desc:"", prices:[{label:"", price:""}]}; }
 /* 'pages.0.sections.1.items.2.name' 같은 길로 값 넣기 — 입력칸마다 */
 function mbGetPath(o, path){ return path.split(".").reduce(function(a, k){ return a == null ? a : a[k]; }, o); }
 function mbSet(path, v, full){
   var b = mbCur(); if(!b) return;
   if(path === "name"){ b.name = v; }
   else { var ks = path.split("."), o = b.data; for(var i = 0; i < ks.length - 1; i++){ o = o[ks[i]]; if(o == null) return; } o[ks[ks.length - 1]] = v; }
-  MB.lastB = b; mbSaveSoon();
+  mbTouch();
+  /* 항목 이름을 치면 그 칸 머리글도 바로(전엔 '(이름 없음)' 이 그대로 남았음) */
+  var m = path.match(/sections\.(\d+)\.items\.(\d+)\.name$/); if(m){ var h = document.getElementById("mbh-" + m[1] + "-" + m[2]); if(h) h.textContent = (Number(m[2]) + 1) + ". " + (v || "(이름 없음)"); }
   if(full) render(); else mbPrevRefresh();
 }
 function mbPrevRefresh(){ var b = mbCur(), el = document.getElementById("mb-prev"); if(!b || !el) return; var pg = b.data.pages[MB.page]; if(pg) el.innerHTML = mbPageHtml(b, pg, mbZoom()); setTimeout(mbOverflowCheck, 30); }
@@ -11270,8 +11352,7 @@ function mbZoom(){ var el = document.getElementById("mb-prev"); var w = el ? el.
 /* 글이 한 장을 넘으면 알림(막지 않음) — 글씨 크기를 줄이거나 페이지를 나누라고 */
 function mbOverflowCheck(){
   var body = document.querySelector("#mb-prev .mbp-in"), w = document.getElementById("mb-over"); if(!body || !w) return;
-  var over = body.scrollHeight > body.clientHeight + 2;
-  w.style.display = over ? "" : "none";
+  w.style.display = body.scrollHeight > body.clientHeight + 2 ? "" : "none";
 }
 /* 배열 조작(페이지·묶음·항목): 위·아래·복제·삭제 */
 function mbArr(path, op, i){
@@ -11280,48 +11361,57 @@ function mbArr(path, op, i){
   else if(op === "down" && i < a.length - 1){ var t2 = a[i + 1]; a[i + 1] = a[i]; a[i] = t2; if(path === "pages") MB.page = i + 1; }
   else if(op === "dup"){ var c = deepClone(a[i]); if(c.id) c.id = newId("pg"); a.splice(i + 1, 0, c); if(path === "pages") MB.page = i + 1; }
   else if(op === "del"){ a.splice(i, 1); if(path === "pages") MB.page = Math.max(0, Math.min(MB.page, a.length - 1)); }
-  MB.lastB = b; mbSaveSoon(); render();
+  mbTouch(); render();
 }
 async function mbArrDel(path, i, what){ if(!await uiConfirm(what + "을(를) 지울까요?", "", {ok:"삭제", cancel:"취소", tone:"warn"})) return; mbArr(path, "del", i); }
-async function mbAddPage(){
-  var k = await mbChoose("페이지 추가", "어떤 모양의 페이지인가요?", [["course", "코스 · 세트"], ["dish", "요리 · 주류"], ["list", "목록 (식사처럼 이름과 가격만)"]]); if(!k) return;
-  var b = mbCur(); b.data.pages.push(mbNewPage(k)); MB.page = b.data.pages.length - 1; MB.lastB = b; mbSaveSoon(); render();
+var MB_KIND = { course:"코스 · 세트", dish:"요리 · 주류", list:"목록" };
+function mbAddPage(){
+  mbPop("페이지 추가", ["course", "dish", "list"].map(function(k){ return { v:k, label:MB_KIND[k] }; }), function(k){
+    var b = mbCur(); if(!b) return; b.data.pages.push(mbNewPage(k)); MB.page = b.data.pages.length - 1; mbTouch(); render(); window.scrollTo(0, 0);
+  });
 }
-function mbAddSec(kind){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.sections.push({ title:"", kind:kind, items:[mbNewItem(kind)] }); MB.lastB = b; mbSaveSoon(); render(); }
-function mbAddItem(si){ var b = mbCur(), s = b.data.pages[MB.page].sections[si]; s.items.push(mbNewItem(s.kind)); MB.lastB = b; mbSaveSoon(); render(); }
+/* 묶음 추가 — 그 묶음 바로 뒤에, 같은 모양으로(09-25 재아) */
+function mbAddSec(si){ var b = mbCur(), secs = b.data.pages[MB.page].sections, k = (secs[si] || {}).kind || "dish"; secs.splice(si + 1, 0, { title:"", kind:k, items:[mbNewItem(k)] }); mbTouch(); render(); }
+function mbAddItem(si){ var b = mbCur(), s = b.data.pages[MB.page].sections[si]; s.items.push(mbNewItem(s.kind)); mbTouch(); render(); }
+/* 모양 바꾸기 — 전엔 바꾸는 순간 원래 칸(설명·구성·가격 여러 줄)이 사라졌음. 이제 모양마다 따로 보관(stash)해 두고, 되돌리면 그대로(09-25 재아) */
 function mbKind(si, k){
   var b = mbCur(), s = b.data.pages[MB.page].sections[si]; if(s.kind === k) return;
-  /* 모양을 바꿔도 이름·가격은 살림 */
-  s.items = s.items.map(function(it){ var n = mbNewItem(k); n.name = it.name || ""; var pr = it.price || ((it.prices || [])[0] || {}).price || ""; if(k === "dish") n.prices = [{label:"", price:pr}]; else n.price = pr; if(it.badge != null && n.badge != null) n.badge = it.badge; return n; });
-  s.kind = k; MB.lastB = b; mbSaveSoon(); render();
+  s.stash = s.stash || {}; s.stash[s.kind] = s.items;
+  if(s.stash[k]) s.items = s.stash[k];
+  else s.items = s.items.map(function(it){ var n = mbNewItem(k); n.name = it.name || ""; var pr = it.price || ((it.prices || [])[0] || {}).price || ""; if(k === "dish") n.prices = [{label:"", price:pr}]; else n.price = pr; if(it.badge != null && n.badge != null) n.badge = it.badge; return n; });
+  delete s.stash[k]; s.kind = k; mbTouch(); render();
 }
-function mbPriceAdd(si, ii){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; (it.prices = it.prices || []).push({label:"", price:""}); MB.lastB = b; mbSaveSoon(); render(); }
-function mbPriceDel(si, ii, pi){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; it.prices.splice(pi, 1); MB.lastB = b; mbSaveSoon(); render(); }
+function mbPriceAdd(si, ii){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; (it.prices = it.prices || []).push({label:"", price:""}); mbTouch(); render(); }
+function mbPriceDel(si, ii, pi){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; it.prices.splice(pi, 1); mbTouch(); render(); }
 function mbPick(i){ MB.page = i; render(); }
-function mbScale(d){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.scale = Math.max(70, Math.min(130, (Number(pg.scale) || 100) + d)); MB.lastB = b; mbSaveSoon(); render(); }
+function mbScale(d){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.scale = Math.max(70, Math.min(130, (Number(pg.scale) || 100) + d)); mbTouch(); render(); }
 
-/* 입력칸 한 개 — 고칠 때마다 미리보기만 다시 그림(전체를 다시 그리면 입력 중 커서가 튐) */
+/* 입력칸 한 개 — 고칠 때마다 미리보기만 다시 그림(전체를 다시 그리면 입력 중 커서가 튐). 안내 글은 '~ 등' 꼴(09-25 재아) */
 function mbIn(path, v, label, opt){
   opt = opt || {};
   var inp = opt.area ? '<textarea class="in-sm" rows="' + (opt.rows || 3) + '" placeholder="' + esc(opt.ph || "") + '" oninput="mbSet(\'' + path + '\', this.value)">' + esc(v || "") + '</textarea>'
     : '<input type="text" class="in-sm" value="' + esc(v || "") + '" placeholder="' + esc(opt.ph || "") + '"' + (opt.num ? ' inputmode="numeric"' : '') + ' oninput="mbSet(\'' + path + '\', this.value)"' + (opt.change ? ' onchange="render()"' : '') + '>';
   return '<label class="f mb-f' + (opt.cls ? ' ' + opt.cls : '') + '"><div class="lb">' + label + (opt.note ? ' <span class="lbl-note">' + opt.note + '</span>' : '') + '</div>' + inp + '</label>';
 }
+function mbTools(arrPath, i, n, what){
+  return '<span class="mb-tools"><button class="ibtn2" onclick="mbArr(\'' + arrPath + '\', \'up\', ' + i + ')" aria-label="위로"' + (i ? '' : ' disabled') + '>↑</button><button class="ibtn2" onclick="mbArr(\'' + arrPath + '\', \'down\', ' + i + ')" aria-label="아래로"' + (i < n - 1 ? '' : ' disabled') + '>↓</button>' +
+    (what === "항목" ? '<button class="ibtn2" onclick="mbArr(\'' + arrPath + '\', \'dup\', ' + i + ')" aria-label="복제" title="복제">' + ICON.copy + '</button>' : '') +
+    '<button class="ibtn2 danger" onclick="mbArrDel(\'' + arrPath + '\', ' + i + ', \'' + what + '\')" aria-label="' + what + ' 삭제" title="삭제">' + ICON.trash + '</button></span>';
+}
 function mbItemForm(kind, it, p, si, ii, n){
-  var tools = '<span class="mb-tools"><button class="ibtn2" onclick="mbArr(\'' + p.replace(/\.\d+$/, "") + '\', \'up\', ' + ii + ')" aria-label="위로"' + (ii ? '' : ' disabled') + '>↑</button><button class="ibtn2" onclick="mbArr(\'' + p.replace(/\.\d+$/, "") + '\', \'down\', ' + ii + ')" aria-label="아래로"' + (ii < n - 1 ? '' : ' disabled') + '>↓</button><button class="ibtn2" onclick="mbArr(\'' + p.replace(/\.\d+$/, "") + '\', \'dup\', ' + ii + ')" aria-label="복제">⧉</button><button class="ibtn2 danger" onclick="mbArrDel(\'' + p.replace(/\.\d+$/, "") + '\', ' + ii + ', \'항목\')" aria-label="삭제">×</button></span>';
   var f;
   if(kind === "course"){
-    f = '<div class="mb-g4">' + mbIn(p + ".name", it.name, "이름", {ph:"예: 오 코스"}) + mbIn(p + ".badge", it.badge, "표시", {ph:"BEST"}) + mbIn(p + ".label", it.label, "가격 앞", {ph:"1인"}) + mbIn(p + ".price", it.price, "가격", {num:true, ph:"68000"}) + '</div>' +
-      mbIn(p + ".rows", it.rows, "구성", {area:true, rows:3, note:"한 줄씩 · 요리는 쉼표로 · (괄호)는 작게", ph:"게살수프, 사품냉채\n새우 어향가지, 동파육, 유린기\n후식 식사 (짜장 혹은 짬뽕), 디저트음료"});
+    f = '<div class="mb-g3c">' + mbIn(p + ".name", it.name, "이름", {ph:"코스 · 세트 이름"}) + mbIn(p + ".badge", it.badge, "표시", {ph:"BEST 등"}) + mbIn(p + ".price", it.price, "가격", {ph:"1인 30,000 등"}) + '</div>' +
+      mbIn(p + ".rows", it.rows, "구성", {area:true, rows:3, note:"쉼표로 구분, (괄호는 작게)", ph:"게살수프, 사품냉채, 후식 식사 (짜장 혹은 짬뽕) 등"});
   }else if(kind === "list"){
-    f = '<div class="mb-g2">' + mbIn(p + ".name", it.name, "이름") + mbIn(p + ".price", it.price, "가격", {num:true}) + '</div>';
+    f = '<div class="mb-g2">' + mbIn(p + ".name", it.name, "이름", {ph:"짜장면 등"}) + mbIn(p + ".price", it.price, "가격", {ph:"9,000 등"}) + '</div>';
   }else{
-    var prs = (it.prices || []).map(function(pr, pi){ return '<div class="mb-pr">' + '<input type="text" class="in-sm" value="' + esc(pr.label || "") + '" placeholder="구분 (대 · 25도 · 대 500ml)" oninput="mbSet(\'' + p + '.prices.' + pi + '.label\', this.value)"><input type="text" class="in-sm" inputmode="numeric" value="' + esc(pr.price || "") + '" placeholder="가격" oninput="mbSet(\'' + p + '.prices.' + pi + '.price\', this.value)">' + ((it.prices || []).length > 1 ? '<button class="ibtn2 danger" onclick="mbPriceDel(' + si + ', ' + ii + ', ' + pi + ')" aria-label="가격 줄 삭제">×</button>' : '<span class="ibtn2 ghost"></span>') + '</div>'; }).join("");
-    f = '<div class="mb-g3">' + mbIn(p + ".name", it.name, "이름") + mbIn(p + ".badge", it.badge, "표시", {ph:"BEST · 강력추천"}) + mbIn(p + ".side", it.side, "이름 옆 작은 글", {ph:"(밀전병 기본 제공)"}) + '</div>' +
-      mbIn(p + ".desc", it.desc, "설명") +
-      '<div class="f mb-f"><div class="lb">가격 <span class="lbl-note">대·소처럼 여러 개면 줄 추가 · 하나면 구분은 비움</span></div>' + prs + '<button class="btn sm ghost" onclick="mbPriceAdd(' + si + ', ' + ii + ')">＋ 가격 줄</button></div>';
+    var prs = (it.prices || []).map(function(pr, pi){ return '<div class="mb-pr">' + '<input type="text" class="in-sm" value="' + esc(pr.label || "") + '" placeholder="구분 — 대 · 25도 · 대 500ml 등" oninput="mbSet(\'' + p + '.prices.' + pi + '.label\', this.value)"><input type="text" class="in-sm" inputmode="numeric" value="' + esc(pr.price || "") + '" placeholder="가격" oninput="mbSet(\'' + p + '.prices.' + pi + '.price\', this.value)">' + ((it.prices || []).length > 1 ? '<button class="ibtn2 danger" onclick="mbPriceDel(' + si + ', ' + ii + ', ' + pi + ')" aria-label="가격 줄 삭제" title="삭제">' + ICON.trash + '</button>' : '<span class="ibtn2 ghost"></span>') + '</div>'; }).join("");
+    f = '<div class="mb-g3">' + mbIn(p + ".name", it.name, "이름", {ph:"요리 · 주류 이름"}) + mbIn(p + ".badge", it.badge, "표시", {ph:"강력추천 등"}) + mbIn(p + ".side", it.side, "상세", {ph:"(밀전병 기본 제공) 등"}) + '</div>' +
+      mbIn(p + ".desc", it.desc, "설명", {ph:"각종 해산물과 채소, 육류를 고슬하게 볶아낸 화려한 별미 등"}) +
+      '<div class="f mb-f"><div class="lb">가격</div>' + prs + '<button class="btn sm ghost" onclick="mbPriceAdd(' + si + ', ' + ii + ')">＋ 가격 줄</button></div>';
   }
-  return '<div class="mb-item"><div class="mb-item-h"><b>' + (ii + 1) + '. ' + esc(it.name || "(이름 없음)") + '</b>' + tools + '</div>' + f + '</div>';
+  return '<div class="mb-item"><div class="mb-item-h"><b id="mbh-' + si + '-' + ii + '">' + (ii + 1) + '. ' + esc(it.name || "(이름 없음)") + '</b>' + mbTools(p.replace(/\.\d+$/, ""), ii, n, "항목") + '</div>' + f + '</div>';
 }
 function sheetMenu(){
   var b = mbCur();
@@ -11330,43 +11420,44 @@ function sheetMenu(){
   if(!d.pages.length) d.pages.push(mbNewPage("dish"));
   var pi = Math.min(MB.page || 0, d.pages.length - 1), pg = d.pages[pi]; MB.page = pi;
   var chips = d.pages.map(function(p, i){ return '<button class="mb-chip' + (i === pi ? ' on' : '') + '" onclick="mbPick(' + i + ')">' + (i + 1) + '. ' + esc(p.title || "(제목 없음)") + '</button>'; }).join("") + '<button class="mb-chip add" onclick="mbAddPage()">＋ 페이지</button>';
-  var KIND = { course:"코스 · 세트", dish:"요리 · 주류", list:"목록" };
   var secs = (pg.sections || []).map(function(s, si){
     var sp = "pages." + pi + ".sections." + si, n = (pg.sections || []).length;
     return '<div class="mb-sec"><div class="mb-sec-h">' +
-      '<input type="text" class="in-sm" value="' + esc(s.title || "") + '" placeholder="소제목 (예: 고기류) · 없으면 비움" oninput="mbSet(\'' + sp + '.title\', this.value)">' +
-      '<div class="seg">' + ["course", "dish", "list"].map(function(k){ return '<button class="' + (s.kind === k ? 'on' : '') + '" onclick="mbKind(' + si + ', \'' + k + '\')">' + KIND[k] + '</button>'; }).join("") + '</div>' +
-      '<span class="mb-tools"><button class="ibtn2" onclick="mbArr(\'pages.' + pi + '.sections\', \'up\', ' + si + ')"' + (si ? '' : ' disabled') + ' aria-label="묶음 위로">↑</button><button class="ibtn2" onclick="mbArr(\'pages.' + pi + '.sections\', \'down\', ' + si + ')"' + (si < n - 1 ? '' : ' disabled') + ' aria-label="묶음 아래로">↓</button><button class="ibtn2 danger" onclick="mbArrDel(\'pages.' + pi + '.sections\', ' + si + ', \'묶음\')" aria-label="묶음 삭제">×</button></span></div>' +
+      '<input type="text" class="in-sm" value="' + esc(s.title || "") + '" placeholder="소제목" oninput="mbSet(\'' + sp + '.title\', this.value)">' +
+      '<div class="seg">' + ["course", "dish", "list"].map(function(k){ return '<button class="' + (s.kind === k ? 'on' : '') + '" onclick="mbKind(' + si + ', \'' + k + '\')">' + MB_KIND[k] + '</button>'; }).join("") + '</div>' +
+      mbTools("pages." + pi + ".sections", si, n, "묶음") + '</div>' +
       (s.items || []).map(function(it, ii){ return mbItemForm(s.kind, it, sp + ".items." + ii, si, ii, s.items.length); }).join("") +
-      '<button class="btn sm" onclick="mbAddItem(' + si + ')">＋ 항목</button></div>';
+      '<div class="btn-row"><button class="btn sm" onclick="mbAddItem(' + si + ')">항목 추가</button><button class="btn sm ghost" onclick="mbAddSec(' + si + ')">묶음 추가</button></div></div>';
   }).join("");
   setTimeout(function(){ mbPrevRefresh(); }, 0);   /* 미리보기 폭에 맞춘 배율은 그린 뒤에야 앎 */
+  var bgName = (mbBgOpts(d.bg).filter(function(o){ return o.on; })[0] || {}).label || "꽃 테두리";
   return '<div class="mb-top"><button class="btn sm ghost" onclick="mbBack()">← 목록</button>' +
       '<input type="text" class="in-sm mb-name" value="' + esc(b.name || "") + '" placeholder="메뉴판 이름" oninput="mbSet(\'name\', this.value)">' +
+      '<button class="btn sm" onclick="mbPickBg()">배경 · ' + esc(bgName) + '</button>' +
       '<span class="mb-stat" id="mb-stat">' + mbStatusText() + '</span>' +
-      '<span class="btn-row"><button class="btn sm" onclick="mbPrint()">PDF로 저장</button><button class="btn sm" onclick="mbPng()">사진으로 저장</button></span></div>' +
+      '<span class="btn-row"><button class="btn sm" onclick="mbPrint()">PDF로 저장</button><button class="btn sm" onclick="mbPng()">사진으로 저장</button><button class="btn sm primary" onclick="mbSave()">저장</button></span></div>' +
     '<div class="mb-chips">' + chips + '</div>' +
+    /* 페이지 순서·복제·삭제는 제목 칸과 떨어진 따로 한 줄(09-25 재아) */
+    '<div class="mb-pagebar"><span class="muted">' + (pi + 1) + '장</span><button class="btn sm ghost" onclick="mbArr(\'pages\', \'up\', ' + pi + ')"' + (pi ? '' : ' disabled') + '>◀ 앞으로</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'down\', ' + pi + ')"' + (pi < d.pages.length - 1 ? '' : ' disabled') + '>뒤로 ▶</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'dup\', ' + pi + ')">페이지 복제</button><button class="btn sm ghost danger" onclick="mbArrDel(\'pages\', ' + pi + ', \'이 페이지\')"' + (d.pages.length > 1 ? '' : ' disabled') + '>페이지 삭제</button></div>' +
     '<div class="mb-grid"><div class="mb-form">' +
-      '<div class="mb-pagebox"><div class="mb-g2">' + mbIn("pages." + pi + ".title", pg.title, "페이지 제목", {ph:"예: 요리메뉴", change:true}) + mbIn("pages." + pi + ".sub", pg.sub, "제목 아래 작은 글", {ph:"예: (오전 11:00 - 오후 3:30)"}) + '</div>' +
-        mbIn("pages." + pi + ".foot", pg.foot, "맨 아래 안내", {area:true, rows:2, ph:"예: 한옥반점의 만두는 매장에서 직접 빚습니다."}) +
-        '<div class="mb-pagetools"><span class="mb-scale">글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button></span>' +
-        '<span class="btn-row"><button class="btn sm ghost" onclick="mbArr(\'pages\', \'up\', ' + pi + ')"' + (pi ? '' : ' disabled') + '>◀ 앞으로</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'down\', ' + pi + ')"' + (pi < d.pages.length - 1 ? '' : ' disabled') + '>뒤로 ▶</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'dup\', ' + pi + ')">페이지 복제</button><button class="btn sm ghost danger" onclick="mbArrDel(\'pages\', ' + pi + ', \'이 페이지\')"' + (d.pages.length > 1 ? '' : ' disabled') + '>페이지 삭제</button></span></div></div>' +
+      '<div class="mb-pagebox"><div class="mb-g2">' + mbIn("pages." + pi + ".title", pg.title, "페이지 제목", {ph:"요리메뉴 등", change:true}) + mbIn("pages." + pi + ".sub", pg.sub, "페이지 부제목", {ph:"(오전 11:00 - 오후 3:30) 등"}) + '</div>' +
+        mbIn("pages." + pi + ".foot", pg.foot, "페이지 하단", {area:true, rows:2, ph:"한옥반점의 만두는 매장에서 직접 빚습니다 등"}) +
+        '<span class="mb-scale">글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button></span></div>' +
       secs +
-      '<div class="btn-row mb-addsec"><span class="muted">묶음 추가:</span><button class="btn sm" onclick="mbAddSec(\'course\')">코스 · 세트</button><button class="btn sm" onclick="mbAddSec(\'dish\')">요리 · 주류</button><button class="btn sm" onclick="mbAddSec(\'list\')">목록</button></div>' +
-      '<div class="mb-bg"><span class="muted">배경</span><div class="seg"><button class="' + (d.bg !== "none" ? "on" : "") + '" onclick="mbSet(\'bg\', \'flower\', true)">꽃 테두리</button><button class="' + (d.bg === "none" ? "on" : "") + '" onclick="mbSet(\'bg\', \'none\', true)">흰 바탕</button></div></div>' +
-    '</div><div class="mb-side"><div class="mb-prev-h"><b>' + (pi + 1) + ' / ' + d.pages.length + '</b><span id="mb-over" class="tag rust sm" style="display:none">한 장을 넘칩니다 — 글씨를 줄이거나 페이지를 나누세요</span></div><div class="mb-prev" id="mb-prev"></div></div></div>';
+    '</div><div class="mb-side"><div class="mb-prev-h"><b>' + (pi + 1) + ' / ' + d.pages.length + '</b><span id="mb-over" class="tag rust sm" style="display:none">한 장을 넘칩니다 — 글씨를 줄이거나 페이지를 나누세요</span></div><div class="mb-prev" id="mb-prev"></div></div></div>' +
+    mbPopHtml();
 }
 
-/* ---------- 내보내기 ---------- */
+/* ---------- 내보내기 — 지금 화면의 내용 그대로(저장 안 했어도) ---------- */
 /* PDF: 새 창에 모든 페이지를 A4 로 그려 인쇄 창을 띄움 → '대상: PDF로 저장'. 글자가 글자로 남아 인쇄소에 보내도 선명 */
-async function mbPrint(){
-  var b = mbCur(); if(!b) return; await mbSaveNow();
+function mbPrint(){
+  var b = mbCur(); if(!b) return;
   var w = window.open("", "_blank"); if(!w){ uiAlert("새 창이 막혔습니다", "브라우저의 팝업 차단을 풀어 주세요.", "warn"); return; }
   var pages = (b.data.pages || []).map(function(pg){ return mbPageHtml(b, pg, 0); }).join("");
   w.document.open();
   w.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + esc(b.name || "메뉴판") + '</title><link rel="stylesheet" href="' + MB_FONTS + '"><style>' + MB_CSS +
     '\n@page{size:A4; margin:0} html,body{margin:0; padding:0; background:#888} .mbp{margin:0 auto 12px; page-break-after:always; break-after:page} .mbp:last-child{page-break-after:auto; break-after:auto}' +
-    '\n@media print{ html,body{background:#fff} .mbp{margin:0; width:210mm; height:297mm} .mbp-in{font-size:inherit} .hint{display:none} }' +
+    '\n@media print{ html,body{background:#fff} .mbp{margin:0; width:210mm; height:297mm} .hint{display:none} }' +
     '\n.hint{font:15px sans-serif; color:#fff; text-align:center; padding:12px}</style></head><body><div class="hint">인쇄 창에서 대상을 \'PDF로 저장\' 으로 고르세요. 여백 없음 · 배경 그래픽 켜기.</div>' + pages +
     '<script>(document.fonts ? document.fonts.ready : Promise.resolve()).then(function(){ var im = [].slice.call(document.images); return Promise.all(im.map(function(i){ return i.complete ? 0 : new Promise(function(r){ i.onload = i.onerror = r; }); })); }).then(function(){ setTimeout(function(){ window.print(); }, 400); });<\/script></body></html>');
   w.document.close();
@@ -11375,42 +11466,42 @@ async function mbPrint(){
 /* 사진: 페이지마다 PNG(2배 선명도). html2canvas 는 cdnjs 에서 처음 한 번만 받음 */
 var MB_H2C = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
 function mbLoadH2c(){ return new Promise(function(res, rej){ if(window.html2canvas) return res(); var s = document.createElement("script"); s.src = MB_H2C; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("사진 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
-async function mbPng(){
-  var b = mbCur(); if(!b) return; await mbSaveNow();
-  var all = await mbChoose("사진으로 저장", "어느 페이지를 저장할까요?", [["cur", "지금 페이지(" + (MB.page + 1) + "장)만"], ["all", "모든 페이지(" + b.data.pages.length + "장)"]]); if(!all) return;
-  var idx = all === "all" ? b.data.pages.map(function(_, i){ return i; }) : [MB.page];
+function mbPng(){
+  var b = mbCur(); if(!b) return;
+  mbPop("사진으로 저장", [{ v:"cur", label:"지금 페이지만", sub:(MB.page + 1) + "장" }, { v:"all", label:"모든 페이지", sub:b.data.pages.length + "장" }], function(v){ mbPngRun(v === "all" ? b.data.pages.map(function(_, i){ return i; }) : [MB.page]); });
+}
+async function mbPngRun(idx){
+  var b = mbCur(); if(!b) return;
   showToast("사진을 만드는 중… (" + idx.length + "장)");
   try{
     await mbLoadH2c(); if(document.fonts) await document.fonts.ready;
     var box = document.createElement("div"); box.style.cssText = "position:fixed; left:-12000px; top:0; width:" + MB_W + "px; zoom:1"; document.body.appendChild(box);
     for(var k = 0; k < idx.length; k++){
       box.innerHTML = mbPageHtml(b, b.data.pages[idx[k]], 0);
-      var imgUrl = mbBg(b); if(imgUrl) await new Promise(function(r){ var im = new Image(); im.onload = im.onerror = r; im.src = imgUrl; });
+      var imgUrl = mbBg(b); if(imgUrl) await new Promise(function(r){ var im = new Image(); im.crossOrigin = "anonymous"; im.onload = im.onerror = r; im.src = imgUrl; });
       var cv = await window.html2canvas(box.firstChild, { scale:2, useCORS:true, backgroundColor:"#ffffff", logging:false });
       await new Promise(function(r){ cv.toBlob(function(bl){ var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = (b.name || "메뉴판") + "_" + (idx[k] + 1) + ".png"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); r(); }, 300); }, "image/png"); });
     }
     box.remove(); showToast(idx.length + "장을 저장했습니다"); logEvent("메뉴판 사진", b.name + " " + idx.length + "장");
   }catch(e){ uiAlert("사진을 만들지 못했습니다", e.message || String(e), "warn"); }
 }
-/* 고르기 팝업 — [[값, 글], …] 중 하나, 취소면 null. 06-modal 의 선택지 팝업(choice)을 씀(uiChoose 는 이미 다른 모양으로 있음) */
-function mbChoose(title, msg, opts){ return new Promise(function(res){ modalReplace({mode:"choice", title:title, msg:msg || "", tone:"ok", choices:opts.map(function(o){ return [o[1], o[0]]; }), cancel:"취소", res:res}); }); }
 
 /* ---------- 처음 자료: 지금 쓰는 '2026 통합 메뉴표'(2026-02-07, 11장)를 옮겨 적은 것 ---------- */
 var MB_AFTER = "후식 식사 (짜장 혹은 짬뽕)";
 var MB_SEED = { bg:"flower", pages:[
   { id:"pg1", title:"저녁 코스", sub:"(ALL DAY COURSE)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
-    { badge:"", name:"오 코스", label:"1인", price:"68000", rows:"게살수프, 사품냉채\n새우 어향가지, 동파육, 유린기, 전가복\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
-    { badge:"", name:"촉 코스", label:"1인", price:"50000", rows:"게살수프, 사품냉채\n소고기고추잡채, 팔보채, 탕수육, 깐풍중새우\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
-    { badge:"", name:"한 코스", label:"1인", price:"42000", rows:"게살수프, 사품냉채\n유산슬, 깐풍중새우, 탕수육, 고추잡채\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
-    { badge:"", name:"위 코스", label:"1인", price:"32000", rows:"게살수프, 사품냉채\n유린기, 칠리중새우, 유산슬\n새우쇼마이 & 샤오롱바오, " + MB_AFTER } ] }] },
+    { badge:"", name:"오 코스", price:"1인 68000", rows:"게살수프, 사품냉채\n새우 어향가지, 동파육, 유린기, 전가복\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"촉 코스", price:"1인 50000", rows:"게살수프, 사품냉채\n소고기고추잡채, 팔보채, 탕수육, 깐풍중새우\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"한 코스", price:"1인 42000", rows:"게살수프, 사품냉채\n유산슬, 깐풍중새우, 탕수육, 고추잡채\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"위 코스", price:"1인 32000", rows:"게살수프, 사품냉채\n유린기, 칠리중새우, 유산슬\n새우쇼마이 & 샤오롱바오, " + MB_AFTER } ] }] },
   { id:"pg2", title:"평일 점심세트", sub:"(오전 11:00 - 오후 3:30)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
-    { badge:"BEST", name:"요리사 추천세트", label:"1인", price:"30000", rows:"사품냉채, 유린기, 소고기고추잡채, 깐풍중새우\n샤오롱바오 & 새우쇼마이, " + MB_AFTER + ", 디저트음료" },
-    { badge:"", name:"동한 세트", label:"1인", price:"22000", rows:"깐풍기, 가지튀김, 고추잡채, 유산슬\n샤오롱바오 & 새우만두, " + MB_AFTER },
-    { badge:"", name:"서한 세트", label:"1인", price:"19000", rows:"탕수육, 가지튀김, 고추잡채\n샤오롱바오 & 새우만두, " + MB_AFTER } ] }] },
+    { badge:"BEST", name:"요리사 추천세트", price:"1인 30000", rows:"사품냉채, 유린기, 소고기고추잡채, 깐풍중새우\n샤오롱바오 & 새우쇼마이, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"동한 세트", price:"1인 22000", rows:"깐풍기, 가지튀김, 고추잡채, 유산슬\n샤오롱바오 & 새우만두, " + MB_AFTER },
+    { badge:"", name:"서한 세트", price:"1인 19000", rows:"탕수육, 가지튀김, 고추잡채\n샤오롱바오 & 새우만두, " + MB_AFTER } ] }] },
   { id:"pg3", title:"주말 점심세트", sub:"(오전 11:00 - 오후 3:30)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
-    { badge:"BEST", name:"요리사 추천세트", label:"1인", price:"38000", rows:"사품냉채, 유린기, 소고기고추잡채, 깐풍중새우\n샤오롱바오 & 새우쇼마이, " + MB_AFTER + ", 디저트음료" },
-    { badge:"", name:"B 세트", label:"1인", price:"32000", rows:"칠리중새우, 가지튀김, 고추잡채, 탕수육\n샤오롱바오 & 새우만두, " + MB_AFTER },
-    { badge:"", name:"A 세트", label:"1인", price:"25000", rows:"크림새우, 가지튀김, 고추잡채\n샤오롱바오 & 새우만두, " + MB_AFTER } ] }] },
+    { badge:"BEST", name:"요리사 추천세트", price:"1인 38000", rows:"사품냉채, 유린기, 소고기고추잡채, 깐풍중새우\n샤오롱바오 & 새우쇼마이, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"B 세트", price:"1인 32000", rows:"칠리중새우, 가지튀김, 고추잡채, 탕수육\n샤오롱바오 & 새우만두, " + MB_AFTER },
+    { badge:"", name:"A 세트", price:"1인 25000", rows:"크림새우, 가지튀김, 고추잡채\n샤오롱바오 & 새우만두, " + MB_AFTER } ] }] },
   { id:"pg4", title:"요리메뉴", sub:"", foot:"", scale:100, sections:[{ title:"고기류", kind:"dish", items:[
     { badge:"BEST", name:"탕수육", side:"", desc:"근본에 충실한 맛, 주문 즉시 튀겨내는 바삭한 정통 탕수육", prices:[{label:"대", price:"37000"}, {label:"소", price:"25000"}] },
     { badge:"강력추천", name:"동파육", side:"", desc:"오랜 시간 정성으로 익힌 동파육에 튀긴 통마늘로 풍미를 더한 한옥반점의 시그니처", prices:[{label:"", price:"55000"}] },
