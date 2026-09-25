@@ -3866,6 +3866,7 @@ async function loadFromServer(){
   var d = { _logs: [] }, keys = Object.keys(DEFAULT_DATA), i, k, srow;
   for(i = 0; i < keys.length; i++){
     k = keys[i]; srow = rows.find(function(r){ return r.key === k; }) || {};
+    if(typeof BASELINE !== "undefined") BASELINE[k] = srow.baseline || null;   /* '기본값으로 저장' 해 둔 설정(33차) */
     d[k] = { name: srow.name || DEFAULT_DATA[k].name, settings: srow.settings || {}, snapshots: srow.snapshots || {},
              reservations: [], trash: [], _updatedAt: srow.updated_at || "",
              _rawSettings: JSON.stringify(srow.settings || {}) };   /* 서버에 있던 그대로 — migrate 가 기본값을 채운 것과 다르면 첫 flush 가 올립니다 */
@@ -5314,6 +5315,7 @@ function absorbScheduled(){
     if(!e.to && e.from <= today){                                                                       /* 날짜 됨 → 지금 설정으로 */
       Object.keys(e.values||{}).forEach(k => { st[k] = e.values[k]; });
       st._setlog = (st._setlog || []).concat([{at:new Date().toISOString(), who:"예정 적용", items:[schedLabel(e)]}]).slice(-60);
+      if(typeof setLogServer === "function") setLogServer([schedLabel(e)]);
       logEvent("예정 설정 적용", schedLabel(e)); changed = true; return;
     }
     keep.push(e);
@@ -6063,7 +6065,8 @@ async function applySettings(){
   if(!await askScheduleOnApply(before, after)) return;
   after.scheduled = before.scheduled;   /* 예정 목록은 임시본이 아니라 설정에서 직접 관리 */
   const diff = settingsDiff(before, after);
-  after._setlog = (before._setlog || []).concat(diff.length ? [{at:new Date().toISOString(), who:(sessionBy() || "-"), items:diff}] : []).slice(-60);
+  after._setlog = (before._setlog || []).concat(diff.length ? [{at:new Date().toISOString(), who:(sessionBy() || "-"), items:diff}] : []).slice(-60);   /* 기기에는 최근 60번만 — 전부는 서버 logs('설정 로그') */
+  if(diff.length && typeof setLogServer === "function") setLogServer(diff);
   store().settings = after;
   view.draft = deepClone(after);   /* _setlog 가 붙어 임시본과 달라지지 않게 */
   logEvent("설정 변경", diff.length ? diff.join(" / ").slice(0, 300) : "적용(변경 없음)");
@@ -8405,8 +8408,9 @@ function renderSettings(){
   const adminBody = `
     <div class="btn-row">
       <button class="btn" onclick="openPinManage()">PIN 관리</button>
-      ${supaOn() ? `<button class="btn" onclick="openAdminPw()">2차 PIN 변경</button>` : ""}
+      ${supaOn() ? `<button class="btn" onclick="openAdminPw()">2차 PIN 관리</button>` : ""}
       <button class="btn" onclick="openLogs()">로그</button>
+      <button class="btn danger" onclick="saveBaseline()">현재 설정을 기본값으로 저장</button>
       <button class="btn danger" onclick="resetSettingsAll()">설정 초기화</button>
     </div>`;
   /* 설명은 제목 옆 ⓘ 로(09-25 재아) */
@@ -11968,26 +11972,32 @@ async function pinUsersLoad(){
   try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=*&order=created_at")) || []; view.pinErr = ""; }
   catch(e){ view.pinErr = e.status === 404 ? "서버 준비 전(29차)" : (e.network ? "서버에 연결할 수 없습니다" : e.message); }
 }
+/* 권한(09-25 재아: 일반·매니저·관리자 셋으로) — 지금은 적어 두기만, 권한별로 막는 건 나중에(33차 staff_pins.role) */
+var PIN_ROLE = { staff:"일반", manager:"매니저", owner:"관리자" };
+function pinRoleSeg(cur){ return '<div class="seg">' + ["staff", "manager", "owner"].map(function(k){ return '<button type="button" class="' + (cur === k ? 'on' : '') + '" onclick="view.pinRole=\'' + k + '\'; render()">' + PIN_ROLE[k] + '</button>'; }).join("") + '</div>'; }
 function sheetPinList(){
-  /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차, 09-25 재아) */
-  const rows = PIN_USERS.map(u=>`<div class="rowitem${u.active === false ? " off" : ""}"><span class="grow"><span class="t">${esc(u.name)} ${u.staff_id ? `<span class="tag">워크시프트</span>` : ""}${u.active === false ? ` <span class="tag rust">퇴사 · 막힘</span>` : ""}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
+  /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차) */
+  const rows = PIN_USERS.map(u=>`<div class="rowitem${u.active === false ? " off" : ""}"><span class="grow"><span class="t">${esc(u.name)} <span class="tag sm">${PIN_ROLE[u.role || "staff"] || "일반"}</span>${u.staff_id ? ` <span class="tag sm">워크시프트에서 생성</span>` : ""}${u.active === false ? ` <span class="tag rust sm">퇴사 · 막힘</span>` : ""}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
       <span class="btn-row"><button class="btn sm" onclick="openPin('${esc(u.id)}')">PIN 바꾸기</button>${u.staff_id ? "" : `<button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button>`}</span></div>`).join("");
   return `
     ${sheetHead("PIN 관리")}
-    <div class="rowitem"><span class="grow"><span class="t">공용 PIN <span class="tag pine">사용 중</span></span><span class="s">직원 모두가 쓰는 번호 · 로그에 '공용 PIN' 으로 남음</span></span>
-      <button class="btn sm" onclick="openPin()">번호 바꾸기</button></div>
+    <div class="rowitem"><span class="grow"><span class="t">공용 PIN <span class="tag pine sm">사용 중</span></span></span>
+      <button class="btn sm" onclick="openPin()">PIN 바꾸기</button></div>
     <div class="subhead" style="margin-top:14px">직원별 PIN</div>
     ${view.pinErr ? `<p class="f-note rust">불러오지 못했습니다: ${esc(view.pinErr)}</p>` : (rows || `<div class="empty">아직 없습니다.</div>`)}
-    <div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openPinAdd()">＋ PIN 따로 추가</button></div>
-    <p class="f-note">직원 PIN 은 워크시프트에서 직원을 추가할 때 같이 만듭니다. 여기서는 번호를 바꾸거나, 직원 목록에 없는 사람용 PIN 을 따로 만듭니다. 워크시프트 직원 PIN 은 퇴사 처리하면 자동으로 막힙니다.</p>
-    <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
+    <div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openPinAdd()">＋ PIN 추가</button></div>`;
 }
-function openPinAdd(){ view.form={type:"pinadd"}; render(); }
+/* 추가 전에 한 번 알림 — 워크시프트 직원 추가와 별개(09-25 재아) */
+async function openPinAdd(){
+  if(!await uiConfirm("PIN 추가", "여기서 만드는 PIN은 워크시프트 직원과 별개입니다.\n직원 PIN은 워크시프트에서 직원을 추가할 때 함께 만듭니다.", {ok:"계속", cancel:"취소", tone:"ok"})) return;
+  view.pinRole = "staff"; view.paName = ""; view.form = {type:"pinadd"}; render();
+}
 function sheetPinAdd(){
   return `
-    ${sheetHead("직원 PIN 추가")}
+    ${sheetHead("PIN 추가")}
     <label class="f big"><div class="lb">2차 PIN</div><input id="pa-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
-    <label class="f big"><div class="lb">직원 이름</div><input id="pa-name" type="text" maxlength="20" placeholder="로그에 남는 이름" autocomplete="off"></label>
+    <label class="f big"><div class="lb">PIN 이름</div><input id="pa-name" type="text" maxlength="20" autocomplete="off" value="${esc(view.paName || "")}" oninput="view.paName=this.value"></label>
+    <div class="f big"><div class="lb">권한</div>${pinRoleSeg(view.pinRole || "staff")}</div>
     <label class="f big"><div class="lb">새 PIN</div><input id="pa-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
     <label class="f big"><div class="lb">새 PIN 확인</div><input id="pa-new2" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
     <div class="sheet-actions">
@@ -12008,11 +12018,11 @@ function pinErrKo(e){ return e.network ? "서버에 연결할 수 없습니다."
 async function pinAddSave(){
   const g = id => (document.getElementById(id) || {}).value || "";
   const adm = g("pa-admin"), name = g("pa-name").trim(), a = g("pa-new"), b = g("pa-new2");
-  if(!name){ await uiAlert2("직원 이름을 입력하세요."); return; }
+  if(!name){ await uiAlert2("PIN 이름을 입력하세요."); return; }
   if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
   if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
   const tok = await pinAdminTok(adm, "PIN 추가"); if(!tok) return;
-  try{ await sb("/rest/v1/rpc/hanok_pin_add", { method:"POST", token:tok, body:{ p_name:name, p_pin:a, p_base:SUPA_CFG.staffEmail } }); }
+  try{ await sb("/rest/v1/rpc/hanok_pin_add", { method:"POST", token:tok, body:{ p_name:name, p_pin:a, p_base:SUPA_CFG.staffEmail, p_role:view.pinRole || "staff" } }); }
   catch(e){ await uiAlert("PIN 을 추가하지 못했습니다", pinErrKo(e), "warn"); return; }
   logEvent("PIN 추가", name);
   view.form = {type:"pinlist"}; await pinUsersLoad(); render();
@@ -12030,7 +12040,7 @@ async function pinDel(id){
   showToast(u.name + " PIN 을 지웠습니다");
 }
 function openAdminPw(){ view.form={type:"apw"}; render(); }
-function openLogs(){ view.form={type:"logs"}; render(); }   /* 보안 화면 안 — 들어올 때 이미 2차 PIN(09-25 재아) */
+function openLogs(){ view.form={type:"logs"}; render(); setLogLoad(); }   /* 보안 화면 안 — 들어올 때 이미 2차 PIN(09-25 재아) */
 function openSmsLog(fromMessages){ view.form={type:"smslog", page:!!fromMessages, back:fromMessages?"messages":""}; view.smsOpen = {}; render(); window.scrollTo(0,0); }
 /* 예약률 시트는 자기 커서(view.rateEnd)로 주를 옮깁니다. 6차 전에는 moveDate(±7) 로 메인 날짜를 밀어서
    시트를 닫으면 대시보드가 엉뚱한 주에 가 있었습니다. 열 때 view.date 로 시작하고 닫으면 view.date 는 그대로 */
@@ -13362,17 +13372,18 @@ async function delOverride(date){
 /* ---------- 공용 PIN 변경 ----------
    09-25(재아): 현재 PIN 은 안 묻고 2차 PIN · 새 PIN · 새 PIN 확인. 보안 화면이 사장님 것이라 현재 PIN 을 몰라도 바꿀 수 있어야 함.
    예전엔 현재 PIN 으로 staff 에 로그인해 그 토큰으로 바꿨는데, 이제는 사장님 토큰으로 서버 함수(hanok_set_staff_pin, 29차)가 바꿈 */
-function openPin(id){ view.form = {type:"pin", target:id || ""}; render(); }
+function openPin(id){ var u = id ? PIN_USERS.find(function(x){ return x.id === id; }) : null; view.pinRole = u ? (u.role || "staff") : null; view.form = {type:"pin", target:id || ""}; render(); }
 function sheetPin(){
   const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null;
   if(!supaOn()) return `${sheetHead("PIN 변경")}<p class="f-note">서버 미연결 빌드에서는 PIN 이 없습니다(아무 번호나 통과). 실서비스 빌드에서 바꿉니다.</p>
     <div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button></div>`;
   return `
-    ${sheetHead(tg ? esc(tg.name) + " PIN 변경" : "공용 PIN 변경")}
+    ${sheetHead(tg ? esc(tg.name) + " PIN 바꾸기" : "공용 PIN 바꾸기")}
     <label class="f big"><div class="lb">2차 PIN</div>
       <input id="pin-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
     </label>
-    <label class="f big"><div class="lb">새 PIN</div>
+    ${tg ? `<div class="f big"><div class="lb">권한</div>${pinRoleSeg(view.pinRole || tg.role || "staff")}</div>` : ""}
+    <label class="f big"><div class="lb">새 PIN${tg ? ' <span class="lbl-note">바꿀 때만</span>' : ''}</div>
       <input id="pin-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
     </label>
     <label class="f big"><div class="lb">새 PIN 확인</div>
@@ -13397,15 +13408,21 @@ async function setPassword(token, password){
 async function savePin(){
   const g = id => (document.getElementById(id) || {}).value || "";
   const adm = g("pin-admin"), a = g("pin-new"), b = g("pin-new2");
-  if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
-  if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
   const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null;
+  const roleChanged = !!tg && (view.pinRole || "staff") !== (tg.role || "staff");
+  if(a || !tg){
+    if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
+    if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
+  }else if(!roleChanged){ await uiAlert2("바뀐 것이 없습니다."); return; }
   const tok = await pinAdminTok(adm, "PIN 변경"); if(!tok) return;
   try{
-    if(tg) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:tg.id, p_pin:a, p_base:SUPA_CFG.staffEmail } });
-    else await sb("/rest/v1/rpc/hanok_set_staff_pin", { method:"POST", token:tok, body:{ p_pin:a, p_base:SUPA_CFG.staffEmail } });
+    if(tg && roleChanged) await sb("/rest/v1/rpc/hanok_pin_role", { method:"POST", token:tok, body:{ p_id:tg.id, p_role:view.pinRole } });
+    if(tg && a) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:tg.id, p_pin:a, p_base:SUPA_CFG.staffEmail } });
+    if(!tg) await sb("/rest/v1/rpc/hanok_set_staff_pin", { method:"POST", token:tok, body:{ p_pin:a, p_base:SUPA_CFG.staffEmail } });
   }catch(e){ await uiAlert("PIN을 바꾸지 못했습니다", pinErrKo(e), "warn"); return; }
   if(!tg) pinHashSave(a);
+  if(roleChanged) logEvent("PIN 권한", tg.name + " → " + PIN_ROLE[view.pinRole]);
+  if(!a){ view.form = {type:"pinlist"}; await pinUsersLoad(); render(); showToast("권한을 바꿨습니다"); return; }
   logEvent("PIN 변경", tg ? tg.name : "공용 PIN");
   view.form = {type:"pinlist"}; await pinUsersLoad(); render();
   await uiAlert2((tg ? tg.name + " PIN이" : "공용 PIN이") + " 변경되었습니다.\n다음 로그인부터 새 PIN 을 씁니다.");
@@ -13413,7 +13430,7 @@ async function savePin(){
 /* 2차 PIN 변경 — 사장님 본인 토큰으로. 09-25(재아): '현재 2차 비밀번호' → '2차 PIN', 설명 글 뺌 */
 function sheetAdminPw(){
   return `
-    ${sheetHead("2차 PIN 변경")}
+    ${sheetHead("2차 PIN 관리")}
     <label class="f big"><div class="lb">2차 PIN</div>
       <input id="apw-cur" type="password" autocomplete="off" inputmode="numeric" maxlength="6">
     </label>
@@ -13475,13 +13492,29 @@ function sheetSetLog(){
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
 /* 설정 초기화 — 기본표(DEFAULT_DATA)로. 누님과 정한 값이 기본표에 들어간 뒤에 쓸모가 있습니다. 관리자 비밀번호 */
+/* 초기화해도 그대로 두는 것 — 날짜별 기록·목록·메뉴판 배경·내부 표시(09-25 재아: 무엇이 지워지고 남는지 정확히) */
+var RESET_KEEP = ["_setlog", "_closedDay", "_reloadAt", "menuBgs", "menuBgDefault", "menuBgFlowerName", "menuBgFlowerOff", "smsFreeLog", "noshowExcluded", "overrides", "holidays", "holidaysOff", "holidaysLegal"];
+var BASELINE = {};   /* 가게별 '기본값으로 저장' 해 둔 설정(33차 stores.baseline) */
+function settingsForBaseline(st){ var o = deepClone(st); RESET_KEEP.forEach(function(k){ delete o[k]; }); return o; }
+async function saveBaseline(){
+  if(!await uiConfirm("현재 설정을 기본값으로 저장할까요?", "지금 적용된 설정(운영시간·예약 규칙·좌석·코스·경로·문자·디스플레이·운영 판단·화면 크기)이 '기본값' 이 됩니다.\n다음에 '설정 초기화' 를 누르면 이 값으로 돌아갑니다.", {ok:"기본값으로 저장", tone:"warn"})) return;
+  if(!await adminGate("기본값 저장", {force:true})) return;
+  var k = view.storeKey || "hanok", base = settingsForBaseline(store().settings);
+  try{ if(supaOn()) await sb("/rest/v1/stores?key=eq." + k, { method:"PATCH", body:{ baseline:base }, prefer:"return=minimal" }); }
+  catch(e){ await uiAlert("저장하지 못했습니다", e.status === 400 ? "서버 준비 전(33차)" : (e.message || String(e)), "warn"); return; }
+  BASELINE[k] = base; logEvent("설정 기본값 저장", ""); showToast("현재 설정을 기본값으로 저장했습니다");
+}
 async function resetSettingsAll(){
-  if(!await uiConfirm("설정을 처음 값으로 되돌릴까요?", "좌석·운영시간·코스·경로·문자 등 설정 전부가 기본표로 돌아갑니다. 예약은 그대로 둡니다.\n2차 PIN 을 한 번 더 묻습니다.", {ok:"초기화"})) return;
+  var k = view.storeKey || "hanok", base = BASELINE[k];
+  if(!await uiConfirm("설정을 " + (base ? "저장해 둔 기본값" : "처음 설치 값") + "으로 되돌릴까요?",
+    "되돌아가는 것: 운영시간, 예약 규칙, 좌석·룸 합침, 코스·세트, 예약 경로, 문자 설정(안내 문자·감사 문자 AI), 디스플레이 설정, 운영 판단(단골 등급 포함), 화면 크기 공통 비율, 예정된 설정 변경\n\n그대로 남는 것: 예약·휴지통, 손님 메모, 워크시프트·급여, 홈페이지 내용·소식, 메뉴판·메뉴판 배경, 임시 일정·쉬는 날, 노쇼 제외 목록, 문자 기록, PIN·2차 PIN, 로그\n\n2차 PIN 을 한 번 더 묻습니다.", {ok:"초기화", tone:"warn"})) return;
   if(!await adminGate("설정 초기화", {force:true})) return;   /* 되돌릴 수 없는 일 — 사장님 메뉴 안이어도 다시 물음 */
-  const keep = store().settings._setlog || [];
-  const def = migrate(deepClone(DEFAULT_DATA))[view.storeKey].settings;
-  def._setlog = keep.concat([{at:new Date().toISOString(), who:(sessionBy() || "-"), items:["설정 초기화(기본표)"]}]).slice(-60);
-  store().settings = def; view.draft = null;
+  var cur = store().settings, def = migrate(deepClone(DEFAULT_DATA))[k].settings;
+  if(base) def = Object.assign(def, deepClone(base));
+  RESET_KEEP.forEach(function(x){ if(cur[x] !== undefined) def[x] = deepClone(cur[x]); else delete def[x]; });
+  var items = ["설정 초기화(" + (base ? "저장해 둔 기본값" : "처음 설치 값") + ")"];
+  def._setlog = (cur._setlog || []).concat([{at:new Date().toISOString(), who:(sessionBy() || "-"), items:items}]).slice(-60);
+  store().settings = def; view.draft = null; setLogServer(items);
   logEvent("설정 변경", "초기화"); takeSnapshot(); saveData(); render();
 }
 /* 로그 두 탭 — 09-25(재아): 검색은 설정 로그에도, '전체 복사' 는 탭 줄 오른쪽 끝. 계정은 이름으로(whoLabel) */
@@ -13489,12 +13522,12 @@ function logTime(ts, sec){ const d = new Date(ts); return isNaN(d) ? String(ts).
 function logList(tab, q){
   q = (q || "").trim().toLowerCase();
   if(tab === "set"){
-    const all = (store().settings._setlog || []).slice().reverse();
+    const all = setLogAll();
     const list = q ? all.filter(e=>(logTime(e.at) + " " + whoLabel(e.who) + " " + (e.items||[]).join(" ")).toLowerCase().includes(q)) : all;
     return { all:all.length, n:list.length, html: list.map(e=>`<div class="logrow"><span class="lg-t">${esc(logTime(e.at))}</span><span class="lg-ip">${esc(whoLabel(e.who))}</span><span class="lg-d">${(e.items||[]).map(esc).join("<br>")}</span></div>`).join("") ||
       `<div class="empty">${all.length ? "찾는 기록이 없습니다." : "아직 없습니다. '적용하기' 를 누를 때부터 쌓입니다."}</div>` };
   }
-  const all = (DATA._logs||[]).slice().reverse();
+  const all = (DATA._logs||[]).filter(l=>l.action !== "설정 로그").slice().reverse();   /* 설정 로그는 설정 로그 탭에만 */
   const list = q ? all.filter(l=>(l.action+" "+l.detail+" "+whoLabel(l.ip)+" "+logTime(l.ts, true)).toLowerCase().includes(q)) : all;
   return { all:all.length, n:Math.min(list.length, 400), html: list.slice(0,400).map(l=>`<div class="logrow">
       <span class="lg-t">${esc(logTime(l.ts, true))}</span>
@@ -13503,17 +13536,34 @@ function logList(tab, q){
       <span class="lg-d">${esc(l.detail)}</span>
     </div>`).join("") || `<div class="empty">기록이 없습니다.</div>` };
 }
-function logNote(tab, r){ return tab === "set" ? `'적용하기' 마다 무엇이 어떻게 바뀌었는지. 최근 60번까지.` : `전체 ${r.all}건 중 ${r.n}건 표시. 로그인·예약 등록·상태 변경·좌석 배정·노쇼·설정 적용이 계정과 함께 쌓입니다.`; }
+function logNote(tab, r){ return ""; }   /* 설명 글은 뺌(09-25 재아) */
+/* 설정 로그 전부(09-25 재아: 60번 제한 없이) — 서버 logs 의 '설정 로그' 줄을 모두 읽고, 그 전에 기기 설정(_setlog, 최근 60)에만 있던 것도 합침 */
+function setLogServer(items){
+  if(!supaOn() || !SESSION || OFFLINE || !items || !items.length) return;
+  sb("/rest/v1/logs", { method:"POST", body:{ store:view.storeKey || "-", action:"설정 로그", detail:JSON.stringify(items), ua:(navigator.userAgent||"").slice(0,120) }, prefer:"return=minimal" }).catch(function(e){ console.warn("설정 로그 저장 실패", e.message); });
+}
+async function setLogLoad(){
+  if(!supaOn()) return;
+  try{
+    var rows = await sbAll("/rest/v1/logs?store=eq." + (view.storeKey || "hanok") + "&action=eq." + encodeURIComponent("설정 로그") + "&select=at,who,detail&order=at.desc");
+    view.setLogSrv = rows.map(function(r){ var it; try{ it = JSON.parse(r.detail); }catch(e){ it = [r.detail]; } return { at:r.at, who:r.who, items:Array.isArray(it) ? it : [String(it)] }; });
+    if(view.form && view.form.type === "logs") render();
+  }catch(e){ view.setLogSrv = view.setLogSrv || []; }
+}
+function setLogAll(){
+  var srv = view.setLogSrv || [], seen = {};
+  srv.forEach(function(e){ seen[logTime(e.at) + "|" + (e.items || []).join("|")] = 1; });
+  var local = (store().settings._setlog || []).filter(function(e){ return !seen[logTime(e.at) + "|" + (e.items || []).join("|")]; });
+  return srv.concat(local).sort(function(a, b){ return new Date(b.at).getTime() - new Date(a.at).getTime(); });
+}
 function sheetLogs(){
   const tab = view.logTab || "use", q = view.logQuery || "", r = logList(tab, q);
   return `
     ${sheetHead("로그")}
     <div class="log-bar"><div class="seg"><button class="${tab==="use"?'on':''}" onclick="view.logTab='use'; render()">이용 로그</button><button class="${tab==="set"?'on':''}" onclick="view.logTab='set'; render()">설정 로그</button></div>
       <button class="btn sm" onclick="copyLogs()">전체 복사</button></div>
-    <input id="log-q" class="log-q" value="${esc(q)}" placeholder="검색 (${tab==="use" ? "동작" : "내용"}·계정·날짜)" oninput="setLogQuery(this.value)">
-    <div class="logbox">${r.html}</div>
-    <p class="f-note" id="log-note">${logNote(tab, r)}</p>
-    <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
+    <input id="log-q" class="log-q" value="${esc(q)}" placeholder="" oninput="setLogQuery(this.value)">
+    <div class="logbox">${r.html}</div>`;
 }
 /* ---------- 보낸 문자 ---------- */
 function sheetSmsLog(){
@@ -13580,7 +13630,7 @@ function setLogQuery(v){
   view.logQuery = v;
   const tab = view.logTab || "use", r = logList(tab, v), box = document.querySelector(".logbox"), note = document.getElementById("log-note");
   if(box) box.innerHTML = r.html;   /* 다시 그리지 않고 목록만 — 치는 중에 입력칸이 튀지 않게 */
-  if(note) note.textContent = logNote(tab, r);
+  if(note) note.textContent = logNote(tab, r);   /* 설명 칸은 없어짐 — 있으면만 */
 }
 /* 지금 보는 탭 전체를 복사(검색과 무관). 보안 화면 안이라 2차 PIN 을 다시 묻지 않음(09-25 재아) */
 function copyLogs(){
