@@ -2153,6 +2153,72 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* 감사 문자: '직접 입력' 전에는 읽기만(09-25) · 고급 여닫기 삼각형 */
 .th-text.ro{cursor:default; color:var(--text-2)}
 .th-adv{min-width:44px; justify-content:center; font-size:12px}
+/* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
+   페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
+
+/* 편집 화면은 미리보기를 옆에 두려고 넓게(다른 화면형은 820px) */
+.page-wrap.wide{max-width:1240px}
+
+/* 목록 */
+.mb-list{display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:var(--s16)}
+.mb-it{border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; background:var(--surface); display:flex; flex-direction:column}
+.mb-thumb{display:block; width:100%; height:228px; padding:0; border:0; border-bottom:1px solid var(--border); background:#f4f1ec; cursor:pointer; overflow:hidden; text-align:left}
+.mb-thumb .mbp{margin:0 auto}
+.mb-it-b{padding:var(--s12); display:flex; flex-direction:column; gap:6px}
+.mb-it-b small{color:var(--text-3)}
+.mb-empty{text-align:center; padding:32px 0}
+.mb-empty p{margin:0 0 14px}
+
+/* 편집 윗줄 */
+.mb-top{display:flex; align-items:center; gap:var(--s12); flex-wrap:wrap; margin-bottom:var(--s12)}
+.mb-name{flex:1; min-width:180px; font-weight:700}
+.mb-stat{font-size:13px; color:var(--text-3); min-width:70px}
+.mb-chips{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--s12)}
+.mb-chip{height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--border); background:var(--surface); font:inherit; font-size:14px; cursor:pointer; white-space:nowrap}
+.mb-chip.on{background:var(--text); color:var(--surface); border-color:var(--text)}
+.mb-chip.add{border-style:dashed; color:var(--text-2)}
+
+/* 왼쪽 입력 · 오른쪽 미리보기(붙어서 따라옴) */
+.mb-grid{display:grid; grid-template-columns:minmax(0, 1fr) 400px; gap:var(--s16); align-items:start}
+.mb-side{position:sticky; top:12px}
+.mb-prev-h{display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:13px; color:var(--text-2)}
+.mb-prev{width:100%; background:#e9e5df; border-radius:var(--r-sm); overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.mb-prev .mbp{display:block}
+@media (max-width:980px){
+  .mb-grid{grid-template-columns:1fr}
+  .mb-side{position:static; order:-1; max-width:420px; margin:0 auto; width:100%}
+}
+
+.mb-pagebox{border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s12); margin-bottom:var(--s12); background:var(--surface)}
+.mb-pagetools{display:flex; align-items:center; justify-content:space-between; gap:var(--s12); flex-wrap:wrap}
+.mb-scale{display:inline-flex; align-items:center; gap:8px; font-size:14px}
+.mb-scale b{min-width:44px; text-align:center}
+.mb-sec{border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s12); margin-bottom:var(--s12); background:var(--surface-2, #faf9f7)}
+.mb-sec-h{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px}
+.mb-sec-h > input{flex:1; min-width:160px}
+.mb-item{border:1px solid var(--border); border-radius:var(--r-sm); padding:10px 12px; margin-bottom:10px; background:var(--surface)}
+.mb-item-h{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px}
+.mb-item-h b{font-size:14px}
+.mb-tools{display:inline-flex; gap:4px; flex:none}
+.ibtn2{width:34px; height:34px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); font:inherit; font-size:15px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:0}
+.ibtn2:disabled{opacity:.35; cursor:default}
+.ibtn2.danger{color:var(--rust)}
+.ibtn2.ghost{border-color:transparent; background:none; cursor:default}
+.mb-f{margin-bottom:8px}
+.mb-f textarea{width:100%; resize:vertical}
+.mb-g2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.mb-g3{display:grid; grid-template-columns:1.2fr .8fr 1.2fr; gap:8px}
+.mb-g4{display:grid; grid-template-columns:1.4fr .8fr .6fr .9fr; gap:8px}
+@media (max-width:640px){ .mb-g3, .mb-g4{grid-template-columns:1fr 1fr} }
+.mb-pr{display:grid; grid-template-columns:1fr 130px 34px; gap:6px; margin-bottom:6px; align-items:center}
+.mb-addsec{align-items:center; margin:4px 0 var(--s12)}
+.mb-bg{display:flex; align-items:center; gap:10px; margin-top:4px}
+/* 한 줄 높이 맞춤(audit_rows 09-25): 윗줄 단추·이름 칸, 가격 줄 입력·× 를 40px 로 */
+.mb-top .btn, .mb-top .mb-name{height:40px!important; min-height:40px!important; box-sizing:border-box}
+.mb-top .btn{display:inline-flex; align-items:center}
+.mb-pr{grid-template-columns:1fr 130px 40px}
+.mb-pr input{height:40px!important; min-height:40px!important; box-sizing:border-box}
+.mb-pr .ibtn2{width:40px; height:40px}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -5945,8 +6011,8 @@ function renderStore(){
   const stt = shopState(s.settings);
   /* 8차-O(재아): 네이버 가져오기·빠른 입력은 팝업 시트가 아니라 화면 전체로 (view.form.page) */
   const pageForm = !!(view.form && view.form.page);
-  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:"사장님", messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:"개발자에게", closeday:"퇴근하기"}[view.form.type] || "빠른 입력") : "";
-  const body = pageForm ? `<div class="page-wrap">${renderSheet()}</div>` : (view.tab==="settings" ? renderSettings : renderDash)();
+  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:"사장님", messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:"개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
+  const body = pageForm ? `<div class="page-wrap${view.form.wide ? " wide" : ""}">${renderSheet()}</div>` : (view.tab==="settings" ? renderSettings : renderDash)();
 
   return `
     <div class="shell">
@@ -10449,7 +10515,7 @@ function cdLeave(){
   setTimeout(function(){ ov.classList.add("out"); setTimeout(function(){ ov.remove(); view.form = null; lockNow(); }, 450); }, 5500);
 }
 /* ---------- 메뉴판(09-25 재아) — 사장님이 메뉴판을 여러 개 만들고 고치고 PDF·사진으로 뽑는 도구. 방식 확정 뒤 만듦 ---------- */
-function openMenuBoards(){ uiAlert("메뉴판은 만드는 중입니다", "여러 메뉴판(2026 통합, 추석 특별, 외국인용 …)을 만들고 PDF·사진으로 뽑는 화면이 여기 들어옵니다.", "ok"); }
+/* 화면은 14i-menu.js */
 /* ---------- 예약 내보내기(CSV, 09-20 재아) — 엑셀에서 바로 열림(UTF-8 BOM). 기간은 물어봄 ---------- */
 /* 09-25(재아): 날짜를 글로 치던 두 번 묻기 → 기간 양식. 시작을 비우면 '처음부터', 끝을 비우면 '끝까지' */
 function openExport(){ view.exp = view.exp || { from: shiftDate(todayStr(), -30), to: todayStr() }; view.form = {type:"export", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render(); window.scrollTo(0,0); }   /* 화면형 — 닫으면 사장님 메뉴로 */
@@ -10951,6 +11017,425 @@ async function dqDone(id){
   try{ await sb("/rest/v1/dev_requests?id=eq." + id, { method:"PATCH", body:{ status:"끝" }, prefer:"return=minimal" }); DQ.open = null; await dqLoad(); render(); }
   catch(e){ await uiAlert("바꾸지 못했습니다", e.message || String(e), "warn"); }
 }
+/* ---------- 메뉴판(31차, 09-25 재아) ----------
+   사장님이 메뉴판을 여러 개(2026 통합 · 추석 특별 · 외국인용 …) 만들고 고치고 PDF·사진으로 뽑는 도구.
+   방식은 '칸 채우기': 사장님은 내용만 넣고, 배치·글씨는 지금 쓰는 메뉴표(꽃 테두리 + 흰 카드 + 갈색 제목) 모양으로 자동.
+   끌어다 놓는 방식은 태블릿에서 어렵고 모양이 쉽게 흐트러져서 안 씀(재아와 정함).
+
+   자료: 서버 menu_boards(id, name, data, sort, deleted_at). data = { bg, pages:[페이지] }
+     페이지 = { id, title, sub, foot, scale(%), sections:[{ title, kind, items:[…] }] }
+     kind "course" 코스·세트 = { badge, name, label("1인"), price, rows: "한 줄 = 한 줄, 쉼표로 요리 · (괄호)는 작게" }
+     kind "dish"   요리·주류 = { badge, name, side(이름 옆 작은 글), desc(한 줄 설명), prices:[{label, price}] }
+     kind "list"   목록(식사) = { name, price }
+   페이지는 A4 한 장 = 794×1123px(96dpi). 미리보기는 zoom 으로 줄임(transform:scale 금지 — 작업 규칙 2-3)
+   PDF = 새 창에 전 페이지를 그려 인쇄 → 'PDF로 저장'(글자가 그대로 글자라 선명). 사진 = html2canvas(cdnjs)로 페이지마다 PNG
+   페이지 모양(글씨·색·간격)은 MB_CSS 하나에 — 앱 미리보기와 인쇄 창이 같은 걸 씀 */
+var MB = null;   /* { list, loading, err, page, saveT, saving, savedAt, demo } */
+var MB_W = 794, MB_H = 1123;
+
+function mbAsset(n){ return (location.pathname.indexOf("/dev/") >= 0 ? "../" : "") + "menu/" + n; }
+function mbAbs(u){ try{ return new URL(u, location.href).href; }catch(e){ return u; } }
+function mbBg(b){ return (b && b.data && b.data.bg === "none") ? "" : mbAbs(mbAsset("bg-flower.jpg?v=0925b"))   /* 파일을 바꾸면 v 도 바꿈(기기 캐시) */; }
+/* 메뉴판 글꼴 — 지금 메뉴표와 비슷한 둥근 손글씨(Jua) + 설명은 고운돋움. 처음 열 때 한 번만 */
+var MB_FONTS = "https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap";
+function mbFontsLoad(){ if(document.getElementById("mb-fonts")) return; var l = document.createElement("link"); l.id = "mb-fonts"; l.rel = "stylesheet"; l.href = MB_FONTS; document.head.appendChild(l); }
+function mbCssLoad(){ if(document.getElementById("mb-css")) return; var s = document.createElement("style"); s.id = "mb-css"; s.textContent = MB_CSS; document.head.appendChild(s); }
+
+/* ---------- 페이지 모양 ---------- */
+var MB_CSS = [
+  ".mbp{position:relative; width:794px; height:1123px; background:#fff center/100% 100% no-repeat; overflow:hidden; box-sizing:border-box; color:#1d1a17; -webkit-print-color-adjust:exact; print-color-adjust:exact}",
+  ".mbp *{box-sizing:border-box}",
+  /* 흰 카드 — 지금 메뉴표의 자리(왼 8.8% · 오 7% · 위 4.4% · 아래 6.3%) */
+  ".mbp-card{position:absolute; left:70px; right:55px; top:50px; bottom:70px; background:#fff; border:1.5px solid #D9BD9A; border-radius:14px; overflow:hidden}",
+  ".mbp.nobg .mbp-card{left:40px; right:40px; top:40px; bottom:40px}",
+  ".mbp-in{position:absolute; top:0; right:0; bottom:0; left:0; padding:42px 56px 34px; display:flex; flex-direction:column}",
+  ".mbp-h{text-align:center; flex:none}",
+  ".mbp-t{font-family:'Jua',sans-serif; font-weight:400; font-size:3.1em; line-height:1.15; color:#A8733A; margin:0; letter-spacing:.02em}",
+  ".mbp-line{width:44%; height:2px; background:#7E5A7B; margin:.35em auto 0}",
+  ".mbp-sub{font-family:'Gowun Dodum',sans-serif; font-size:1.2em; color:#7a7470; margin-top:.35em}",
+  ".mbp-body{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-evenly; padding-top:.6em}",
+  ".mbp-sec{display:flex; flex-direction:column; min-height:0}",
+  /* 항목만 고르게 퍼짐 — 소제목까지 퍼지면 소제목과 첫 항목 사이가 휑했음 */
+  ".mbp-items{flex:1; display:flex; flex-direction:column; justify-content:space-evenly}",
+  ".mbp-items > *{flex:none}",   /* 넘치면 줄어들지 말고 넘치게 — 그래야 '한 장을 넘칩니다' 를 알 수 있음 */
+  ".mbp-st{font-family:'Jua',sans-serif; font-weight:400; font-size:1.75em; color:#A8733A; margin:.2em 0 .5em}",
+  ".mbp-div{width:22%; height:2px; background:#7E5A7B; margin:.9em auto; flex:none}",
+  ".mbp-badge{display:block; font-family:'Jua',sans-serif; font-size:.72em; color:#A8733A; letter-spacing:.04em; line-height:1.1}",
+  ".mbp-won{font-family:'Jua',sans-serif; font-size:1.7em; white-space:nowrap}",
+  /* 코스·세트 */
+  ".mbp-course{padding:.2em 0}",
+  ".mbp-ch{display:flex; align-items:flex-end; justify-content:space-between; gap:1em; margin-bottom:.7em}",
+  ".mbp-cn{font-family:'Jua',sans-serif; font-size:1.7em; color:#A8733A; line-height:1.15}",
+  ".mbp-cp{font-family:'Jua',sans-serif; font-size:1.7em; color:#A8733A; white-space:nowrap}",
+  ".mbp-row{display:grid; grid-template-columns:repeat(4, 1fr); column-gap:.8em; row-gap:.35em; margin-bottom:.55em}",
+  ".mbp-row span{font-family:'Jua',sans-serif; font-size:1.25em; line-height:1.25}",
+  ".mbp-row span.w2{grid-column:span 2}",
+  ".mbp-row small{display:block; font-family:'Gowun Dodum',sans-serif; font-size:.55em; color:#6d6760; margin-top:.1em}",
+  /* 요리·주류 */
+  ".mbp-dish{display:flex; align-items:center; justify-content:space-between; gap:1.2em; padding:.35em 0}",
+  ".mbp-dl{min-width:0}",
+  ".mbp-dn{display:flex; align-items:baseline; gap:.4em; flex-wrap:wrap}",
+  ".mbp-dn b{font-family:'Jua',sans-serif; font-weight:400; font-size:1.8em; line-height:1.2}",
+  ".mbp-side{font-family:'Gowun Dodum',sans-serif; font-size:.82em; color:#A8733A}",
+  ".mbp-dd{font-family:'Gowun Dodum',sans-serif; font-size:.78em; color:#C1935F; margin-top:.25em; line-height:1.45}",
+  ".mbp-dp{flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:.25em}",
+  ".mbp-dp div{display:flex; align-items:baseline; gap:.7em}",
+  ".mbp-dp small{font-family:'Gowun Dodum',sans-serif; font-size:.95em; color:#7a7470; white-space:nowrap}",
+  /* 목록 */
+  ".mbp-li{display:flex; justify-content:space-between; align-items:baseline; padding:.35em .6em}",
+  ".mbp-li b{font-family:'Jua',sans-serif; font-weight:400; font-size:1.35em}",
+  ".mbp-li .mbp-won{font-size:1.35em}",
+  ".mbp-foot{flex:none; text-align:center; font-family:'Gowun Dodum',sans-serif; font-size:.95em; line-height:1.9; color:#4a4540; padding-top:.6em}",
+  ".mbp-empty{flex:1; display:flex; align-items:center; justify-content:center; color:#b9b2aa; font-family:'Gowun Dodum',sans-serif; font-size:1.2em}"
+].join("\n");
+
+function mbWon(v){ var s = String(v == null ? "" : v).trim(); return /^\d+$/.test(s) ? Number(s).toLocaleString("ko-KR") : s; }
+/* "후식 식사 (짜장 혹은 짬뽕)" → 이름 + 작은 글 */
+function mbDishCell(t){
+  t = String(t || "").trim(); if(!t) return "";
+  var m = t.match(/^(.*?)\s*\(([^)]*)\)\s*$/), name = m ? m[1] : t, note = m ? m[2] : "";
+  var w = name.replace(/\s/g, "").length > 8 ? " w2" : "";   /* 긴 이름(새우쇼마이 & 샤오롱바오)은 두 칸 */
+  return '<span class="' + w.trim() + '">' + esc(name) + (note ? '<small>(' + esc(note) + ')</small>' : '') + '</span>';
+}
+function mbItemHtml(kind, it){
+  var badge = it.badge ? '<small class="mbp-badge">*' + esc(it.badge) + '*</small>' : '';
+  if(kind === "course"){
+    var rows = String(it.rows || "").split("\n").map(function(l){ var cells = l.split(",").map(mbDishCell).filter(Boolean).join(""); return cells ? '<div class="mbp-row">' + cells + '</div>' : ''; }).join("");
+    return '<div class="mbp-course"><div class="mbp-ch"><div>' + badge + '<div class="mbp-cn">' + esc(it.name || "") + '</div></div>' +
+      (it.price ? '<span class="mbp-cp">' + esc(it.label || "") + (it.label ? ' ' : '') + esc(mbWon(it.price)) + '</span>' : '') + '</div>' + rows + '</div>';
+  }
+  if(kind === "list") return '<div class="mbp-li"><b>' + esc(it.name || "") + '</b><span class="mbp-won">' + esc(mbWon(it.price)) + '</span></div>';
+  var ps = (it.prices || []).filter(function(p){ return p && (p.price || p.label); });
+  return '<div class="mbp-dish"><div class="mbp-dl">' + badge + '<div class="mbp-dn"><b>' + esc(it.name || "") + '</b>' + (it.side ? '<span class="mbp-side">' + esc(it.side) + '</span>' : '') + '</div>' +
+    (it.desc ? '<div class="mbp-dd">' + esc(it.desc) + '</div>' : '') + '</div>' +
+    '<div class="mbp-dp">' + ps.map(function(p){ return '<div>' + (p.label ? '<small>' + esc(p.label) + '</small>' : '') + '<span class="mbp-won">' + esc(mbWon(p.price)) + '</span></div>'; }).join("") + '</div></div>';
+}
+/* 페이지 한 장. 코스 묶음은 항목 사이에 짧은 선, 묶음과 묶음 사이에도 선 */
+function mbPageHtml(b, pg, zoom){
+  var bg = mbBg(b), sc = Math.max(70, Math.min(130, Number(pg.scale) || 100)) / 100;
+  var secs = (pg.sections || []).filter(function(s){ return (s.items || []).length || s.title; });
+  var body = secs.map(function(s){
+    var items = (s.items || []).map(function(it){ return mbItemHtml(s.kind, it); });
+    return '<div class="mbp-sec" style="flex-grow:' + Math.max(1, items.length) + '">' + (s.title ? '<h2 class="mbp-st">' + esc(s.title) + '</h2>' : '') + '<div class="mbp-items">' + items.join(s.kind === "course" ? '<div class="mbp-div"></div>' : '') + '</div></div>';
+  }).join('<div class="mbp-div"></div>');
+  var foot = String(pg.foot || "").split("\n").filter(function(l){ return l.trim(); }).map(esc).join("<br>");
+  return '<div class="mbp' + (bg ? '' : ' nobg') + '"' + (zoom ? ' style="zoom:' + zoom + (bg ? '; background-image:url(\'' + bg + '\')' : '') + '"' : (bg ? ' style="background-image:url(\'' + bg + '\')"' : '')) + '>' +
+    '<div class="mbp-card"><div class="mbp-in" style="font-size:' + (16 * sc).toFixed(2) + 'px">' +
+      '<div class="mbp-h">' + (pg.title ? '<h1 class="mbp-t">' + esc(pg.title) + '</h1><div class="mbp-line"></div>' : '') + (pg.sub ? '<div class="mbp-sub">' + esc(pg.sub) + '</div>' : '') + '</div>' +
+      (body ? '<div class="mbp-body">' + body + '</div>' : '<div class="mbp-empty">항목을 넣으면 여기 나타납니다</div>') +
+      (foot ? '<div class="mbp-foot">' + foot + '</div>' : '') +
+    '</div></div></div>';
+}
+
+/* ---------- 불러오기·저장 ---------- */
+/* 개발 서버(dev)에 31차가 없으면 이 기기에만 저장(연습용) — 실서비스에서는 쓰지 않음 */
+var MB_DEMO_KEY = "hanok-menu-demo";
+function mbDemoLoad(){ try{ return JSON.parse(localStorage.getItem(MB_DEMO_KEY) || "[]"); }catch(e){ return []; } }
+function mbDemoSave(){ try{ localStorage.setItem(MB_DEMO_KEY, JSON.stringify(MB.list)); }catch(e){} }
+async function mbLoad(){
+  MB.loading = true; MB.err = ""; render();
+  try{ MB.list = (await sb("/rest/v1/menu_boards?store=eq." + (view.storeKey || "hanok") + "&deleted_at=is.null&select=*&order=sort,created_at")) || []; MB.demo = false; }
+  catch(e){
+    if(e.status === 404 && SUPA_CFG.demo){ MB.demo = true; MB.list = mbDemoLoad(); }
+    else MB.err = e.status === 404 ? "서버 준비 전(31차)" : (e.network ? "서버에 연결할 수 없습니다" : e.message);
+  }
+  MB.loading = false; render();
+}
+function mbCur(){ return MB && view.form && MB.list.find(function(b){ return b.id === view.form.id; }); }
+async function mbInsert(name, data){
+  var row = { id:newId("mb"), store:view.storeKey || "hanok", name:name, data:data, sort:MB.list.reduce(function(a, b){ return Math.max(a, b.sort || 0); }, 0) + 1, by:sessionBy() };
+  if(MB.demo){ row.updated_at = new Date().toISOString(); MB.list.push(row); mbDemoSave(); return row; }
+  var r = await sb("/rest/v1/menu_boards", { method:"POST", body:row, prefer:"return=representation" });
+  MB.list.push(r[0] || row); return r[0] || row;
+}
+function mbSaveSoon(){ if(!MB) return; clearTimeout(MB.saveT); MB.dirty = true; mbStatus(); MB.saveT = setTimeout(mbSaveNow, 800); }
+async function mbSaveNow(){
+  if(!MB || !MB.dirty) return true;
+  clearTimeout(MB.saveT);
+  var b = mbCur() || MB.lastB; if(!b){ MB.dirty = false; return true; }
+  MB.dirty = false; MB.saving = true; mbStatus();
+  try{
+    if(MB.demo){ b.updated_at = new Date().toISOString(); mbDemoSave(); }
+    else await sb("/rest/v1/menu_boards?id=eq." + encodeURIComponent(b.id), { method:"PATCH", body:{ name:b.name, data:b.data, by:sessionBy() }, prefer:"return=minimal" });
+    MB.saving = false; MB.savedAt = Date.now(); MB.saveErr = ""; mbStatus(); return true;
+  }catch(e){ MB.saving = false; MB.dirty = true; MB.saveErr = e.network ? "연결 없음" : (e.message || "저장 실패"); mbStatus(); return false; }
+}
+function mbStatus(){ var el = document.getElementById("mb-stat"); if(el) el.innerHTML = mbStatusText(); }
+function mbStatusText(){ if(!MB) return ""; if(MB.saveErr) return '<span class="rust">저장 안 됨 · ' + esc(MB.saveErr) + '</span>'; if(MB.saving || MB.dirty) return '저장 중…'; return MB.savedAt ? '저장됨' : (MB.demo ? '이 기기에만 저장(연습)' : ''); }
+
+/* ---------- 목록 화면 ---------- */
+async function openMenuBoards(){
+  mbFontsLoad(); mbCssLoad();
+  if(!MB) MB = { list:[], loading:true, page:0 };
+  view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0);
+  await mbLoad();
+}
+function sheetMenus(){
+  var list = MB ? MB.list : [];
+  var body;
+  if(!MB || MB.loading) body = '<p class="muted" style="padding:16px 0">불러오는 중…</p>';
+  else if(MB.err) body = '<p class="f-note rust">불러오지 못했습니다: ' + esc(MB.err) + '</p>';
+  else if(!list.length) body = '<div class="mb-empty"><p>아직 메뉴판이 없습니다.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="mbSeed()">지금 메뉴표(2026 통합)로 시작</button><button class="btn" onclick="mbAdd()">빈 메뉴판</button></div><p class="f-note">지금 쓰는 11장짜리 메뉴표를 옮겨 적어 두었습니다. 그걸로 시작해 고치는 게 빠릅니다.</p></div>';
+  else body = '<div class="mb-list">' + list.map(function(b){
+      var n = ((b.data || {}).pages || []).length, pg = ((b.data || {}).pages || [])[0];
+      var at = b.updated_at ? new Date(b.updated_at) : null;
+      return '<div class="mb-it"><button class="mb-thumb" onclick="mbOpen(\'' + esc(b.id) + '\')" aria-label="' + esc(b.name) + ' 열기">' + (pg ? mbPageHtml(b, pg, 0.2) : '') + '</button>' +
+        '<div class="mb-it-b"><b>' + esc(b.name || "(이름 없음)") + '</b><small>' + n + '장' + (at ? ' · ' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ' 고침' : '') + '</small>' +
+        '<div class="btn-row"><button class="btn sm primary" onclick="mbOpen(\'' + esc(b.id) + '\')">열기</button><button class="btn sm" onclick="mbCopy(\'' + esc(b.id) + '\')">복제</button><button class="btn sm ghost danger" onclick="mbDel(\'' + esc(b.id) + '\')">삭제</button></div></div></div>';
+    }).join("") + '</div>';
+  return sheetHead("메뉴판") +
+    (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
+    body +
+    (list.length ? '<div class="btn-row" style="margin-top:14px"><button class="btn" onclick="mbAdd()">＋ 메뉴판 추가</button></div>' : '');
+}
+async function mbAdd(){
+  var name = await uiPrompt("메뉴판 추가", "이름 — 예: 추석 특별 메뉴판, 외국인 메뉴판", {value:"", ok:"만들기"}); if(name == null) return;
+  name = String(name).trim() || "새 메뉴판";
+  try{ var b = await mbInsert(name, { bg:"flower", pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
+  catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
+}
+async function mbSeed(){
+  try{ var b = await mbInsert("2026 통합 메뉴표", deepClone(MB_SEED)); logEvent("메뉴판 추가", b.name + "(지금 메뉴표)"); mbOpen(b.id); }
+  catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
+}
+async function mbCopy(id){
+  var src = MB.list.find(function(b){ return b.id === id; }); if(!src) return;
+  var name = await uiPrompt("메뉴판 복제", "새 이름", {value:(src.name || "") + " 복사본", ok:"복제"}); if(name == null) return;
+  try{ await mbInsert(String(name).trim() || src.name + " 복사본", deepClone(src.data || {})); logEvent("메뉴판 복제", src.name + " → " + name); render(); }
+  catch(e){ uiAlert("복제하지 못했습니다", e.message || String(e), "warn"); }
+}
+async function mbDel(id){
+  var b = MB.list.find(function(x){ return x.id === id; }); if(!b) return;
+  if(!await uiConfirm("'" + (b.name || "메뉴판") + "' 을 지울까요?", "휴지통으로 갑니다. 되살릴 땐 개발자에게 말하면 됩니다.", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
+  try{
+    if(MB.demo){ MB.list = MB.list.filter(function(x){ return x.id !== id; }); mbDemoSave(); }
+    else { await sb("/rest/v1/menu_boards?id=eq." + encodeURIComponent(id), { method:"PATCH", body:{ deleted_at:new Date().toISOString() }, prefer:"return=minimal" }); MB.list = MB.list.filter(function(x){ return x.id !== id; }); }
+    logEvent("메뉴판 삭제", b.name); render();
+  }catch(e){ uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
+}
+
+/* ---------- 편집 화면 ---------- */
+function mbOpen(id){ MB.page = 0; MB.savedAt = 0; MB.saveErr = ""; view.form = {type:"menu", page:true, back:"menus", wide:true, id:id}; MB.lastB = mbCur(); render(); window.scrollTo(0, 0); }
+async function mbBack(){ await mbSaveNow(); view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0); }
+function mbNewPage(kind){
+  var it = kind === "course" ? {badge:"", name:"", label:"1인", price:"", rows:""} : kind === "list" ? {name:"", price:""} : {badge:"", name:"", side:"", desc:"", prices:[{label:"", price:""}]};
+  return { id:newId("pg"), title:"", sub:"", foot:"", scale:100, sections:[{ title:"", kind:kind, items:[it] }] };
+}
+function mbNewItem(kind){ return mbNewPage(kind).sections[0].items[0]; }
+/* 'pages.0.sections.1.items.2.name' 같은 길로 값 넣기 — 입력칸마다 */
+function mbGetPath(o, path){ return path.split(".").reduce(function(a, k){ return a == null ? a : a[k]; }, o); }
+function mbSet(path, v, full){
+  var b = mbCur(); if(!b) return;
+  if(path === "name"){ b.name = v; }
+  else { var ks = path.split("."), o = b.data; for(var i = 0; i < ks.length - 1; i++){ o = o[ks[i]]; if(o == null) return; } o[ks[ks.length - 1]] = v; }
+  MB.lastB = b; mbSaveSoon();
+  if(full) render(); else mbPrevRefresh();
+}
+function mbPrevRefresh(){ var b = mbCur(), el = document.getElementById("mb-prev"); if(!b || !el) return; var pg = b.data.pages[MB.page]; if(pg) el.innerHTML = mbPageHtml(b, pg, mbZoom()); setTimeout(mbOverflowCheck, 30); }
+function mbZoom(){ var el = document.getElementById("mb-prev"); var w = el ? el.clientWidth : 380; return Math.max(0.2, Math.min(1, (w || 380) / MB_W)).toFixed(3); }
+/* 글이 한 장을 넘으면 알림(막지 않음) — 글씨 크기를 줄이거나 페이지를 나누라고 */
+function mbOverflowCheck(){
+  var body = document.querySelector("#mb-prev .mbp-in"), w = document.getElementById("mb-over"); if(!body || !w) return;
+  var over = body.scrollHeight > body.clientHeight + 2;
+  w.style.display = over ? "" : "none";
+}
+/* 배열 조작(페이지·묶음·항목): 위·아래·복제·삭제 */
+function mbArr(path, op, i){
+  var b = mbCur(); if(!b) return; var a = mbGetPath(b.data, path); if(!Array.isArray(a)) return;
+  if(op === "up" && i > 0){ var t = a[i - 1]; a[i - 1] = a[i]; a[i] = t; if(path === "pages") MB.page = i - 1; }
+  else if(op === "down" && i < a.length - 1){ var t2 = a[i + 1]; a[i + 1] = a[i]; a[i] = t2; if(path === "pages") MB.page = i + 1; }
+  else if(op === "dup"){ var c = deepClone(a[i]); if(c.id) c.id = newId("pg"); a.splice(i + 1, 0, c); if(path === "pages") MB.page = i + 1; }
+  else if(op === "del"){ a.splice(i, 1); if(path === "pages") MB.page = Math.max(0, Math.min(MB.page, a.length - 1)); }
+  MB.lastB = b; mbSaveSoon(); render();
+}
+async function mbArrDel(path, i, what){ if(!await uiConfirm(what + "을(를) 지울까요?", "", {ok:"삭제", cancel:"취소", tone:"warn"})) return; mbArr(path, "del", i); }
+async function mbAddPage(){
+  var k = await mbChoose("페이지 추가", "어떤 모양의 페이지인가요?", [["course", "코스 · 세트"], ["dish", "요리 · 주류"], ["list", "목록 (식사처럼 이름과 가격만)"]]); if(!k) return;
+  var b = mbCur(); b.data.pages.push(mbNewPage(k)); MB.page = b.data.pages.length - 1; MB.lastB = b; mbSaveSoon(); render();
+}
+function mbAddSec(kind){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.sections.push({ title:"", kind:kind, items:[mbNewItem(kind)] }); MB.lastB = b; mbSaveSoon(); render(); }
+function mbAddItem(si){ var b = mbCur(), s = b.data.pages[MB.page].sections[si]; s.items.push(mbNewItem(s.kind)); MB.lastB = b; mbSaveSoon(); render(); }
+function mbKind(si, k){
+  var b = mbCur(), s = b.data.pages[MB.page].sections[si]; if(s.kind === k) return;
+  /* 모양을 바꿔도 이름·가격은 살림 */
+  s.items = s.items.map(function(it){ var n = mbNewItem(k); n.name = it.name || ""; var pr = it.price || ((it.prices || [])[0] || {}).price || ""; if(k === "dish") n.prices = [{label:"", price:pr}]; else n.price = pr; if(it.badge != null && n.badge != null) n.badge = it.badge; return n; });
+  s.kind = k; MB.lastB = b; mbSaveSoon(); render();
+}
+function mbPriceAdd(si, ii){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; (it.prices = it.prices || []).push({label:"", price:""}); MB.lastB = b; mbSaveSoon(); render(); }
+function mbPriceDel(si, ii, pi){ var b = mbCur(), it = b.data.pages[MB.page].sections[si].items[ii]; it.prices.splice(pi, 1); MB.lastB = b; mbSaveSoon(); render(); }
+function mbPick(i){ MB.page = i; render(); }
+function mbScale(d){ var b = mbCur(), pg = b.data.pages[MB.page]; pg.scale = Math.max(70, Math.min(130, (Number(pg.scale) || 100) + d)); MB.lastB = b; mbSaveSoon(); render(); }
+
+/* 입력칸 한 개 — 고칠 때마다 미리보기만 다시 그림(전체를 다시 그리면 입력 중 커서가 튐) */
+function mbIn(path, v, label, opt){
+  opt = opt || {};
+  var inp = opt.area ? '<textarea class="in-sm" rows="' + (opt.rows || 3) + '" placeholder="' + esc(opt.ph || "") + '" oninput="mbSet(\'' + path + '\', this.value)">' + esc(v || "") + '</textarea>'
+    : '<input type="text" class="in-sm" value="' + esc(v || "") + '" placeholder="' + esc(opt.ph || "") + '"' + (opt.num ? ' inputmode="numeric"' : '') + ' oninput="mbSet(\'' + path + '\', this.value)"' + (opt.change ? ' onchange="render()"' : '') + '>';
+  return '<label class="f mb-f' + (opt.cls ? ' ' + opt.cls : '') + '"><div class="lb">' + label + (opt.note ? ' <span class="lbl-note">' + opt.note + '</span>' : '') + '</div>' + inp + '</label>';
+}
+function mbItemForm(kind, it, p, si, ii, n){
+  var tools = '<span class="mb-tools"><button class="ibtn2" onclick="mbArr(\'' + p.replace(/\.\d+$/, "") + '\', \'up\', ' + ii + ')" aria-label="위로"' + (ii ? '' : ' disabled') + '>↑</button><button class="ibtn2" onclick="mbArr(\'' + p.replace(/\.\d+$/, "") + '\', \'down\', ' + ii + ')" aria-label="아래로"' + (ii < n - 1 ? '' : ' disabled') + '>↓</button><button class="ibtn2" onclick="mbArr(\'' + p.replace(/\.\d+$/, "") + '\', \'dup\', ' + ii + ')" aria-label="복제">⧉</button><button class="ibtn2 danger" onclick="mbArrDel(\'' + p.replace(/\.\d+$/, "") + '\', ' + ii + ', \'항목\')" aria-label="삭제">×</button></span>';
+  var f;
+  if(kind === "course"){
+    f = '<div class="mb-g4">' + mbIn(p + ".name", it.name, "이름", {ph:"예: 오 코스"}) + mbIn(p + ".badge", it.badge, "표시", {ph:"BEST"}) + mbIn(p + ".label", it.label, "가격 앞", {ph:"1인"}) + mbIn(p + ".price", it.price, "가격", {num:true, ph:"68000"}) + '</div>' +
+      mbIn(p + ".rows", it.rows, "구성", {area:true, rows:3, note:"한 줄씩 · 요리는 쉼표로 · (괄호)는 작게", ph:"게살수프, 사품냉채\n새우 어향가지, 동파육, 유린기\n후식 식사 (짜장 혹은 짬뽕), 디저트음료"});
+  }else if(kind === "list"){
+    f = '<div class="mb-g2">' + mbIn(p + ".name", it.name, "이름") + mbIn(p + ".price", it.price, "가격", {num:true}) + '</div>';
+  }else{
+    var prs = (it.prices || []).map(function(pr, pi){ return '<div class="mb-pr">' + '<input type="text" class="in-sm" value="' + esc(pr.label || "") + '" placeholder="구분 (대 · 25도 · 대 500ml)" oninput="mbSet(\'' + p + '.prices.' + pi + '.label\', this.value)"><input type="text" class="in-sm" inputmode="numeric" value="' + esc(pr.price || "") + '" placeholder="가격" oninput="mbSet(\'' + p + '.prices.' + pi + '.price\', this.value)">' + ((it.prices || []).length > 1 ? '<button class="ibtn2 danger" onclick="mbPriceDel(' + si + ', ' + ii + ', ' + pi + ')" aria-label="가격 줄 삭제">×</button>' : '<span class="ibtn2 ghost"></span>') + '</div>'; }).join("");
+    f = '<div class="mb-g3">' + mbIn(p + ".name", it.name, "이름") + mbIn(p + ".badge", it.badge, "표시", {ph:"BEST · 강력추천"}) + mbIn(p + ".side", it.side, "이름 옆 작은 글", {ph:"(밀전병 기본 제공)"}) + '</div>' +
+      mbIn(p + ".desc", it.desc, "설명") +
+      '<div class="f mb-f"><div class="lb">가격 <span class="lbl-note">대·소처럼 여러 개면 줄 추가 · 하나면 구분은 비움</span></div>' + prs + '<button class="btn sm ghost" onclick="mbPriceAdd(' + si + ', ' + ii + ')">＋ 가격 줄</button></div>';
+  }
+  return '<div class="mb-item"><div class="mb-item-h"><b>' + (ii + 1) + '. ' + esc(it.name || "(이름 없음)") + '</b>' + tools + '</div>' + f + '</div>';
+}
+function sheetMenu(){
+  var b = mbCur();
+  if(!b) return sheetHead("메뉴판") + '<p class="muted">메뉴판을 찾을 수 없습니다.</p><div class="btn-row"><button class="btn" onclick="mbBack()">목록으로</button></div>';
+  var d = b.data = b.data || {}; d.pages = d.pages || [];
+  if(!d.pages.length) d.pages.push(mbNewPage("dish"));
+  var pi = Math.min(MB.page || 0, d.pages.length - 1), pg = d.pages[pi]; MB.page = pi;
+  var chips = d.pages.map(function(p, i){ return '<button class="mb-chip' + (i === pi ? ' on' : '') + '" onclick="mbPick(' + i + ')">' + (i + 1) + '. ' + esc(p.title || "(제목 없음)") + '</button>'; }).join("") + '<button class="mb-chip add" onclick="mbAddPage()">＋ 페이지</button>';
+  var KIND = { course:"코스 · 세트", dish:"요리 · 주류", list:"목록" };
+  var secs = (pg.sections || []).map(function(s, si){
+    var sp = "pages." + pi + ".sections." + si, n = (pg.sections || []).length;
+    return '<div class="mb-sec"><div class="mb-sec-h">' +
+      '<input type="text" class="in-sm" value="' + esc(s.title || "") + '" placeholder="소제목 (예: 고기류) · 없으면 비움" oninput="mbSet(\'' + sp + '.title\', this.value)">' +
+      '<div class="seg">' + ["course", "dish", "list"].map(function(k){ return '<button class="' + (s.kind === k ? 'on' : '') + '" onclick="mbKind(' + si + ', \'' + k + '\')">' + KIND[k] + '</button>'; }).join("") + '</div>' +
+      '<span class="mb-tools"><button class="ibtn2" onclick="mbArr(\'pages.' + pi + '.sections\', \'up\', ' + si + ')"' + (si ? '' : ' disabled') + ' aria-label="묶음 위로">↑</button><button class="ibtn2" onclick="mbArr(\'pages.' + pi + '.sections\', \'down\', ' + si + ')"' + (si < n - 1 ? '' : ' disabled') + ' aria-label="묶음 아래로">↓</button><button class="ibtn2 danger" onclick="mbArrDel(\'pages.' + pi + '.sections\', ' + si + ', \'묶음\')" aria-label="묶음 삭제">×</button></span></div>' +
+      (s.items || []).map(function(it, ii){ return mbItemForm(s.kind, it, sp + ".items." + ii, si, ii, s.items.length); }).join("") +
+      '<button class="btn sm" onclick="mbAddItem(' + si + ')">＋ 항목</button></div>';
+  }).join("");
+  setTimeout(function(){ mbPrevRefresh(); }, 0);   /* 미리보기 폭에 맞춘 배율은 그린 뒤에야 앎 */
+  return '<div class="mb-top"><button class="btn sm ghost" onclick="mbBack()">← 목록</button>' +
+      '<input type="text" class="in-sm mb-name" value="' + esc(b.name || "") + '" placeholder="메뉴판 이름" oninput="mbSet(\'name\', this.value)">' +
+      '<span class="mb-stat" id="mb-stat">' + mbStatusText() + '</span>' +
+      '<span class="btn-row"><button class="btn sm" onclick="mbPrint()">PDF로 저장</button><button class="btn sm" onclick="mbPng()">사진으로 저장</button></span></div>' +
+    '<div class="mb-chips">' + chips + '</div>' +
+    '<div class="mb-grid"><div class="mb-form">' +
+      '<div class="mb-pagebox"><div class="mb-g2">' + mbIn("pages." + pi + ".title", pg.title, "페이지 제목", {ph:"예: 요리메뉴", change:true}) + mbIn("pages." + pi + ".sub", pg.sub, "제목 아래 작은 글", {ph:"예: (오전 11:00 - 오후 3:30)"}) + '</div>' +
+        mbIn("pages." + pi + ".foot", pg.foot, "맨 아래 안내", {area:true, rows:2, ph:"예: 한옥반점의 만두는 매장에서 직접 빚습니다."}) +
+        '<div class="mb-pagetools"><span class="mb-scale">글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button></span>' +
+        '<span class="btn-row"><button class="btn sm ghost" onclick="mbArr(\'pages\', \'up\', ' + pi + ')"' + (pi ? '' : ' disabled') + '>◀ 앞으로</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'down\', ' + pi + ')"' + (pi < d.pages.length - 1 ? '' : ' disabled') + '>뒤로 ▶</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'dup\', ' + pi + ')">페이지 복제</button><button class="btn sm ghost danger" onclick="mbArrDel(\'pages\', ' + pi + ', \'이 페이지\')"' + (d.pages.length > 1 ? '' : ' disabled') + '>페이지 삭제</button></span></div></div>' +
+      secs +
+      '<div class="btn-row mb-addsec"><span class="muted">묶음 추가:</span><button class="btn sm" onclick="mbAddSec(\'course\')">코스 · 세트</button><button class="btn sm" onclick="mbAddSec(\'dish\')">요리 · 주류</button><button class="btn sm" onclick="mbAddSec(\'list\')">목록</button></div>' +
+      '<div class="mb-bg"><span class="muted">배경</span><div class="seg"><button class="' + (d.bg !== "none" ? "on" : "") + '" onclick="mbSet(\'bg\', \'flower\', true)">꽃 테두리</button><button class="' + (d.bg === "none" ? "on" : "") + '" onclick="mbSet(\'bg\', \'none\', true)">흰 바탕</button></div></div>' +
+    '</div><div class="mb-side"><div class="mb-prev-h"><b>' + (pi + 1) + ' / ' + d.pages.length + '</b><span id="mb-over" class="tag rust sm" style="display:none">한 장을 넘칩니다 — 글씨를 줄이거나 페이지를 나누세요</span></div><div class="mb-prev" id="mb-prev"></div></div></div>';
+}
+
+/* ---------- 내보내기 ---------- */
+/* PDF: 새 창에 모든 페이지를 A4 로 그려 인쇄 창을 띄움 → '대상: PDF로 저장'. 글자가 글자로 남아 인쇄소에 보내도 선명 */
+async function mbPrint(){
+  var b = mbCur(); if(!b) return; await mbSaveNow();
+  var w = window.open("", "_blank"); if(!w){ uiAlert("새 창이 막혔습니다", "브라우저의 팝업 차단을 풀어 주세요.", "warn"); return; }
+  var pages = (b.data.pages || []).map(function(pg){ return mbPageHtml(b, pg, 0); }).join("");
+  w.document.open();
+  w.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + esc(b.name || "메뉴판") + '</title><link rel="stylesheet" href="' + MB_FONTS + '"><style>' + MB_CSS +
+    '\n@page{size:A4; margin:0} html,body{margin:0; padding:0; background:#888} .mbp{margin:0 auto 12px; page-break-after:always; break-after:page} .mbp:last-child{page-break-after:auto; break-after:auto}' +
+    '\n@media print{ html,body{background:#fff} .mbp{margin:0; width:210mm; height:297mm} .mbp-in{font-size:inherit} .hint{display:none} }' +
+    '\n.hint{font:15px sans-serif; color:#fff; text-align:center; padding:12px}</style></head><body><div class="hint">인쇄 창에서 대상을 \'PDF로 저장\' 으로 고르세요. 여백 없음 · 배경 그래픽 켜기.</div>' + pages +
+    '<script>(document.fonts ? document.fonts.ready : Promise.resolve()).then(function(){ var im = [].slice.call(document.images); return Promise.all(im.map(function(i){ return i.complete ? 0 : new Promise(function(r){ i.onload = i.onerror = r; }); })); }).then(function(){ setTimeout(function(){ window.print(); }, 400); });<\/script></body></html>');
+  w.document.close();
+  logEvent("메뉴판 PDF", b.name);
+}
+/* 사진: 페이지마다 PNG(2배 선명도). html2canvas 는 cdnjs 에서 처음 한 번만 받음 */
+var MB_H2C = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+function mbLoadH2c(){ return new Promise(function(res, rej){ if(window.html2canvas) return res(); var s = document.createElement("script"); s.src = MB_H2C; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("사진 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
+async function mbPng(){
+  var b = mbCur(); if(!b) return; await mbSaveNow();
+  var all = await mbChoose("사진으로 저장", "어느 페이지를 저장할까요?", [["cur", "지금 페이지(" + (MB.page + 1) + "장)만"], ["all", "모든 페이지(" + b.data.pages.length + "장)"]]); if(!all) return;
+  var idx = all === "all" ? b.data.pages.map(function(_, i){ return i; }) : [MB.page];
+  showToast("사진을 만드는 중… (" + idx.length + "장)");
+  try{
+    await mbLoadH2c(); if(document.fonts) await document.fonts.ready;
+    var box = document.createElement("div"); box.style.cssText = "position:fixed; left:-12000px; top:0; width:" + MB_W + "px; zoom:1"; document.body.appendChild(box);
+    for(var k = 0; k < idx.length; k++){
+      box.innerHTML = mbPageHtml(b, b.data.pages[idx[k]], 0);
+      var imgUrl = mbBg(b); if(imgUrl) await new Promise(function(r){ var im = new Image(); im.onload = im.onerror = r; im.src = imgUrl; });
+      var cv = await window.html2canvas(box.firstChild, { scale:2, useCORS:true, backgroundColor:"#ffffff", logging:false });
+      await new Promise(function(r){ cv.toBlob(function(bl){ var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = (b.name || "메뉴판") + "_" + (idx[k] + 1) + ".png"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); r(); }, 300); }, "image/png"); });
+    }
+    box.remove(); showToast(idx.length + "장을 저장했습니다"); logEvent("메뉴판 사진", b.name + " " + idx.length + "장");
+  }catch(e){ uiAlert("사진을 만들지 못했습니다", e.message || String(e), "warn"); }
+}
+/* 고르기 팝업 — [[값, 글], …] 중 하나, 취소면 null. 06-modal 의 선택지 팝업(choice)을 씀(uiChoose 는 이미 다른 모양으로 있음) */
+function mbChoose(title, msg, opts){ return new Promise(function(res){ modalReplace({mode:"choice", title:title, msg:msg || "", tone:"ok", choices:opts.map(function(o){ return [o[1], o[0]]; }), cancel:"취소", res:res}); }); }
+
+/* ---------- 처음 자료: 지금 쓰는 '2026 통합 메뉴표'(2026-02-07, 11장)를 옮겨 적은 것 ---------- */
+var MB_AFTER = "후식 식사 (짜장 혹은 짬뽕)";
+var MB_SEED = { bg:"flower", pages:[
+  { id:"pg1", title:"저녁 코스", sub:"(ALL DAY COURSE)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
+    { badge:"", name:"오 코스", label:"1인", price:"68000", rows:"게살수프, 사품냉채\n새우 어향가지, 동파육, 유린기, 전가복\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"촉 코스", label:"1인", price:"50000", rows:"게살수프, 사품냉채\n소고기고추잡채, 팔보채, 탕수육, 깐풍중새우\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"한 코스", label:"1인", price:"42000", rows:"게살수프, 사품냉채\n유산슬, 깐풍중새우, 탕수육, 고추잡채\n새우쇼마이 & 샤오롱바오, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"위 코스", label:"1인", price:"32000", rows:"게살수프, 사품냉채\n유린기, 칠리중새우, 유산슬\n새우쇼마이 & 샤오롱바오, " + MB_AFTER } ] }] },
+  { id:"pg2", title:"평일 점심세트", sub:"(오전 11:00 - 오후 3:30)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
+    { badge:"BEST", name:"요리사 추천세트", label:"1인", price:"30000", rows:"사품냉채, 유린기, 소고기고추잡채, 깐풍중새우\n샤오롱바오 & 새우쇼마이, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"동한 세트", label:"1인", price:"22000", rows:"깐풍기, 가지튀김, 고추잡채, 유산슬\n샤오롱바오 & 새우만두, " + MB_AFTER },
+    { badge:"", name:"서한 세트", label:"1인", price:"19000", rows:"탕수육, 가지튀김, 고추잡채\n샤오롱바오 & 새우만두, " + MB_AFTER } ] }] },
+  { id:"pg3", title:"주말 점심세트", sub:"(오전 11:00 - 오후 3:30)", foot:"", scale:100, sections:[{ title:"", kind:"course", items:[
+    { badge:"BEST", name:"요리사 추천세트", label:"1인", price:"38000", rows:"사품냉채, 유린기, 소고기고추잡채, 깐풍중새우\n샤오롱바오 & 새우쇼마이, " + MB_AFTER + ", 디저트음료" },
+    { badge:"", name:"B 세트", label:"1인", price:"32000", rows:"칠리중새우, 가지튀김, 고추잡채, 탕수육\n샤오롱바오 & 새우만두, " + MB_AFTER },
+    { badge:"", name:"A 세트", label:"1인", price:"25000", rows:"크림새우, 가지튀김, 고추잡채\n샤오롱바오 & 새우만두, " + MB_AFTER } ] }] },
+  { id:"pg4", title:"요리메뉴", sub:"", foot:"", scale:100, sections:[{ title:"고기류", kind:"dish", items:[
+    { badge:"BEST", name:"탕수육", side:"", desc:"근본에 충실한 맛, 주문 즉시 튀겨내는 바삭한 정통 탕수육", prices:[{label:"대", price:"37000"}, {label:"소", price:"25000"}] },
+    { badge:"강력추천", name:"동파육", side:"", desc:"오랜 시간 정성으로 익힌 동파육에 튀긴 통마늘로 풍미를 더한 한옥반점의 시그니처", prices:[{label:"", price:"55000"}] },
+    { badge:"", name:"소고기 고추잡채", side:"(밀전병 기본 제공)", desc:"육회로도 즐길 수 있는 최상급 홍두깨살과 피망을 불향 가득 볶아낸 사천식 요리", prices:[{label:"", price:"49000"}] },
+    { badge:"", name:"고추잡채", side:"(밀전병 기본 제공)", desc:"채 썬 국내산 돈육과 피망을 불맛내어 볶아낸 사천식 요리", prices:[{label:"", price:"32000"}] },
+    { badge:"고수러버를 위한 추천메뉴", name:"향라육슬", side:"", desc:"채 썬 국내산 돈육과 고수를 듬뿍 넣어 매콤하게 볶아낸 사천식 요리", prices:[{label:"", price:"33000"}] } ] }] },
+  { id:"pg5", title:"요리메뉴", sub:"", foot:"", scale:100, sections:[
+    { title:"해산물류", kind:"dish", items:[
+      { badge:"", name:"중새우요리", side:"(칠리, 크림, 깐풍 소스 중 택1)", desc:"", prices:[{label:"대 (18마리)", price:"54000"}, {label:"소 (10마리)", price:"30000"}] },
+      { badge:"강력추천", name:"오룡해삼", side:"", desc:"쫄깃한 해삼 속에 생새우살을 한 가득 채워 튀겨낸 후 불맛으로 마무리한 요리", prices:[{label:"", price:"50000"}] },
+      { badge:"", name:"팔보채", side:"", desc:"각종 해산물과 채소, 육류를 고슬하게 볶아낸 화려한 별미", prices:[{label:"", price:"42000"}] },
+      { badge:"강력추천", name:"전가복", side:"", desc:"복을 담은 요리, 귀한 분들을 위해 귀한 재료를 아낌없이 넣은 한옥반점의 전가복", prices:[{label:"", price:"58000"}] } ] },
+    { title:"닭고기류", kind:"dish", items:[
+      { badge:"", name:"깐풍기", side:"", desc:"바삭하게 튀긴 닭고기에 매콤한 소스로 마늘과 고추 향을 더한 중화풍 요리", prices:[{label:"", price:"28000"}] },
+      { badge:"BEST", name:"유린기", side:"", desc:"겉은 바삭, 속은 촉촉한 닭튀김에 새콤달콤한 간장소스와 신선한 양상추를 곁들인 요리", prices:[{label:"", price:"28000"}] },
+      { badge:"", name:"공보기정", side:"", desc:"부드러운 닭고기와 알싸한 고추, 고소한 캐슈넛과 야채가 어우러진 정통 사천풍 요리", prices:[{label:"", price:"35000"}] } ] } ] },
+  { id:"pg6", title:"요리메뉴", sub:"", foot:"", scale:100, sections:[{ title:"잡품류", kind:"dish", items:[
+    { badge:"BEST", name:"양장피", side:"", desc:"각종 채소와 해산물, 넓적당면을 겨자소스로 버무려 즐기는 중화 냉채", prices:[{label:"", price:"35000"}] },
+    { badge:"", name:"마늘 공심채 볶음", side:"", desc:"아삭한 공심채와 으깬 마늘의 풍미와 건고추가 어우러진 중독성 있는 볶음 요리", prices:[{label:"", price:"25000"}] },
+    { badge:"강력추천", name:"브로콜리 게살볶음", side:"", desc:"국내산 홍게 다리살 100%에 브로콜리를 담백하게 볶아낸 영양 가득한 건강 메뉴", prices:[{label:"", price:"43000"}] },
+    { badge:"", name:"자연송이 유산슬", side:"", desc:"자연송이와 해물·채소·고기를 볶아내 재료 본연의 깊은 맛을 살린 요리", prices:[{label:"대", price:"51000"}, {label:"소", price:"32000"}] },
+    { badge:"", name:"새우어향가지", side:"", desc:"다진 새우살을 가지 속에 꽉꽉 채워 바삭하게 튀기고 진한 어향 소스로 마무리한 요리", prices:[{label:"", price:"45000"}] },
+    { badge:"", name:"사천 가지 튀김", side:"", desc:"바삭하게 튀긴 가지에 사천식 양념 소스가 곁들어진 한옥반점의 대표메뉴", prices:[{label:"", price:"19000"}] } ] }] },
+  { id:"pg7", title:"요리메뉴", sub:"", foot:"", scale:100, sections:[
+    { title:"냉채류", kind:"dish", items:[
+      { badge:"", name:"건두부 무침", side:"", desc:"쫄깃한 식감이 매력적인 건두부를 산뜻하게 즐기는 에피타이저 메뉴", prices:[{label:"", price:"15000"}] },
+      { badge:"", name:"오이 무침", side:"", desc:"아삭한 오이와 쫄깃한 흑목이버섯을 중국 흑초로 버무린 산뜻한 무침", prices:[{label:"", price:"17000"}] },
+      { badge:"", name:"오향장우육", side:"", desc:"한옥반점 특제 레시피로 정성들여 조리한 정통 오향장우육", prices:[{label:"대", price:"43000"}, {label:"소", price:"25000"}] } ] },
+    { title:"탕류", kind:"dish", items:[
+      { badge:"추천메뉴", name:"해물 누룽지탕", side:"", desc:"참을 수 없는 고소한 참기름 향과 바삭한 누룽지, 해물의 시원함이 어우러진 별미", prices:[{label:"", price:"43000"}] },
+      { badge:"", name:"해물 짬뽕탕", side:"", desc:"바다 향 가득한 해물과 얼큰한 국물을 식탁 위에서 끓여내 더욱 뜨끈하게 즐기는 짬뽕탕", prices:[{label:"", price:"23000"}] } ] } ] },
+  { id:"pg8", title:"만두메뉴", sub:"", foot:"한옥반점의 만두는 신선한 국내산 돈육으로 매장에서 직접 빚습니다. (물만두 제외)\n더 많은 분들이 맛보실 수 있도록 매장 식사는 팀당 한정 판매합니다.\n단, 포장 주문 시에는 한 조각씩 더 챙겨드릴게요.", scale:100, sections:[{ title:"", kind:"dish", items:[
+    { badge:"BEST", name:"샤오롱바오", side:"(5개)", desc:"뜨거운 육즙을 한 가득 머금은 한옥반점 부동의 1위 딤섬", prices:[{label:"", price:"8000"}] },
+    { badge:"BEST", name:"새우만두", side:"(5개)", desc:"언젠간 1등 할거야. 탱글한 통새우가 매력적인 한옥반점의 인기 만두", prices:[{label:"", price:"8000"}] },
+    { badge:"", name:"고기부추만두", side:"(5개)", desc:"신선한 국내산 돈육과 계란, 부추가 아낌없이 들어간 영양 만점 딤섬", prices:[{label:"", price:"8000"}] },
+    { badge:"", name:"새우쇼마이", side:"(5개)", desc:"새우살로만 다져 만들어 더욱 순수하고 담백한 맛", prices:[{label:"", price:"12000"}] },
+    { badge:"추천메뉴", name:"새우 짜훈둔", side:"(10개)", desc:"다진 새우살을 춘권피로 감싸 바삭하게 튀긴 특별한 딤섬", prices:[{label:"", price:"12000"}] },
+    { badge:"", name:"물만두", side:"(20개)", desc:"맛있어서 사온 만두", prices:[{label:"", price:"6000"}] } ] }] },
+  { id:"pg9", title:"식사메뉴", sub:"", foot:"", scale:100, sections:[{ title:"", kind:"list", items:[
+    { name:"짜장면", price:"9000" }, { name:"해물짬뽕", price:"10000" }, { name:"백짬뽕", price:"10000" }, { name:"삼선볶음밥", price:"11000" }, { name:"잡채밥", price:"11000" },
+    { name:"고추잡채덮밥", price:"12000" }, { name:"자연송이유산슬덮밥", price:"14000" }, { name:"해물잡탕밥", price:"15000" }, { name:"자연송이전복덮밥", price:"25000" }, { name:"공기밥", price:"2000" } ] }] },
+  { id:"pg10", title:"주류메뉴", sub:"", foot:"", scale:100, sections:[{ title:"", kind:"dish", items:[
+    { badge:"", name:"소주", side:"(참이슬후레쉬, 처음처럼, 새로, 진로)", desc:"", prices:[{label:"", price:"5000"}] },
+    { badge:"", name:"맥주", side:"(카스, 테라, 켈리, 카스무알콜)", desc:"", prices:[{label:"", price:"5000"}] },
+    { badge:"", name:"칭따오", side:"", desc:"", prices:[{label:"", price:"8000"}] },
+    { badge:"", name:"화요", side:"", desc:"", prices:[{label:"25도", price:"25000"}, {label:"41도", price:"45000"}] },
+    { badge:"", name:"일품진로", side:"", desc:"", prices:[{label:"", price:"25000"}] },
+    { badge:"", name:"토닉워터", side:"", desc:"", prices:[{label:"", price:"2000"}] },
+    { badge:"", name:"레몬 슬라이스", side:"", desc:"", prices:[{label:"", price:"2000"}] },
+    { badge:"", name:"콜키지", side:"(보틀 당)", desc:"", prices:[{label:"", price:"20000"}] },
+    { badge:"", name:"탄산음료", side:"(콜라, 제로콜라, 사이다/ 355ml)", desc:"", prices:[{label:"", price:"2000"}] } ] }] },
+  { id:"pg11", title:"주류메뉴", sub:"", foot:"", scale:100, sections:[{ title:"", kind:"dish", items:[
+    { badge:"", name:"밀주고량", side:"", desc:"", prices:[{label:"대 490ml", price:"45000"}, {label:"중 248ml", price:"23000"}] },
+    { badge:"", name:"연태고량주", side:"", desc:"", prices:[{label:"대 500ml", price:"45000"}, {label:"중 250ml", price:"23000"}, {label:"소 125ml", price:"12000"}] },
+    { badge:"", name:"도원결의국수주", side:"", desc:"", prices:[{label:"대 500ml", price:"58000"}, {label:"중 250ml", price:"30000"}] },
+    { badge:"", name:"공부가주", side:"", desc:"", prices:[{label:"대 500ml", price:"48000"}, {label:"중 250ml", price:"25000"}] },
+    { badge:"", name:"금문고량주", side:"", desc:"", prices:[{label:"대 600ml", price:"150000"}, {label:"중 300ml", price:"80000"}] },
+    { badge:"", name:"츠루우메 유즈", side:"(유자사케)", desc:"", prices:[{label:"보틀 720ml", price:"110000"}, {label:"하이볼 150ml", price:"12000"}, {label:"잔술 90ml", price:"15000"}] } ] }] }
+] };
 /* ============================================================
    입력 시트 (예약 / 직원 / 근태)
    ============================================================ */
@@ -11244,6 +11729,7 @@ function closeSheet(){
   if(view.form && view.form.type === "site" && typeof saLeaveGuard === "function" && saLeaveGuard()) return;   /* 홈페이지 관리: 적용 안 한 수정은 나갈 때 버림(09-25) */
   view.cdStaff = false; view.cdThanks = false;
   if(view.form && view.form.type === "owner") OWNER_OK = false;   /* 사장님 메뉴를 닫고 나감 — 다음엔 다시 물음 */
+  if(view.form && view.form.type === "menu"){ mbBack(); return; }   /* 메뉴판 편집 → 저장하고 목록으로 */
   if(view.form && view.form.page && view.form.back === "owner"){ view.form = {type:"owner", page:true}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "messages"){ view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }
   if(view.form && view.form.page && view.form.back === "guests"){ view.form = {type:"guests", page:true, back:"owner"}; render(); window.scrollTo(0,0); return; }
@@ -11279,7 +11765,7 @@ function toastSaved(rec){
 }
 
 function renderSheet(){
-  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, export:sheetExport, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
+  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, export:sheetExport, menus:sheetMenus, menu:sheetMenu, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
   /* 검색은 창 높이를 고정해 두고 결과만 안에서 스크롤 — 칠 때마다 창이 늘었다 줄었다 하지 않게(재아) */
   const wide = view.form.type==="rate" ? " sheet-wide" : ((view.form.type==="search" || (view.form.type==="reqs" && reqPending().length >= 3)) ? " sheet-tall" : "");   /* 홈페이지 예약은 3건부터 높이를 고정하고 목록만 스크롤(재아 09-17). 0~2건이면 빈 상자를 길게 안 보임(검토 D3) */
   if(view.form.page) return `<div class="sheet page-sheet">${inner}</div>`;   /* 화면형: 덮개 없이 본문 자리에 */
