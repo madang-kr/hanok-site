@@ -448,7 +448,7 @@
           ${room ? `<button type="button" data-c="later" data-l="메뉴 미정" class="${S.course==='later'?'on':''}"><b>미정</b></button>`
                  : `<button type="button" data-c="none" data-l="단품 주문" class="${S.course==='none'?'on':''}"><b>단품 주문</b></button>`}`}
         </div>
-        <p class="rv-quiet"><a href="${INFO.menuPdf}" target="_blank" rel="noopener">메뉴판(PDF) 보기</a></p>
+        ${INFO.menuPdf ? `<p class="rv-quiet"><a href="${esc(INFO.menuPdf)}" target="_blank" rel="noopener">메뉴판(PDF) 보기</a></p>` : ""}
       </section>`);
     b.querySelectorAll("[data-c]").forEach(el => el.addEventListener("click", () => {
       S.course = el.dataset.c; S.courseLabel = el.dataset.l;
@@ -621,6 +621,7 @@
   });
   window.openReserve = open;
 
+  if(/[?&]reserve=1/.test(location.search)) setTimeout(open, 300);   /* 옛 예약 장 주소(reserve.html)로 들어온 손님 — 홈에서 예약 창을 바로(09-25) */
   /* 미리보기: ?rv=5 처럼 붙이면 그 단계가 보기 데이터로 열립니다(스크린샷·검토용) */
   const m = location.search.match(/[?&]rv=(\d)/);
   if(m){
