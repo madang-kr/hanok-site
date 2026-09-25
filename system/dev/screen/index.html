@@ -2259,13 +2259,22 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-stat .amber{color:var(--amber, #a8680e)}
 
 /* 꾸미기 칸(09-25) */
-.mb-style{border:1px solid var(--text); border-radius:var(--r-md); padding:var(--s12); margin-bottom:var(--s12); background:var(--surface)}
+.mb-style{min-width:0}
 .mb-style-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
 .mb-sw{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .mb-swc{width:28px; height:28px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--border); padding:0; cursor:pointer}
 .mb-swc.on{box-shadow:0 0 0 2px var(--text)}
 .mb-sw input[type=color]{width:34px; height:30px; padding:0; border:1px solid var(--border); border-radius:6px; background:none; cursor:pointer}
 .mb-top .btn.on{background:var(--text); color:var(--surface); border-color:var(--text)}
+
+/* 09-25 3차: 꾸미기 팝업(왼쪽 고르기 · 오른쪽 미리보기) · 목록 머리(추가는 오른쪽 끝) · 배경 단추 둘 */
+.mb-stylepop{max-width:880px; width:calc(100vw - 40px)}
+.mb-stylegrid{display:grid; grid-template-columns:minmax(0, 1fr) 270px; gap:var(--s16); align-items:start; max-height:calc(100vh - 220px); overflow:auto}
+.mb-stylepv{position:sticky; top:0; border-radius:var(--r-sm); overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.1)}
+@media (max-width:700px){ .mb-stylegrid{grid-template-columns:1fr} .mb-stylepv{display:none} }
+.mb-listh{display:flex!important; align-items:center; justify-content:space-between; gap:12px}
+.mb-listh .btn{margin-left:auto}
+.mb-bgbtns{display:inline-flex; gap:4px}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -5151,6 +5160,7 @@ function shopState(st){
 
 /* 아이콘 (선으로만 그린 최소한의 아이콘) */
 const ICON = {
+  edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
   trash:'<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
   copy:'<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   menu:'<svg viewBox="0 0 24 24"><path d="M3 5.5c3-1.3 6-1.3 9 .8 3-2.1 6-2.1 9-.8v13c-3-1.3-6-1.3-9 .8-3-2.1-6-2.1-9-.8z"/><path d="M12 6.3v13.5"/></svg>',
@@ -11303,6 +11313,12 @@ function mbBgAdd(){
     st.menuBgs = a; if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); logEvent("메뉴판 배경 추가", u.split("/").pop()); render();
   });
 }
+async function mbBgRename(id){
+  var g = mbBgs().find(function(x){ return x.id === id; }); if(!g) return;
+  var n = await uiPrompt("배경 이름", "", {value:g.name || "", ok:"바꾸기"}); if(n == null) return;
+  var st = store().settings; st.menuBgs = mbBgs().map(function(x){ return x.id === id ? Object.assign({}, x, { name:String(n).trim() || x.name }) : x; });
+  if(typeof mirrorDraft === "function") mirrorDraft("menuBgs"); saveData(); render();
+}
 async function mbBgDel(id){
   var g = mbBgs().find(function(x){ return x.id === id; }); if(!g) return;
   var used = MB.list.filter(function(b){ return b.data && b.data.bg === id; }).map(function(b){ return b.name; });
@@ -11328,12 +11344,12 @@ function sheetMenus(){
       var n = ((b.data || {}).pages || []).length, pg = ((b.data || {}).pages || [])[0];
       var at = b.updated_at ? new Date(b.updated_at) : null;
       return '<div class="mb-it"><button class="mb-thumb" onclick="mbOpen(\'' + esc(b.id) + '\')" aria-label="' + esc(b.name) + ' 열기">' + (pg ? mbPageHtml(b, pg, 0.2) : '') + '</button>' +
-        '<div class="mb-it-b"><b>' + esc(b.name || "(이름 없음)") + '</b><small>' + n + '장' + (at ? ' · ' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ' 고침' : '') + '</small>' +
+        '<div class="mb-it-b"><b>' + esc(b.name || "(이름 없음)") + '</b><small>' + n + '장' + (at ? ' · 마지막 수정(' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ')' : '') + '</small>' +
         '<div class="btn-row"><button class="btn sm primary" onclick="mbOpen(\'' + esc(b.id) + '\')">열기</button><button class="btn sm" onclick="mbCopy(\'' + esc(b.id) + '\')">복제</button><button class="btn sm ghost danger" onclick="mbDel(\'' + esc(b.id) + '\')">삭제</button></div></div></div>';
     }).join("") + '</div>';
   /* 배경 관리(09-25 재아: 목록에서 배경을 올려 두고 편집에서 골라 씀) */
   var bgs = '<div class="subhead" style="margin-top:22px">배경</div><div class="mb-bglist">' +
-    mbBgOpts("").filter(function(o){ return o.v !== "none"; }).map(function(o){ return '<div class="mb-bgit"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' + (o.v === "flower" ? '<small class="muted">기본</small>' : '<button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제">' + ICON.trash + '</button>') + '</div>'; }).join("") +
+    mbBgOpts("").filter(function(o){ return o.v !== "none"; }).map(function(o){ return '<div class="mb-bgit"><span class="mb-bgthumb" style="background-image:url(\'' + esc(o.img) + '\')"></span><small>' + esc(o.label) + '</small>' + (o.v === "flower" ? '<small class="muted">기본</small>' : '<span class="mb-bgbtns"><button class="ibtn2" onclick="mbBgRename(\'' + esc(o.v) + '\')" aria-label="이름 수정" title="이름 수정">' + ICON.edit + '</button><button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제" title="삭제">' + ICON.trash + '</button></span>') + '</div>'; }).join("") +
     '<button class="mb-bgit add" onclick="mbBgAdd()"><span class="mb-bgthumb"></span><small>＋ 배경 추가</small></button></div>';
   return '<div class="sheet-h mb-listh"><h2>메뉴판</h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
     (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
@@ -11489,13 +11505,13 @@ function sheetMenu(){
     '<div class="mb-chips">' + chips + '</div>' +
     /* 페이지 순서·복제·삭제는 제목 칸과 떨어진 따로 한 줄(09-25 재아) */
     '<div class="mb-pagebar"><span class="muted">' + (pi + 1) + '장</span><button class="btn sm ghost" onclick="mbArr(\'pages\', \'up\', ' + pi + ')"' + (pi ? '' : ' disabled') + '>◀ 앞으로</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'down\', ' + pi + ')"' + (pi < d.pages.length - 1 ? '' : ' disabled') + '>뒤로 ▶</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'dup\', ' + pi + ')">페이지 복제</button><button class="btn sm ghost danger" onclick="mbArrDel(\'pages\', ' + pi + ', \'이 페이지\')"' + (d.pages.length > 1 ? '' : ' disabled') + '>페이지 삭제</button></div>' +
-    '<div class="mb-grid"><div class="mb-form">' + (MB.styleOpen ? mbStyleHtml(d) : '') +
+    '<div class="mb-grid"><div class="mb-form">' +
       '<div class="mb-pagebox"><div class="mb-g2">' + mbIn("pages." + pi + ".title", pg.title, "페이지 제목", {ph:"요리메뉴 등", change:true}) + mbIn("pages." + pi + ".sub", pg.sub, "페이지 부제목", {ph:"(오전 11:00 - 오후 3:30) 등"}) + '</div>' +
         mbIn("pages." + pi + ".foot", pg.foot, "페이지 하단", {area:true, rows:2, ph:"한옥반점의 만두는 매장에서 직접 빚습니다 등"}) +
         '<span class="mb-scale">글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button></span></div>' +
       secs +
     '</div><div class="mb-side"><div class="mb-prev-h"><b>' + (pi + 1) + ' / ' + d.pages.length + '</b><span id="mb-over" class="tag rust sm" style="display:none">한 장을 넘칩니다 — 글씨를 줄이거나 페이지를 나누세요</span></div><div class="mb-prev" id="mb-prev"></div></div></div>' +
-    mbPopHtml();
+    (MB.styleOpen ? mbStylePop(b, pg) : '') + mbPopHtml();
 }
 
 /* ---------- 꾸미기(09-25 재아) — 글꼴 셋, 색 다섯. 메뉴판마다 따로(data.style), 저장해야 남음 ---------- */
@@ -11503,6 +11519,12 @@ var MB_STYLE_DEF = { ft:"Jua", fn:"Jua", fd:"Gowun Dodum", c1:"#A8733A", c2:"#7E
 var MB_SWATCH = ["#A8733A", "#8C2F2F", "#B3402A", "#2F5D4A", "#2B4C7E", "#7E5A7B", "#1D1A17", "#6D6760", "#C1935F", "#D9BD9A"];
 function mbSetStyle(k, v){ var b = mbCur(); if(!b) return; b.data.style = b.data.style || {}; b.data.style[k] = v; mbTouch(); render(); }
 function mbStyleReset(){ var b = mbCur(); if(!b) return; b.data.style = {}; mbTouch(); render(); }
+/* 09-25 재아: 펼치기 말고 팝업 — 고치면서 보이게 팝업 안에 지금 페이지 미리보기 */
+function mbStylePop(b, pg){
+  return '<div class="overlay" onclick="MB.styleOpen=false; render()"><div class="sheet sheet-wide mb-stylepop" onclick="event.stopPropagation()">' + sheetHeadX("꾸미기", "MB.styleOpen=false; render()") +
+    '<div class="mb-stylegrid">' + mbStyleHtml(b.data) + '<div class="mb-stylepv">' + mbPageHtml(b, pg, 0.34) + '</div></div>' +
+    '<div class="sheet-actions"><button class="btn ghost" onclick="mbStyleReset()">기본으로</button><button class="btn primary" onclick="MB.styleOpen=false; render()">완료</button></div></div></div>';
+}
 function mbStyleHtml(d){
   var st = Object.assign({}, MB_STYLE_DEF, d.style || {});
   var font = function(k, label){ return '<label class="f mb-f"><div class="lb">' + label + '</div><select class="in-sm" onchange="mbSetStyle(\'' + k + '\', this.value)">' +
@@ -11510,7 +11532,7 @@ function mbStyleHtml(d){
   var color = function(k, label){ return '<div class="f mb-f"><div class="lb">' + label + '</div><div class="mb-sw">' +
     MB_SWATCH.map(function(c){ return '<button class="mb-swc' + (String(st[k]).toLowerCase() === c.toLowerCase() ? ' on' : '') + '" style="background:' + c + '" onclick="mbSetStyle(\'' + k + '\', \'' + c + '\')" aria-label="' + c + '"></button>'; }).join("") +
     '<input type="color" value="' + esc(st[k]) + '" onchange="mbSetStyle(\'' + k + '\', this.value)" aria-label="다른 색"></div></div>'; };
-  return '<div class="mb-style"><div class="mb-style-h"><b>꾸미기</b><button class="btn sm ghost" onclick="mbStyleReset()">기본으로</button></div>' +
+  return '<div class="mb-style">' +
     '<div class="mb-g3">' + font("ft", "제목 글꼴") + font("fn", "이름·가격 글꼴") + font("fd", "설명 글꼴") + '</div>' +
     color("c1", "제목·강조 색") + color("ci", "이름·가격 색") + color("c3", "설명 색") + color("c2", "선 색") + color("cb", "카드 테두리 색") + '</div>';
 }
