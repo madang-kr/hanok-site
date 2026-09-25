@@ -2182,7 +2182,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 
 /* 사장님 메뉴 타일의 BETA — 오른쪽 위(09-25) */
 .own-it{position:relative}
-.own-beta{position:absolute; top:10px; right:10px; padding:2px 8px; border-radius:980px; background:var(--text); color:var(--surface); font-size:11px; font-weight:700; letter-spacing:.04em}
+.own-beta{position:absolute; top:12px; right:14px; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--text)}   /* 검은 글씨만(09-25 재아: 알약은 너무 튐) */
 /* 개발자에게 목록: 다섯 건까지 보이고 그 뒤는 안에서 스크롤(09-25 재아) */
 .dq-list{max-height:calc(5 * 72px); overflow-y:auto}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
@@ -2310,7 +2310,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-rangerow .mb-range{flex:1}
 .mb-rnum{display:inline-flex; align-items:center; gap:4px; font-size:14px}
 .mb-rnum input{width:64px!important; height:32px!important; min-height:32px!important; padding:0 8px!important; text-align:right}
-.mb-beta{vertical-align:3px; margin-left:4px; background:var(--text)!important; color:var(--surface)!important; border-color:var(--text)!important}
+.mb-beta{vertical-align:3px; margin-left:6px; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--text)}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -3515,6 +3515,10 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 .page-wrap .th-ctl .btn{height:44px!important; min-height:44px!important; padding-top:0!important; padding-bottom:0!important}
 .page-wrap .mb-top .btn, .page-wrap .mb-top .mb-name{height:34px!important; min-height:34px!important; padding-top:0!important; padding-bottom:0!important}
 .page-wrap .mb-sw input[type=color]{height:28px!important; min-height:28px!important; width:34px!important; padding:0!important}
+
+/* 코스·세트 '적용 시간대' · '행 삭제' · '＋ 행 추가' 도 작은 알약(09-25 재아) */
+.set-one .fold-b .whenrow .wbtn, .set-one .fold-b .whenrow .btn, .set-one .fold-b .btn-row > .btn{height:auto!important; min-height:0!important; padding:4px 12px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
+.set-one .fold-b .wbtn.on{background:var(--text); border-color:var(--text); color:#fff}
 </style>
 </head>
 <body>
@@ -4027,7 +4031,10 @@ function tryFullscreen(){
 /* 09-25(재아): 열자마자 묻는 창은 새 탭에 가려 못 봤음 → 이 탭으로 돌아왔을 때 화면 아래에 '다시 전체화면' 단추(네이버 가져오기처럼) */
 async function openSlip(){
   var wasFs = !!document.fullscreenElement;
-  window.open((location.pathname.indexOf('/dev/') >= 0 ? '../' : '') + '수기예약지.html', '_blank', 'noopener');
+  /* 09-25: 가끔 404 — 주소가 '/system'(끝 / 없이)으로 열리면 상대 주소가 사이트 맨 위(/수기예약지.html)를 가리켰음.
+     이제 /system/ 을 기준으로 절대 주소(dev·screen 어디서 열어도 같은 파일) */
+  var sp = location.pathname, si = sp.indexOf('/system');
+  window.open((si >= 0 ? sp.slice(0, si) + '/system/' : '/') + encodeURIComponent('수기예약지') + '.html', '_blank', 'noopener');
   if(wasFs) fsBackArm();
 }
 function fsBackArm(){
@@ -6277,7 +6284,7 @@ function pkPick(ds){
   /* 기간: '부터' 를 고르면 '까지' 로 넘어감. 그 뒤로는 '까지' 를 계속 고침 — '부터' 를 다시 고르려면 위의 '부터' 칸을 누름(09-25 재아).
      예전엔 셋째 누름부터 새로 시작해서, 끝만 바꾸려다 시작이 날아갔음 */
   if(!m.pickB){ m.a = ds; if(m.b && m.b < ds) m.b = ""; m.pickB = true; }
-  else if(m.a && ds < m.a){ m.b = m.a; m.a = ds; m.noEnd = false; }
+  else if(m.a && ds < m.a){ showToast("시작일보다 앞 날짜는 고를 수 없습니다"); return; }   /* 예전엔 시작이 앞으로 움직였음(09-25 재아) */
   else { m.b = ds; m.noEnd = false; }
   render();
 }
@@ -8349,7 +8356,7 @@ function renderSettings(){
         </div>
         <div class="whenrow">
           <span class="lbl">적용 시간대</span>
-          ${WHEN_OPTS.map(w=>`<button class="wbtn ${(g.when||[]).includes(w)?'on':''}" onclick="toggleWhen(${i},'${w}')">${w}</button>`).join("")}
+          ${WHEN_UI.map(w=>`<button class="wbtn ${(g.when||[]).includes(w)||(g.when||[]).includes("종일")?'on':''}" onclick="toggleWhen(${i},'${w}')">${w}</button>`).join("")}
           <button class="btn sm danger" style="margin-left:auto" onclick="delCourseRow(${i})">행 삭제</button>
         </div>
       </div>`).join("")}
@@ -8439,20 +8446,15 @@ function renderSettings(){
     <p class="f-note">전화번호 하나가 손님 하나입니다. 방문 횟수에서 노쇼 × 이 숫자를 뺀 값으로 등급을 매깁니다. 예약 이름 옆 알약, 손님 관리, 손님용 TV 에 같이 쓰입니다.</p>`;
 
   const zBase = ZOOM_STEPS.indexOf(st.uiZoom) >= 0 ? st.uiZoom : 100, zAdj = (DATA._ui && DATA._ui.zoomAdj) || 0;
+  /* 09-25 재아: 설명 글 뺌 · '모든 기기 공통 비율' · 전체화면은 스위치 */
+  const fsOn = !(DATA._ui && DATA._ui.fullscreen === false);
   const zoomBody = `
-    <div class="lbl">모든 기기 공통 <span class="lbl-note">적용하기를 눌러야 반영</span></div>
+    <div class="lbl">모든 기기 공통 비율</div>
     <div class="seg zoomseg">${ZOOM_STEPS.map(function(z){
       return `<button class="${zBase===z?'on':''}" onclick="setZoom(${z})">${z}%</button>`;
     }).join("")}</div>
-    <p class="f-note">기기마다 다르게 보이면 더보기 → <b>화면 보정</b>(이 기기만, 바로 반영). 지금 이 기기: <b>${uiZoom()}%</b> (공통 ${zBase}% ${zAdj>=0?"+":""}${zAdj}).</p>
-    <p class="f-note">글자와 버튼이 한 번에 커집니다. 태블릿·모니터에 맞춰 고르세요.
-      손님용 디스플레이 모드에는 영향을 주지 않습니다.<br>
-      <b>브라우저 확대(Ctrl +)를 함께 쓰면 두 배로 곱해집니다.</b>
-      여기서 맞출 거라면 브라우저는 100%로 두세요.</p>
     <div class="subhead" style="margin-top:16px">전체화면</div>
-    <label class="f"><div class="lb">로그인하면 전체화면으로</div>
-      <div class="seg"><button class="${(DATA._ui&&DATA._ui.fullscreen===false)?'':'on'}" onclick="setFullscreenAuto(true)">전체화면</button><button class="${(DATA._ui&&DATA._ui.fullscreen===false)?'on':''}" onclick="setFullscreenAuto(false)">안 함</button></div>
-      <div class="f-note">이 기기에만 적용됩니다. 안드로이드·PC 크롬에서 주소창·탭이 사라집니다. 아이폰·아이패드는 브라우저가 막고 있어, 사파리 공유 → <b>홈 화면에 추가</b> 로 열면 같은 효과가 납니다. 전체화면에서 나오려면 ESC 또는 아래로 쓸어내리기.</div></label>`;
+    <div class="sa-line"><span class="sa-line-l"><b>전체화면 자동 적용</b></span><button type="button" class="sa-sw${fsOn ? ' on' : ''}" role="switch" aria-checked="${fsOn}" aria-label="전체화면 자동 적용" onclick="setFullscreenAuto(${fsOn ? 'false' : 'true'})"><i></i></button></div>`;
 
   /* ---------- 문자 안내 ---------- */
   const sm = { ...SMS_DEFAULT, ...(st.sms||{}) };
@@ -8522,7 +8524,7 @@ function renderSettings(){
     ${sec("hours","운영시간",`${hoursFor(todayStr()).open} ~ ${hoursFor(todayStr()).close}`, schedBody)}
     ${sec("rules","예약 규칙",`단체 ${st.groupSize||8}명${schedChip("rules")}`, ruleBody)}
     ${sec("seats","좌석",`룸 ${st.rooms.filter(isRoom).length} · 테이블 ${st.rooms.filter(isTable).length}${schedChip("seats")}`, seatBody)}
-    ${sec("course","코스·세트",`${(st.courseGroups||[]).length}행${schedChip("course")}`, courseBody)}
+    ${sec("course","코스·세트",`${schedChip("course")}`, courseBody)}
     ${sec("source","예약경로",`${(st.sources||[]).length}개`, srcBody)}
     ${sec("sms","문자 설정",
       sm.on===false ? "예약 문자 안 보냄"
@@ -8532,7 +8534,7 @@ function renderSettings(){
     ${sec("policy","운영 판단",
       `정원 ${st.minCountAdultsOnly===false?"총원":"성인"} · 임박 ${st.loSoon!=null?st.loSoon:120}분`,
       policyBody)}
-    ${sec("zoom","화면 크기",`${uiZoom()}%`, zoomBody)}
+    ${sec("zoom","화면 크기","", zoomBody)}
     ${view.setSec ? "" : `<div class="set-divider">관리</div>`}
     ${sec("admin","보안","", adminBody, adminHelp)}
     </div>
@@ -8629,8 +8631,11 @@ function setCourseField(i,f,v){ courseSet()[i][f]=v; render(); }
 function setCourseItems(i,v){
   courseSet()[i].items = v.split(",").map(x=>x.trim()).filter(Boolean); render();
 }
+/* 적용 시간대 — '종일' 칸은 뺌(넷 다 켜면 종일, 09-25 재아). 옛 자료의 '종일' 은 넷 다 켠 것으로 풀어서 고침 */
+const WHEN_UI = ["평일점심","평일저녁","주말점심","주말저녁"];
 function toggleWhen(i,w){
-  const g=courseSet(); const cur = g[i].when||[];
+  const g=courseSet(); let cur = g[i].when||[];
+  if(cur.includes("종일")) cur = WHEN_UI.slice();
   g[i].when = cur.includes(w) ? cur.filter(x=>x!==w) : [...cur, w];
   render();
 }
@@ -10677,7 +10682,7 @@ async function exportCsv(){
   if(!list.length){ await uiAlert("이 기간에는 예약이 없습니다", "", "warn"); return; }
   var pw = "";
   if(supaOn()){
-    var r = await uiPin("예약 내보내기", "2차 PIN — 엑셀 파일의 비밀번호가 됩니다", 6); if(!r || !r.code) return;
+    var r = await uiPin("예약 내보내기", "2차 PIN — 엑셀 파일의 비밀번호로 설정됩니다.", 6); if(!r || !r.code) return;
     try{ await adminAuth(r.code); }catch(err){ await uiAlert("2차 PIN 이 다릅니다", "", "warn"); return; }
     pw = r.code;
   }
@@ -11430,7 +11435,7 @@ function sheetMenus(){
         '<span class="mb-bgbtns"><button class="btn sm' + (o.def ? ' primary' : ' ghost') + '" onclick="mbBgSetDefault(\'' + esc(o.v) + '\')" title="' + (o.def ? '기본 해제' : '새 메뉴판의 기본 배경으로') + '">기본</button>' +
         (o.plain ? '' : '<button class="ibtn2" onclick="mbBgRename(\'' + esc(o.v) + '\')" aria-label="이름 수정" title="이름 수정">' + ICON.edit + '</button><button class="ibtn2 danger" onclick="mbBgDel(\'' + esc(o.v) + '\')" aria-label="배경 삭제" title="삭제">' + ICON.trash + '</button>') + '</span></div>';
     }).join("") + '</div>';
-  return '<div class="sheet-h mb-listh"><h2>메뉴판 <span class="tag sm mb-beta">BETA</span></h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
+  return '<div class="sheet-h mb-listh"><h2>메뉴판 <span class="mb-beta">BETA</span></h2>' + (list.length ? '<button class="btn sm" onclick="mbAdd()">＋ 메뉴판 추가</button>' : '') + '</div>' +   /* 추가는 오른쪽 위(09-25 재아) */
     (MB && MB.demo ? '<p class="f-note">개발 서버라 이 기기에만 저장됩니다(연습용).</p>' : '') +
     body +
     (MB && !MB.loading && !MB.err ? bgs : '') + mbPopHtml();
