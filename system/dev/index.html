@@ -1642,6 +1642,9 @@ label.chk span{width:auto}
 .set-part-h:first-child{margin-top:0; padding-top:0; border-top:none}
 /* 광고 영상 첨부 칸 아래 여백 — 바로 밑 'TV 전용 주소' 상자에 붙어 보였음(09-24) */
 .set-up{margin-bottom:var(--s12)}
+
+/* '저장하지 않은 변경이 있습니다' 띠도 설정 구역 폭(820px)에 맞춤(09-25 재아) */
+.applybar{max-width:820px; margin-left:auto; margin-right:auto}
 /* ---------- 홈페이지 관리 (14b-site-admin.js) ----------
    설정 화면과 같은 부품(.f .lb .in-sm .btn .tag .card)을 쓰고, 여기서는 배치만. 태블릿(820)이 기준, 폰은 한 단으로 */
 .sa-top{display:flex; flex-wrap:wrap; align-items:center; gap:var(--s12); padding:var(--s12) var(--s16); margin:-8px 0 var(--s12); background:var(--surface-2); border-radius:var(--r-sm)}
@@ -2185,6 +2188,14 @@ button.sa-card:hover{border-color:var(--text-3)}
 .own-beta{position:absolute; top:12px; right:14px; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--text)}   /* 검은 글씨만(09-25 재아: 알약은 너무 튐) */
 /* 개발자에게 목록: 다섯 건까지 보이고 그 뒤는 안에서 스크롤(09-25 재아) */
 .dq-list{max-height:calc(5 * 72px); overflow-y:auto}
+
+/* 퇴근하기(09-25 2차): 번호 동그라미와 제목을 같은 높이로 · 완료 표시 */
+.cd-step{align-items:start}
+.cd-n{width:38px!important; height:38px!important}
+.cd-bh{min-height:38px}
+.cd-bh b{line-height:1.2}
+.cd-fin{margin-left:auto; font-weight:700; color:var(--pine)}
+button.cd-fin{border-color:var(--pine)!important; color:var(--pine)!important}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -5543,7 +5554,7 @@ function showCrash(e){
    마법사에서 분 단위를 조절할 때마다 화면이 맨 위로 튀던 원인이 이것이었습니다.
    그리기 직전에 위치를 적어 두고 그린 뒤에 되돌려 놓습니다.
    ※ 단계를 옮길 때는 맨 위로 가야 하므로 wzGo() 가 그린 다음 0으로 덮어씁니다. */
-var KEEP_SCROLL = [".wz-mid", ".sheet", ".calbox"];
+var KEEP_SCROLL = [".wz-mid", ".sheet", ".calbox", ".keep-scroll"];   /* keep-scroll: 창 안 목록(퇴근하기 워크시프트 등, 09-25) */
 var scrollMemo = null;
 /* '같은 화면을 다시 그린 것'인지 판별하는 열쇠.
    다른 단계·다른 팝업으로 넘어갔다면 위치를 물려받으면 안 됩니다
@@ -9372,8 +9383,7 @@ function saTabHours(){
       '<div class="grid2">' + saF("info.owner", "대표") + saF("info.bizno", "사업자등록번호") + '</div>' +
       saL("info.services", "이용 안내", "", 4)) +
     saBox("링크",
-      saF("info.naverMap", "네이버 지도") + saF("info.kakaoMap", "카카오맵") + saF("info.instagram", "인스타그램") +
-      saFile("info.menuPdf", "메뉴판 PDF")) +
+      saF("info.naverMap", "네이버 지도") + saF("info.kakaoMap", "카카오맵") + saF("info.instagram", "인스타그램")) +
     saBox("공휴일", '<p class="f-note" style="margin:0">공휴일은 <b>예약 시스템 설정 → 휴무·공휴일</b> 한 곳에서만 정합니다. 홈페이지 예약 창은 거기 정한 공휴일을 자동으로 따릅니다(주말 룸 인원·달력 빨간 날). 여기서 따로 고칠 필요 없습니다.</p>');
 }
 /* 4. 글 */
@@ -9429,7 +9439,8 @@ function saTabMenu(){
     return saCard("mr" + gi, '<span class="sa-card-t">' + esc(g.group || "(분류 없음)") + '</span><span class="sa-card-s">메뉴 ' + (g.items || []).length + '</span>',
       saF(gp + "group", "분류") + saMenuLines(gp + "items", "메뉴", itemLines(g.items || [], true), true) +
       '<div class="sa-card-f"><button class="btn sm ghost danger" onclick="saArrDel(\'menu.drinks\', ' + gi + ', \'분류\'); SA.open=null">삭제</button>' + done + '</div>'); }).join("");
-  return '<p class="f-note" style="margin:0 0 12px">가격은 홈페이지에 안 나옵니다.</p>' +
+  return saBox("차림표 PDF", saFile("info.menuPdf", "홈페이지 '차림' 의 메뉴판(PDF) 보기")) +   /* 09-25 재아: 링크 칸에 묻혀 있던 것을 차림 탭 맨 위로 */
+    '<p class="f-note" style="margin:0 0 12px">가격은 홈페이지에 안 나옵니다.</p>' +
     saFold("courses", "저녁 코스", C.length + "개", courses + saAdd("saArrAdd('menu.courses.items', {name:'', cn:'', dishes:[]}); SA.open='mc" + C.length + "'; render()", "코스 추가")) +
     saFold("lunch", "점심 세트", L.length + "묶음", lunch + saAdd("saArrAdd('menu.lunch', {title:'', sub:'', items:[]}); SA.open='ml" + L.length + "'; render()", "묶음 추가")) +
     saFold("dishes", "요리", D.length + "분류", dishes + saAdd("saArrAdd('menu.dishes', {group:'', items:[]}); SA.open='md" + D.length + "'; render()", "분류 추가")) +
@@ -10533,7 +10544,7 @@ function sheetMessages(){
 async function openCloseDay(date){
   var d = date || bizToday();   /* 새벽 4시 전은 전날 영업(09-25 재아) */
   /* 이미 퇴근한 날은 다시 안 들어감 — 방문 처리·워크시프트는 퇴근하기 밖에서도 되고, 두 번 들어가면 헷갈림(09-25 재아). 새벽 4시가 지나면 다음 날로 풀림 */
-  if(store().settings._closedDay === d){ await uiAlert("오늘은 이미 퇴근 처리했습니다", "", "ok"); return; }
+  if(store().settings._closedDay === d){ if(!await uiConfirm("오늘은 이미 퇴근 처리했습니다", "", {ok:"다시 확인하기", cancel:"확인", tone:"ok"})) return; }   /* 다시 들어가 볼 수는 있게(09-25 재아) */
   if(d === bizToday()){   /* 영업 종료 30분 전부터(09-25 재아, 전엔 2시간). 그 전이면 막지 않고 되묻기만 */
     var h = hoursFor(d), cm = toMin(h.close); if(cm <= toMin(h.open)) cm += 1440;   /* 자정 넘어 닫는 날 */
     if(!h.closed && bizNowMin() < cm - 30){
@@ -10549,14 +10560,16 @@ function sheetCloseDay(){
   var left = all.filter(function(r){ return r.status === "확정"; });
   var rows = all.map(function(r){ return '<div class="rowitem cd-row s-' + r.status + '"><span class="time-col">' + esc(hm(r.time)) + '</span><span class="grow"><span class="t">' + tierTag(r) + groupTag(r) + esc(r.name) + '</span><span class="s">' + esc(pplText(r)) + ' · ' + seatKindText(r) + '</span></span>' +   /* 자리는 룸/테이블만(09-24) */
     '<span class="btn-row"><button class="btn sm cd-v ' + (r.status === "방문" ? "on" : "ghost") + '" onclick="cdMark(\'' + r.id + '\', \'방문\')">방문</button><button class="btn sm cd-ns ' + (r.status === "노쇼" ? "on" : "ghost") + '" onclick="cdMark(\'' + r.id + '\', \'노쇼\')">노쇼</button></span></div>'; }).join("");
-  var done = left.length === 0;
+  var done = left.length === 0, cs = cdStep(today);
+  /* 09-25 재아: 끝난 단계는 단추 자리에 '완료'. 워크시프트·감사 문자의 '완료' 는 다시 눌러 들어갈 수 있음 */
+  var fin = function(fn){ return fn ? '<button class="btn sm cd-fin" onclick="' + fn + '">완료</button>' : '<span class="cd-fin">완료</span>'; };
   var step = function(n, ok, title, right, body){ return '<div class="cd-step' + (ok ? ' done' : '') + '"><div class="cd-n">' + n + '</div><div class="cd-b"><div class="cd-bh"><b>' + title + '</b>' + (right || '') + '</div>' + (body || '') + '</div></div>'; };
   return '<div class="cd-wrap">' +
     '<div class="cd-hello"><b>' + (today === bizToday() ? "오늘도 고생 많으셨습니다." : dateLabel(today) + " 정리") + '</b><small>' + esc(dateLabel(today)) + '</small></div>' +
-    step(1, done, "손님 방문 처리", done || !all.length ? '' : '<button class="btn sm primary" onclick="cdMarkAll()">남은 ' + left.length + '건 전부 방문</button>',
+    step(1, done, "손님 방문 처리", done ? fin("") : '<button class="btn sm primary" onclick="cdMarkAll()">남은 ' + left.length + '건 전부 방문</button>',
       all.length ? '<div class="card searchbox" style="margin-top:8px">' + rows + '</div>' : '<small>이날 예약이 없습니다.</small>') +
-    step(2, false, "워크시프트", '<button class="btn sm" onclick="cdStaffOpen()">워크시프트 작성</button>') +
-    step(3, false, "감사 문자", '<button class="btn sm" onclick="cdThanksOpen()">감사 문자 작성</button>') +
+    step(2, !!cs.staff, "워크시프트", cs.staff ? fin("cdStaffOpen()") : '<button class="btn sm" onclick="cdStaffOpen()">워크시프트 작성</button>') +
+    step(3, !!cs.thanks, "감사 문자", cs.thanks ? fin("cdThanksOpen()") : '<button class="btn sm" onclick="cdThanksOpen()">감사 문자 작성</button>') +
     step(4, false, "끝", '<button class="btn sm primary" onclick="cdLeave()">퇴근</button>') +
     '</div>' + (view.cdStaff ? cdStaffHtml() : '') + (HR && HR.pop && view.cdStaff ? hrPopHtml() : '') + (view.cdThanks ? cdThanksHtml() : '');
 }
@@ -10602,17 +10615,36 @@ function cdStaffHtml(){
   if(!HR || HR.loading) body = '<p class="muted" style="padding:16px 0">불러오는 중…</p>';
   else if(HR.err) body = '<p class="f-note rust">불러오지 못했습니다: ' + esc(HR.err) + '</p>';
   else {
+    /* 09-25 재아: 오늘 정규인 사람이 먼저(주방·홀로 묶음), 정규 없는 사람은 그 아래 따로 — 기본은 '휴무'(완료를 누르면 휴무로 저장) */
     var list = HR.staff.filter(function(s){ return s.active !== false; });
-    body = hrGroups(list).map(function(g){ return '<div class="cd-sgrp">' + esc(g.role) + '</div>' + g.list.map(function(s){
-      var a = HR.att[s.id + "|" + d], duty = hrOnDuty(s, d), st = a ? a.status : "", h = a ? hrRound(hrHours(s, a)) : 0;
+    var onList = list.filter(function(s){ return hrOnDuty(s, d); }), offList = list.filter(function(s){ return !hrOnDuty(s, d); });
+    var one = function(s){
+      var a = HR.att[s.id + "|" + d], duty = hrOnDuty(s, d), st = a ? a.status : (duty ? "" : "휴무"), h = a ? hrRound(hrHours(s, a)) : 0;
       var b = function(k, label){ return '<button class="btn sm cd-sb' + (st === k ? ' on' : '') + '" onclick="cdStaffQuick(\'' + s.id + '\', \'' + k + '\')">' + label + '</button>'; };
       return '<div class="rowitem cd-srow"><span class="grow"><span class="t">' + esc(hrLabel(s)) + '</span><span class="s">' + (duty ? '정규 ' + esc(hrSchedAt(s, d).spans.map(hrSpanText).join(" · ")) : '오늘 정규 근무 없음') + (st ? ' · ' + (h ? h + '시간' : st) : '') + '</span></span>' +
         '<span class="btn-row">' + b("정규", "○ 정규") + '<button class="btn sm cd-sb' + (st === "변형" ? ' on' : '') + '" onclick="hrCell(\'' + s.id + '\', \'' + d + '\')">△ 다른 시간</button>' + b("결근", "× 결근") + b("휴무", "– 휴무") + '</span></div>';
-    }).join(""); }).join("") || '<p class="muted">직원이 없습니다.</p>';
+    };
+    body = hrGroups(onList).map(function(g){ return '<div class="cd-sgrp">' + esc(g.role) + '</div>' + g.list.map(one).join(""); }).join("") +
+      (offList.length ? '<div class="cd-sgrp">오늘 정규 근무 없음</div>' + offList.map(one).join("") : '') || '<p class="muted">직원이 없습니다.</p>';
   }
   return '<div class="overlay" onclick="cdStaffClose()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' + sheetHead("워크시프트 · " + dateLabel(d)) +
-    '<div class="searchbox" style="flex:1; min-height:0; overflow:auto">' + body + '</div>' +
-    '<div class="sheet-actions"><button class="btn primary" onclick="cdStaffClose()">완료</button></div></div></div>';
+    '<div class="searchbox keep-scroll" style="flex:1; min-height:0; overflow:auto">' + body + '</div>' +   /* keep-scroll: 누를 때마다 맨 위로 올라가던 것(09-25) */
+    '<div class="sheet-actions"><button class="btn primary" onclick="cdStaffDone()">완료</button></div></div></div>';
+}
+/* 퇴근하기 단계 기록 — 서버 설정에 그날 것만(다른 기기에서도 같게). {d, staff, thanks} */
+function cdStep(d){ var c = store().settings._cd; return c && c.d === d ? c : { d:d }; }
+function cdStepSet(k){ var d = (view.form && view.form.date) || bizToday(), st = store().settings, c = cdStep(d); c = Object.assign({}, c); c[k] = true; st._cd = c; mirrorDraft("_cd"); saveData(); }
+/* 워크시프트 '완료': 정규 없는 사람 중 아무것도 안 누른 사람은 휴무로 저장, 정규인데 안 누른 사람이 있으면 묻기만(막지 않음) */
+async function cdStaffDone(){
+  var d = (view.form && view.form.date) || bizToday();
+  if(HR && !HR.loading && !HR.err){
+    var list = HR.staff.filter(function(s){ return s.active !== false; });
+    var miss = list.filter(function(s){ return hrOnDuty(s, d) && !HR.att[s.id + "|" + d]; });
+    if(miss.length && !await uiConfirm("아직 안 누른 직원이 " + miss.length + "명 있습니다", miss.map(hrLabel).join(", ") + "\n그래도 완료할까요?", {ok:"완료", cancel:"계속 작성"})) return;
+    var offs = list.filter(function(s){ return !hrOnDuty(s, d) && !HR.att[s.id + "|" + d]; });
+    for(var i = 0; i < offs.length; i++) await cdStaffQuick(offs[i].id, "휴무");
+  }
+  cdStepSet("staff"); cdStaffClose();
 }
 /* ---------- 퇴근하기 안의 감사 문자 팝업 — 화면이 바뀌면 퇴근 순서를 잃어서(09-24 재아). 감사 문자 화면(14g)을 그대로 덮개 안에 ---------- */
 async function cdThanksOpen(){
@@ -10629,6 +10661,8 @@ function cdThanksHtml(){
     '<div class="searchbox" style="flex:1; min-height:0; overflow:auto">' + sheetThanks() + '</div>' +
     '<div class="sheet-actions"><button class="btn primary" onclick="cdThanksClose()">완료</button></div></div></div>';
 }
+/* 감사 문자: 예약 발송을 한 번 하면 완료(14g thSchedule 가 부름) — 네이버 예약처럼 안 보낼 건 사장님이 알아서 뺐을 테니(09-25 재아) */
+function cdThanksDone(){ if(view.form && view.form.type === "closeday") cdStepSet("thanks"); }
 /* ---------- 퇴근 — '수고하셨습니다' + 폭죽 뒤 잠금 화면으로(09-24 재아) ---------- */
 function cdLeave(){
   view.cdStaff = false; view.cdThanks = false;
@@ -10653,7 +10687,8 @@ function cdLeave(){
     if(Date.now() - t0 < 5800) requestAnimationFrame(tick);
   })();
   logEvent("퇴근", day);
-  setTimeout(function(){ ov.classList.add("out"); setTimeout(function(){ ov.remove(); view.form = null; lockNow(); }, 450); }, 5500);
+  /* 덮개를 걷기 전에 잠금 화면으로 바꿔 둠 — 전엔 걷는 동안 퇴근하기 화면이 잠깐 보였음(09-25 재아) */
+  setTimeout(async function(){ view.form = null; try{ await lockNow(); }catch(e){} ov.classList.add("out"); setTimeout(function(){ ov.remove(); }, 450); }, 5500);
 }
 /* ---------- 메뉴판(09-25 재아) — 사장님이 메뉴판을 여러 개 만들고 고치고 PDF·사진으로 뽑는 도구. 방식 확정 뒤 만듦 ---------- */
 /* 화면은 14i-menu.js */
@@ -10918,7 +10953,7 @@ async function thSchedule(){
   try{
     await sb("/rest/v1/thanks_sms?on_conflict=store,res_id", { method:"POST", body:rows, prefer:"resolution=merge-duplicates,return=minimal" });
     logEvent("감사 문자 예약", rows.length + "건 · " + TH.sendAt);
-    showToast(rows.length + "건 예약했습니다 — " + hm(TH.sendAt.slice(11, 16)) + " 발송"); await thLoadQueue(); render();
+    showToast(rows.length + "건 예약했습니다 — " + hm(TH.sendAt.slice(11, 16)) + " 발송"); if(typeof cdThanksDone === "function") cdThanksDone(); await thLoadQueue(); render();
   }catch(e){ await uiAlert("예약 발송 실패", e.message || String(e), "warn"); }
 }
 async function thCancel(id){
@@ -10978,7 +11013,7 @@ function thMakeHtml(){
         : '<button class="btn primary" onclick="thMakeAll(true)" ' + (running ? "disabled" : "") + '>' + ICON.refresh + ' AI 다시 돌리기</button>') + '</div>' +
       '<div class="btn-row"><button class="btn sm ghost" onclick="thPickAll(true)">전체 선택</button><button class="btn sm ghost" onclick="thPickAll(false)">선택 해제</button>' +
       '<button class="btn" onclick="thSchedule()" ' + (running ? "disabled" : "") + '>예약발송하기</button></div></div>';
-  if(!list.length) return head + '<div class="empty">' + dateLabel(TH.date) + ' 에 \'방문\' 으로 확인된 예약이 없습니다. 예약 상태를 방문으로 바꾼 손님만 대상입니다.</div>';
+  if(!list.length) return head + '<div class="empty">' + dateLabel(TH.date) + ' 에 \'방문\' 으로 확인된 예약이 없습니다.</div>';
   var rows = list.map(function(r){
     var it = thItem(r), q = thQueued(r.id), c = custStat(r);
     var info = hm(r.time) + ' · ' + pplText(r) + ' · ' + (r.roomId ? (isRoom(seatById(r.roomId) || {}) ? "룸" : "테이블") : "테이블") + (r.menuType === "코스" ? ' · 코스' : '') + (c.visit >= 2 ? ' · 방문 ' + c.visit + '회' : ' · 첫 방문');
@@ -11978,11 +12013,11 @@ function pinRoleSeg(cur){ return '<div class="seg">' + ["staff", "manager", "own
 function sheetPinList(){
   /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차) */
   const rows = PIN_USERS.map(u=>`<div class="rowitem${u.active === false ? " off" : ""}"><span class="grow"><span class="t">${esc(u.name)} <span class="tag sm">${PIN_ROLE[u.role || "staff"] || "일반"}</span>${u.staff_id ? ` <span class="tag sm">워크시프트에서 생성</span>` : ""}${u.active === false ? ` <span class="tag rust sm">퇴사 · 막힘</span>` : ""}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
-      <span class="btn-row"><button class="btn sm" onclick="openPin('${esc(u.id)}')">PIN 바꾸기</button>${u.staff_id ? "" : `<button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button>`}</span></div>`).join("");
+      <span class="btn-row"><button class="btn sm" onclick="openPin('${esc(u.id)}')">수정</button>${u.staff_id ? "" : `<button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button>`}</span></div>`).join("");
   return `
     ${sheetHead("PIN 관리")}
     <div class="rowitem"><span class="grow"><span class="t">공용 PIN <span class="tag pine sm">사용 중</span></span></span>
-      <button class="btn sm" onclick="openPin()">PIN 바꾸기</button></div>
+      <button class="btn sm" onclick="openPin()">수정</button></div>
     <div class="subhead" style="margin-top:14px">직원별 PIN</div>
     ${view.pinErr ? `<p class="f-note rust">불러오지 못했습니다: ${esc(view.pinErr)}</p>` : (rows || `<div class="empty">아직 없습니다.</div>`)}
     <div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openPinAdd()">＋ PIN 추가</button></div>`;
@@ -11990,20 +12025,20 @@ function sheetPinList(){
 /* 추가 전에 한 번 알림 — 워크시프트 직원 추가와 별개(09-25 재아) */
 async function openPinAdd(){
   if(!await uiConfirm("PIN 추가", "여기서 만드는 PIN은 워크시프트 직원과 별개입니다.\n직원 PIN은 워크시프트에서 직원을 추가할 때 함께 만듭니다.", {ok:"계속", cancel:"취소", tone:"ok"})) return;
-  view.pinRole = "staff"; view.paName = ""; view.form = {type:"pinadd"}; render();
+  view.pinRole = "staff"; view.pa = {}; view.form = {type:"pinadd"}; render();
+}
+/* 입력칸 값은 view 에 — 권한 알약을 누르면 다시 그리는데 그때 2차 PIN·새 PIN 이 지워지던 것(09-25 재아) */
+function pinIn(key, id, label, opt){
+  opt = opt || {}; var st = view[opt.store || "pa"] || {};
+  return '<label class="f big"><div class="lb">' + label + '</div><input id="' + id + '" type="' + (opt.text ? "text" : "password") + '"' + (opt.text ? '' : ' inputmode="numeric"') + ' maxlength="' + (opt.max || 4) + '"' + (opt.ph ? ' placeholder="' + opt.ph + '"' : '') + ' autocomplete="off" value="' + esc(st[key] || "") + '" oninput="(view.' + (opt.store || "pa") + ' = view.' + (opt.store || "pa") + ' || {}).' + key + ' = this.value"></label>';
 }
 function sheetPinAdd(){
-  return `
-    ${sheetHead("PIN 추가")}
-    <label class="f big"><div class="lb">2차 PIN</div><input id="pa-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
-    <label class="f big"><div class="lb">PIN 이름</div><input id="pa-name" type="text" maxlength="20" autocomplete="off" value="${esc(view.paName || "")}" oninput="view.paName=this.value"></label>
-    <div class="f big"><div class="lb">권한</div>${pinRoleSeg(view.pinRole || "staff")}</div>
-    <label class="f big"><div class="lb">새 PIN</div><input id="pa-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
-    <label class="f big"><div class="lb">새 PIN 확인</div><input id="pa-new2" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"></label>
-    <div class="sheet-actions">
-      <button class="btn ghost" onclick="view.form={type:'pinlist'}; render()">취소</button>
-      <button class="btn primary" onclick="pinAddSave()">추가</button>
-    </div>`;
+  return sheetHead("PIN 추가") +
+    pinIn("adm", "pa-admin", "2차 PIN", {max:6}) +
+    pinIn("name", "pa-name", "PIN 이름", {text:true, max:20}) +
+    '<div class="f big"><div class="lb">권한</div>' + pinRoleSeg(view.pinRole || "staff") + '</div>' +
+    pinIn("a", "pa-new", "새 PIN", {ph:"••••"}) + pinIn("b", "pa-new2", "새 PIN 확인", {ph:"••••"}) +
+    '<div class="sheet-actions"><button class="btn ghost" onclick="view.form={type:\'pinlist\'}; render()">취소</button><button class="btn primary" onclick="pinAddSave()">추가</button></div>';
 }
 /* 2차 PIN 으로 사장님 임시 토큰 — 틀리면 알리고 null */
 async function pinAdminTok(code, what){
@@ -12019,6 +12054,7 @@ async function pinAddSave(){
   const g = id => (document.getElementById(id) || {}).value || "";
   const adm = g("pa-admin"), name = g("pa-name").trim(), a = g("pa-new"), b = g("pa-new2");
   if(!name){ await uiAlert2("PIN 이름을 입력하세요."); return; }
+  if(PIN_USERS.some(u=>(u.name || "").trim().toLowerCase() === name.toLowerCase())){ await uiAlert2("같은 이름의 PIN이 이미 있습니다."); return; }   /* 서버도 막음(34차) */
   if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
   if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
   const tok = await pinAdminTok(adm, "PIN 추가"); if(!tok) return;
@@ -12039,7 +12075,14 @@ async function pinDel(id){
   await pinUsersLoad(); render();
   showToast(u.name + " PIN 을 지웠습니다");
 }
-function openAdminPw(){ view.form={type:"apw"}; render(); }
+/* 2차 PIN 관리(09-25 재아: 관리자·매니저 적어도 둘) — 지금은 관리자(사장님) 것만 있고, 매니저 2차 PIN 은 권한 기능과 함께 */
+function openAdminPw(){ view.form={type:"apwlist"}; render(); }
+function openAdminPwEdit(){ view.form={type:"apw"}; render(); }
+function sheetAdminPwList(){
+  return sheetHead("2차 PIN 관리") +
+    '<div class="rowitem"><span class="grow"><span class="t">관리자(사장님) 2차 PIN <span class="tag pine sm">사용 중</span></span></span><button class="btn sm" onclick="openAdminPwEdit()">수정</button></div>' +
+    '<div class="rowitem"><span class="grow"><span class="t">매니저 2차 PIN <span class="tag sm">준비 중</span></span><span class="s">매니저 권한을 만들 때 함께 추가합니다</span></span><button class="btn sm" disabled>추가</button></div>';
+}
 function openLogs(){ view.form={type:"logs"}; render(); setLogLoad(); }   /* 보안 화면 안 — 들어올 때 이미 2차 PIN(09-25 재아) */
 function openSmsLog(fromMessages){ view.form={type:"smslog", page:!!fromMessages, back:fromMessages?"messages":""}; view.smsOpen = {}; render(); window.scrollTo(0,0); }
 /* 예약률 시트는 자기 커서(view.rateEnd)로 주를 옮깁니다. 6차 전에는 moveDate(±7) 로 메인 날짜를 밀어서
@@ -12099,7 +12142,7 @@ function toastSaved(rec){
 }
 
 function renderSheet(){
-  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, export:sheetExport, menus:sheetMenus, menu:sheetMenu, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
+  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, apwlist:sheetAdminPwList, export:sheetExport, menus:sheetMenus, menu:sheetMenu, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
   /* 검색은 창 높이를 고정해 두고 결과만 안에서 스크롤 — 칠 때마다 창이 늘었다 줄었다 하지 않게(재아) */
   const wide = view.form.type==="rate" ? " sheet-wide" : ((view.form.type==="search" || (view.form.type==="reqs" && reqPending().length >= 3)) ? " sheet-tall" : "");   /* 홈페이지 예약은 3건부터 높이를 고정하고 목록만 스크롤(재아 09-17). 0~2건이면 빈 상자를 길게 안 보임(검토 D3) */
   if(view.form.page) return `<div class="sheet page-sheet">${inner}</div>`;   /* 화면형: 덮개 없이 본문 자리에 */
@@ -13372,27 +13415,20 @@ async function delOverride(date){
 /* ---------- 공용 PIN 변경 ----------
    09-25(재아): 현재 PIN 은 안 묻고 2차 PIN · 새 PIN · 새 PIN 확인. 보안 화면이 사장님 것이라 현재 PIN 을 몰라도 바꿀 수 있어야 함.
    예전엔 현재 PIN 으로 staff 에 로그인해 그 토큰으로 바꿨는데, 이제는 사장님 토큰으로 서버 함수(hanok_set_staff_pin, 29차)가 바꿈 */
-function openPin(id){ var u = id ? PIN_USERS.find(function(x){ return x.id === id; }) : null; view.pinRole = u ? (u.role || "staff") : null; view.form = {type:"pin", target:id || ""}; render(); }
+function openPin(id){ var u = id ? PIN_USERS.find(function(x){ return x.id === id; }) : null; view.pinRole = u ? (u.role || "staff") : null; view.pe = { name:u ? u.name : "", chg:!u }; view.form = {type:"pin", target:id || ""}; render(); }
 function sheetPin(){
-  const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null;
-  if(!supaOn()) return `${sheetHead("PIN 변경")}<p class="f-note">서버 미연결 빌드에서는 PIN 이 없습니다(아무 번호나 통과). 실서비스 빌드에서 바꿉니다.</p>
+  const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null, pe = view.pe || {};
+  if(!supaOn()) return `${sheetHead("PIN 수정")}<p class="f-note">서버 미연결 빌드에서는 PIN 이 없습니다(아무 번호나 통과). 실서비스 빌드에서 바꿉니다.</p>
     <div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button></div>`;
-  return `
-    ${sheetHead(tg ? esc(tg.name) + " PIN 바꾸기" : "공용 PIN 바꾸기")}
-    <label class="f big"><div class="lb">2차 PIN</div>
-      <input id="pin-admin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
-    </label>
-    ${tg ? `<div class="f big"><div class="lb">권한</div>${pinRoleSeg(view.pinRole || tg.role || "staff")}</div>` : ""}
-    <label class="f big"><div class="lb">새 PIN${tg ? ' <span class="lbl-note">바꿀 때만</span>' : ''}</div>
-      <input id="pin-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
-    </label>
-    <label class="f big"><div class="lb">새 PIN 확인</div>
-      <input id="pin-new2" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
-    </label>
-    <div class="sheet-actions">
-      <button class="btn ghost" onclick="view.form={type:'pinlist'}; render()">취소</button>
-      <button class="btn primary" onclick="savePin()">변경</button>
-    </div>`;
+  /* 09-25 재아: 이름·권한 바꾸기 · 새 PIN 은 스위치를 켜야 칸이 보임('바꿀 때만' 문구 대신) */
+  const chg = tg ? !!pe.chg : true;
+  return sheetHead(tg ? esc(tg.name) + " 수정" : "공용 PIN 수정") +
+    pinIn("adm", "pin-admin", "2차 PIN", {max:6, store:"pe"}) +
+    (tg ? pinIn("name", "pin-name", "PIN 이름", {text:true, max:20, store:"pe"}) + (tg.staff_id ? '<p class="f-note" style="margin-top:-6px">워크시프트에서 직원 이름을 바꾸면 이 이름도 따라 바뀝니다.</p>' : '') +
+      '<div class="f big"><div class="lb">권한</div>' + pinRoleSeg(view.pinRole || tg.role || "staff") + '</div>' +
+      '<div class="sa-line"><span class="sa-line-l"><b>PIN 번호 바꾸기</b></span><button type="button" class="sa-sw' + (chg ? ' on' : '') + '" role="switch" aria-checked="' + chg + '" aria-label="PIN 번호 바꾸기" onclick="view.pe.chg=!view.pe.chg; render()"><i></i></button></div>' : '') +
+    (chg ? pinIn("a", "pin-new", "새 PIN", {ph:"••••", store:"pe"}) + pinIn("b", "pin-new2", "새 PIN 확인", {ph:"••••", store:"pe"}) : '') +
+    '<div class="sheet-actions"><button class="btn ghost" onclick="view.form={type:\'pinlist\'}; render()">취소</button><button class="btn primary" onclick="savePin()">저장</button></div>';
 }
 /* PIN = staff 계정 비밀번호. 로그인 토큰 받기·자기 비밀번호 바꾸기(2차 PIN 변경에 씀) */
 async function authToken(email, password){
@@ -13406,31 +13442,37 @@ async function setPassword(token, password){
   if(!res.ok){ var j = null; try{ j = await res.json(); }catch(e){} var err = new Error((j && (j.msg || j.message || j.error_description)) || ("HTTP " + res.status)); err.status = res.status; throw err; }
 }
 async function savePin(){
-  const g = id => (document.getElementById(id) || {}).value || "";
-  const adm = g("pin-admin"), a = g("pin-new"), b = g("pin-new2");
+  const pe = view.pe || {}, adm = pe.adm || "", a = pe.a || "", b = pe.b || "";
   const tg = view.form && view.form.target ? PIN_USERS.find(u=>u.id === view.form.target) : null;
-  const roleChanged = !!tg && (view.pinRole || "staff") !== (tg.role || "staff");
-  if(a || !tg){
+  const chg = tg ? !!pe.chg : true, name = tg ? String(pe.name || "").trim() : "";
+  const roleChanged = !!tg && (view.pinRole || "staff") !== (tg.role || "staff"), nameChanged = !!tg && name !== (tg.name || "");
+  if(chg){
     if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
     if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
-  }else if(!roleChanged){ await uiAlert2("바뀐 것이 없습니다."); return; }
-  const tok = await pinAdminTok(adm, "PIN 변경"); if(!tok) return;
+  }
+  if(tg){
+    if(!name){ await uiAlert2("PIN 이름을 입력하세요."); return; }
+    if(nameChanged && PIN_USERS.some(u=>u.id !== tg.id && (u.name || "").trim().toLowerCase() === name.toLowerCase())){ await uiAlert2("같은 이름의 PIN이 이미 있습니다."); return; }
+    if(!chg && !roleChanged && !nameChanged){ await uiAlert2("바뀐 것이 없습니다."); return; }
+    /* 권한을 바꿀 땐 한 번 알림(09-25 재아) — 지금은 적어 두기만 하지만, 나중에 권한별로 할 수 있는 일이 달라짐 */
+    if(roleChanged && !await uiConfirm("권한을 바꿀까요?", tg.name + " · " + PIN_ROLE[tg.role || "staff"] + " → " + PIN_ROLE[view.pinRole] + "\n권한에 따라 이 PIN으로 할 수 있는 일이 달라집니다.", {ok:"바꾸기", cancel:"취소", tone:"warn"})) return;
+  }
+  const tok = await pinAdminTok(adm, "PIN 수정"); if(!tok) return;
   try{
+    if(tg && nameChanged) await sb("/rest/v1/rpc/hanok_pin_rename", { method:"POST", token:tok, body:{ p_id:tg.id, p_name:name } });
     if(tg && roleChanged) await sb("/rest/v1/rpc/hanok_pin_role", { method:"POST", token:tok, body:{ p_id:tg.id, p_role:view.pinRole } });
-    if(tg && a) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:tg.id, p_pin:a, p_base:SUPA_CFG.staffEmail } });
+    if(tg && chg) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:tg.id, p_pin:a, p_base:SUPA_CFG.staffEmail } });
     if(!tg) await sb("/rest/v1/rpc/hanok_set_staff_pin", { method:"POST", token:tok, body:{ p_pin:a, p_base:SUPA_CFG.staffEmail } });
-  }catch(e){ await uiAlert("PIN을 바꾸지 못했습니다", pinErrKo(e), "warn"); return; }
+  }catch(e){ await uiAlert("저장하지 못했습니다", pinErrKo(e), "warn"); return; }
   if(!tg) pinHashSave(a);
-  if(roleChanged) logEvent("PIN 권한", tg.name + " → " + PIN_ROLE[view.pinRole]);
-  if(!a){ view.form = {type:"pinlist"}; await pinUsersLoad(); render(); showToast("권한을 바꿨습니다"); return; }
-  logEvent("PIN 변경", tg ? tg.name : "공용 PIN");
-  view.form = {type:"pinlist"}; await pinUsersLoad(); render();
-  await uiAlert2((tg ? tg.name + " PIN이" : "공용 PIN이") + " 변경되었습니다.\n다음 로그인부터 새 PIN 을 씁니다.");
+  logEvent("PIN 수정", (tg ? tg.name : "공용 PIN") + (nameChanged ? " · 이름 → " + name : "") + (roleChanged ? " · 권한 → " + PIN_ROLE[view.pinRole] : "") + (chg ? " · 번호" : ""));
+  view.form = {type:"pinlist"}; view.pe = null; await pinUsersLoad(); render();
+  showToast("저장했습니다" + (chg ? " — 다음 로그인부터 새 PIN" : ""));
 }
 /* 2차 PIN 변경 — 사장님 본인 토큰으로. 09-25(재아): '현재 2차 비밀번호' → '2차 PIN', 설명 글 뺌 */
 function sheetAdminPw(){
   return `
-    ${sheetHead("2차 PIN 관리")}
+    ${sheetHead("관리자 2차 PIN 수정")}
     <label class="f big"><div class="lb">2차 PIN</div>
       <input id="apw-cur" type="password" autocomplete="off" inputmode="numeric" maxlength="6">
     </label>
@@ -13493,7 +13535,7 @@ function sheetSetLog(){
 }
 /* 설정 초기화 — 기본표(DEFAULT_DATA)로. 누님과 정한 값이 기본표에 들어간 뒤에 쓸모가 있습니다. 관리자 비밀번호 */
 /* 초기화해도 그대로 두는 것 — 날짜별 기록·목록·메뉴판 배경·내부 표시(09-25 재아: 무엇이 지워지고 남는지 정확히) */
-var RESET_KEEP = ["_setlog", "_closedDay", "_reloadAt", "menuBgs", "menuBgDefault", "menuBgFlowerName", "menuBgFlowerOff", "smsFreeLog", "noshowExcluded", "overrides", "holidays", "holidaysOff", "holidaysLegal"];
+var RESET_KEEP = ["_setlog", "_closedDay", "_cd", "_reloadAt", "menuBgs", "menuBgDefault", "menuBgFlowerName", "menuBgFlowerOff", "smsFreeLog", "noshowExcluded", "overrides", "holidays", "holidaysOff", "holidaysLegal"];
 var BASELINE = {};   /* 가게별 '기본값으로 저장' 해 둔 설정(33차 stores.baseline) */
 function settingsForBaseline(st){ var o = deepClone(st); RESET_KEEP.forEach(function(k){ delete o[k]; }); return o; }
 async function saveBaseline(){
