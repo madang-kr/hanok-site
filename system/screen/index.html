@@ -3721,6 +3721,15 @@ const DEFAULT_DATA = {
       holidays:[],              /* 사장이 직접 등록하는 공휴일(내장표에 없는 임시공휴일·선거일 등). holidaysOff 는 내장표에서 뺄 날짜 */
       holidaysOff:[],
       holidayAsWeekend:true,    /* 코스 시간대에서 공휴일을 주말로 봄 */
+      /* 09-25: 스위치·숫자 값의 기본을 여기 적어 둠 — 안 적혀 있으면 껐다 켜서 원래대로 돌려도(없음 → 켬) '저장하지 않은 변경' 으로 남았음 */
+      fullscreenAuto:true,      /* 전체화면 자동(모든 기기 공통, 화면 보정에서 이 기기만 예외) */
+      tvMaskName:false,         /* TV 손님 성함 가리기 */
+      tvIdleFull:true,          /* 남은 예약이 없으면 광고 영상으로 */
+      minuteSteps:true,         /* 5분 단위 예약 */
+      closeGapMin:60,           /* 예약 충돌 경고(분 안) */
+      noshowCancelRule:"sameday",   /* 예약 취소 노쇼 적용 기준 */
+      noshowWarnCount:1,        /* 노쇼 경고 기준(회부터) */
+      tierVip:2, tierVvip:5, tierNoshow:5,   /* 단골 등급 */
       courseGroups:[
         { id:"cg_dinner",  label:"저녁 (종일)", items:["오","촉","한","위"],    when:["종일"] },
         { id:"cg_wdlunch", label:"평일 점심",   items:["요리사","동한","서한"], when:["평일점심"] },
