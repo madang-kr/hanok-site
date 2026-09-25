@@ -9167,7 +9167,7 @@ function schedChip(group){
 var SA = null;   /* {draft, saved(서버에 있는 초안 JSON 문자열), live:{id,apply_at,note,data}, versions:[], defaults, loading, err, tab} */
 var SA_ROOT = null;
 
-/* 사이트 루트 — system/ 또는 system/dev/ 에서 한두 칸 위. 로컬(127.0.0.1:8767/system/dev/)도 같은 규칙 */
+/* 사이트 루트 — system/ 또는 system/local/(이 PC 확인용) 에서 한두 칸 위 */
 function saRoot(){
   if(SA_ROOT) return SA_ROOT;
   var p = location.pathname.replace(/system\/.*$/, "");
@@ -11702,7 +11702,8 @@ async function dqDone(id){
 var MB = null;   /* { list, loading, err, page, saveT, saving, savedAt, demo } */
 var MB_W = 794, MB_H = 1123;
 
-function mbAsset(n){ return (location.pathname.indexOf("/dev/") >= 0 ? "../" : "") + "menu/" + n; }
+/* system/ 바로 아래가 아니면(system/local/ 확인용 · system/screen/) 한 칸 위의 menu/ */
+function mbAsset(n){ return (/\/system\/[^\/]+\//.test(location.pathname) ? "../" : "") + "menu/" + n; }
 function mbAbs(u){ try{ return new URL(u, location.href).href; }catch(e){ return u; } }
 var MB_BG_FLOWER = "bg-flower.jpg?v=0925b";   /* 파일을 바꾸면 v 도 바꿈(기기 캐시) */
 /* 배경: "flower"(기본) · "none"(흰 바탕) · 올린 배경 id(설정 menuBgs) */
