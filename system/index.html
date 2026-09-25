@@ -2257,6 +2257,15 @@ button.sa-card:hover{border-color:var(--text-3)}
 .mb-bgit.add{cursor:pointer; border-style:dashed; color:var(--text-2)}
 .mb-bgit.add .mb-bgthumb{background:var(--surface-2, #f4f1ec)}
 .mb-stat .amber{color:var(--amber, #a8680e)}
+
+/* 꾸미기 칸(09-25) */
+.mb-style{border:1px solid var(--text); border-radius:var(--r-md); padding:var(--s12); margin-bottom:var(--s12); background:var(--surface)}
+.mb-style-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+.mb-sw{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.mb-swc{width:28px; height:28px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--border); padding:0; cursor:pointer}
+.mb-swc.on{box-shadow:0 0 0 2px var(--text)}
+.mb-sw input[type=color]{width:34px; height:30px; padding:0; border:1px solid var(--border); border-radius:6px; background:none; cursor:pointer}
+.mb-top .btn.on{background:var(--text); color:var(--surface); border-color:var(--text)}
 /* ============================================================
    8. 잠금 · 매장 선택
    ============================================================ */
@@ -11114,56 +11123,59 @@ function mbBg(b){
   if(v && v !== "flower"){ var g = (typeof mbBgs === "function" ? mbBgs() : []).find(function(x){ return x.id === v; }); if(g) return g.url; }
   return mbAbs(mbAsset(MB_BG_FLOWER));
 }
-/* 메뉴판 글꼴 — 지금 메뉴표와 비슷한 둥근 손글씨(Jua) + 설명은 고운돋움. 처음 열 때 한 번만 */
-var MB_FONTS = "https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap";
+/* 메뉴판 글꼴 — 기본은 지금 메뉴표와 비슷한 둥근 손글씨(Jua) + 설명은 고운돋움.
+   09-25 재아 '폰트나 여러 가지 수정' → 꾸미기에서 고를 수 있는 한글 글꼴(구글 폰트, 쓰는 글자만 받아서 가벼움) */
+var MB_FONT_LIST = [["Jua", "주아 (둥근 손글씨)"], ["Gowun Dodum", "고운돋움"], ["Gowun Batang", "고운바탕 (명조)"], ["Nanum Myeongjo", "나눔명조"], ["Song Myung", "송명 (붓 명조)"], ["Noto Sans KR", "본고딕"], ["Do Hyeon", "도현 (굵은 고딕)"], ["Black Han Sans", "검은고딕 (아주 굵게)"], ["Nanum Pen Script", "나눔펜 (손글씨)"]];
+var MB_FONTS = "https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Song+Myung&family=Noto+Sans+KR:wght@400;700&family=Do+Hyeon&family=Black+Han+Sans&family=Nanum+Pen+Script&display=swap";
 function mbFontsLoad(){ if(document.getElementById("mb-fonts")) return; var l = document.createElement("link"); l.id = "mb-fonts"; l.rel = "stylesheet"; l.href = MB_FONTS; document.head.appendChild(l); }
 function mbCssLoad(){ if(document.getElementById("mb-css")) return; var s = document.createElement("style"); s.id = "mb-css"; s.textContent = MB_CSS; document.head.appendChild(s); }
 
 /* ---------- 페이지 모양 ---------- */
 var MB_CSS = [
-  ".mbp{position:relative; width:794px; height:1123px; background:#fff center/100% 100% no-repeat; overflow:hidden; box-sizing:border-box; color:#1d1a17; -webkit-print-color-adjust:exact; print-color-adjust:exact}",
+  /* 꾸미기(data.style)가 바꾸는 값: --mb-ft 제목 글꼴 · --mb-fn 이름·가격 글꼴 · --mb-fd 설명 글꼴 · --mb-c1 제목·강조 색 · --mb-c2 선 색 · --mb-c3 설명 색 · --mb-cb 카드 테두리 · --mb-ci 이름·가격 색 */
+  ".mbp{--mb-ft:'Jua'; --mb-fn:'Jua'; --mb-fd:'Gowun Dodum'; --mb-c1:#A8733A; --mb-c2:#7E5A7B; --mb-c3:#C1935F; --mb-cb:#D9BD9A; --mb-ci:#1d1a17; position:relative; width:794px; height:1123px; background:#fff center/100% 100% no-repeat; overflow:hidden; box-sizing:border-box; color:var(--mb-ci); -webkit-print-color-adjust:exact; print-color-adjust:exact}",
   ".mbp *{box-sizing:border-box}",
   /* 흰 카드 — 지금 메뉴표의 자리(왼 8.8% · 오 7% · 위 4.4% · 아래 6.3%) */
-  ".mbp-card{position:absolute; left:70px; right:55px; top:50px; bottom:70px; background:#fff; border:1.5px solid #D9BD9A; border-radius:14px; overflow:hidden}",
+  ".mbp-card{position:absolute; left:70px; right:55px; top:50px; bottom:70px; background:#fff; border:1.5px solid var(--mb-cb); border-radius:14px; overflow:hidden}",
   ".mbp-in{position:absolute; top:0; right:0; bottom:0; left:0; padding:42px 56px 34px; display:flex; flex-direction:column}",
   ".mbp-h{text-align:center; flex:none}",
-  ".mbp-t{font-family:'Jua',sans-serif; font-weight:400; font-size:3.1em; line-height:1.15; color:#A8733A; margin:0; letter-spacing:.02em}",
-  ".mbp-line{width:44%; height:2px; background:#7E5A7B; margin:.35em auto 0}",
-  ".mbp-sub{font-family:'Gowun Dodum',sans-serif; font-size:1.2em; color:#7a7470; margin-top:.35em}",
+  ".mbp-t{font-family:var(--mb-ft),sans-serif; font-weight:400; font-size:3.1em; line-height:1.15; color:var(--mb-c1); margin:0; letter-spacing:.02em}",
+  ".mbp-line{width:44%; height:2px; background:var(--mb-c2); margin:.35em auto 0}",
+  ".mbp-sub{font-family:var(--mb-fd),sans-serif; font-size:1.2em; color:#7a7470; margin-top:.35em}",
   ".mbp-body{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-evenly; padding-top:.6em}",
   ".mbp-sec{display:flex; flex-direction:column; min-height:0}",
   /* 항목만 고르게 퍼짐 — 소제목까지 퍼지면 소제목과 첫 항목 사이가 휑했음 */
   ".mbp-items{flex:1; display:flex; flex-direction:column; justify-content:space-evenly}",
   ".mbp-items > *{flex:none}",   /* 넘치면 줄어들지 말고 넘치게 — 그래야 '한 장을 넘칩니다' 를 알 수 있음 */
-  ".mbp-st{font-family:'Jua',sans-serif; font-weight:400; font-size:1.75em; color:#A8733A; margin:.2em 0 .5em}",
-  ".mbp-div{width:22%; height:2px; background:#7E5A7B; margin:.9em auto; flex:none}",
-  ".mbp-badge{display:block; font-family:'Jua',sans-serif; font-size:.72em; color:#A8733A; letter-spacing:.04em; line-height:1.1}",
-  ".mbp-won{font-family:'Jua',sans-serif; font-size:1.7em; white-space:nowrap}",
+  ".mbp-st{font-family:var(--mb-ft),sans-serif; font-weight:400; font-size:1.75em; color:var(--mb-c1); margin:.2em 0 .5em}",
+  ".mbp-div{width:22%; height:2px; background:var(--mb-c2); margin:.9em auto; flex:none}",
+  ".mbp-badge{display:block; font-family:var(--mb-fn),sans-serif; font-size:.72em; color:var(--mb-c1); letter-spacing:.04em; line-height:1.1}",
+  ".mbp-won{font-family:var(--mb-fn),sans-serif; font-size:1.7em; white-space:nowrap}",
   /* 코스·세트 */
   ".mbp-course{padding:.2em 0}",
   ".mbp-ch{display:flex; align-items:flex-end; justify-content:space-between; gap:1em; margin-bottom:.7em}",
-  ".mbp-cn{font-family:'Jua',sans-serif; font-size:1.7em; color:#A8733A; line-height:1.15}",
-  ".mbp-cp{font-family:'Jua',sans-serif; font-size:1.7em; color:#A8733A; white-space:nowrap}",
+  ".mbp-cn{font-family:var(--mb-fn),sans-serif; font-size:1.7em; color:var(--mb-c1); line-height:1.15}",
+  ".mbp-cp{font-family:var(--mb-fn),sans-serif; font-size:1.7em; color:var(--mb-c1); white-space:nowrap}",
   ".mbp-row{display:grid; grid-template-columns:repeat(4, 1fr); column-gap:.8em; row-gap:.35em; margin-bottom:.55em}",
-  ".mbp-row span{font-family:'Jua',sans-serif; font-size:1.25em; line-height:1.25}",
+  ".mbp-row span{font-family:var(--mb-fn),sans-serif; font-size:1.25em; line-height:1.25}",
   ".mbp-row span.w2{grid-column:span 2}",
-  ".mbp-row small{display:block; font-family:'Gowun Dodum',sans-serif; font-size:.55em; color:#6d6760; margin-top:.1em}",
+  ".mbp-row small{display:block; font-family:var(--mb-fd),sans-serif; font-size:.55em; color:#6d6760; margin-top:.1em}",
   /* 요리·주류 */
   ".mbp-dish{display:flex; align-items:center; justify-content:space-between; gap:1.2em; padding:.35em 0}",
   ".mbp-dl{min-width:0}",
   ".mbp-dn{display:flex; align-items:baseline; gap:.4em; flex-wrap:wrap}",
-  ".mbp-dn b{font-family:'Jua',sans-serif; font-weight:400; font-size:1.8em; line-height:1.2}",
-  ".mbp-side{font-family:'Gowun Dodum',sans-serif; font-size:.82em; color:#A8733A}",
-  ".mbp-dd{font-family:'Gowun Dodum',sans-serif; font-size:.78em; color:#C1935F; margin-top:.25em; line-height:1.45}",
+  ".mbp-dn b{font-family:var(--mb-fn),sans-serif; font-weight:400; font-size:1.8em; line-height:1.2}",
+  ".mbp-side{font-family:var(--mb-fd),sans-serif; font-size:.82em; color:var(--mb-c1)}",
+  ".mbp-dd{font-family:var(--mb-fd),sans-serif; font-size:.78em; color:var(--mb-c3); margin-top:.25em; line-height:1.45}",
   ".mbp-dp{flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:.25em}",
   ".mbp-dp div{display:flex; align-items:baseline; gap:.7em}",
-  ".mbp-dp small{font-family:'Gowun Dodum',sans-serif; font-size:.95em; color:#7a7470; white-space:nowrap}",
+  ".mbp-dp small{font-family:var(--mb-fd),sans-serif; font-size:.95em; color:#7a7470; white-space:nowrap}",
   /* 목록 */
   ".mbp-li{display:flex; justify-content:space-between; align-items:baseline; padding:.35em .6em}",
-  ".mbp-li b{font-family:'Jua',sans-serif; font-weight:400; font-size:1.35em}",
+  ".mbp-li b{font-family:var(--mb-fn),sans-serif; font-weight:400; font-size:1.35em}",
   ".mbp-li .mbp-won{font-size:1.35em}",
-  ".mbp-foot{flex:none; text-align:center; font-family:'Gowun Dodum',sans-serif; font-size:.95em; line-height:1.9; color:#4a4540; padding-top:.6em}",
-  ".mbp-empty{flex:1; display:flex; align-items:center; justify-content:center; color:#b9b2aa; font-family:'Gowun Dodum',sans-serif; font-size:1.2em}"
+  ".mbp-foot{flex:none; text-align:center; font-family:var(--mb-fd),sans-serif; font-size:.95em; line-height:1.9; color:#4a4540; padding-top:.6em}",
+  ".mbp-empty{flex:1; display:flex; align-items:center; justify-content:center; color:#b9b2aa; font-family:var(--mb-fd),sans-serif; font-size:1.2em}"
 ].join("\n");
 
 function mbWon(v){ return String(v == null ? "" : v).trim().replace(/\d{4,}/g, function(n){ return Number(n).toLocaleString("ko-KR"); }); }   /* "1인 30000" → "1인 30,000" */
@@ -11196,12 +11208,25 @@ function mbPageHtml(b, pg, zoom){
     return '<div class="mbp-sec" style="flex-grow:' + Math.max(1, items.length) + '">' + (s.title ? '<h2 class="mbp-st">' + esc(s.title) + '</h2>' : '') + '<div class="mbp-items">' + items.join(s.kind === "course" ? '<div class="mbp-div"></div>' : '') + '</div></div>';
   }).join('<div class="mbp-div"></div>');
   var foot = String(pg.foot || "").split("\n").filter(function(l){ return l.trim(); }).map(esc).join("<br>");
-  return '<div class="mbp' + (bg ? '' : ' nobg') + '"' + (zoom ? ' style="zoom:' + zoom + (bg ? '; background-image:url(\'' + bg + '\')' : '') + '"' : (bg ? ' style="background-image:url(\'' + bg + '\')"' : '')) + '>' +
+  var sty = (zoom ? 'zoom:' + zoom + ';' : '') + (bg ? "background-image:url('" + bg + "');" : '') + mbStyleVars(b);
+  return '<div class="mbp' + (bg ? '' : ' nobg') + '"' + (sty ? ' style="' + sty + '"' : '') + '>' +
     '<div class="mbp-card"><div class="mbp-in" style="font-size:' + (16 * sc).toFixed(2) + 'px">' +
       '<div class="mbp-h">' + (pg.title ? '<h1 class="mbp-t">' + esc(pg.title) + '</h1><div class="mbp-line"></div>' : '') + (pg.sub ? '<div class="mbp-sub">' + esc(pg.sub) + '</div>' : '') + '</div>' +
       (body ? '<div class="mbp-body">' + body + '</div>' : '<div class="mbp-empty">항목을 넣으면 여기 나타납니다</div>') +
       (foot ? '<div class="mbp-foot">' + foot + '</div>' : '') +
     '</div></div></div>';
+}
+
+/* 꾸미기 값 → CSS 변수. 글꼴 이름·색은 목록에 있는 것 / #색 만 받음(따옴표가 style 을 깨지 않게) */
+var MB_STYLE_KEYS = { ft:"--mb-ft", fn:"--mb-fn", fd:"--mb-fd", c1:"--mb-c1", c2:"--mb-c2", c3:"--mb-c3", cb:"--mb-cb", ci:"--mb-ci" };
+function mbStyleVars(b){
+  var st = (b && b.data && b.data.style) || {}, out = "";
+  Object.keys(MB_STYLE_KEYS).forEach(function(k){
+    var v = st[k]; if(!v) return;
+    if(k.charAt(0) === "f"){ if(MB_FONT_LIST.some(function(f){ return f[0] === v; })) out += MB_STYLE_KEYS[k] + ":'" + v + "';"; }
+    else if(/^#[0-9a-fA-F]{3,8}$/.test(v)) out += MB_STYLE_KEYS[k] + ":" + v + ";";
+  });
+  return out;
 }
 
 /* ---------- 불러오기·저장 ---------- */
@@ -11239,7 +11264,7 @@ async function mbSave(){
   }catch(e){ MB.saving = false; MB.saveErr = e.network ? "연결 없음" : (e.message || "저장 실패"); mbStatus(); return false; }
 }
 function mbStatus(){ var el = document.getElementById("mb-stat"); if(el) el.innerHTML = mbStatusText(); }
-function mbStatusText(){ if(!MB) return ""; if(MB.saveErr) return '<span class="rust">저장 안 됨 · ' + esc(MB.saveErr) + '</span>'; if(MB.saving) return '저장 중…'; if(MB.dirty) return '<span class="amber">저장 안 한 변경</span>'; return MB.demo ? '이 기기에만 저장(연습)' : ''; }
+function mbStatusText(){ if(!MB) return ""; if(MB.saveErr) return '<span class="rust">저장 안 됨 · ' + esc(MB.saveErr) + '</span>'; if(MB.saving) return '저장 중…'; return MB.demo ? '이 기기에만 저장(연습)' : ''; }
 
 /* ---------- 작은 고르기 창(페이지 추가·사진 저장·배경) — 06-modal 선택지 창은 값이 글자면 깨져서 따로 ---------- */
 function mbPop(title, opts, cb){ MB.pop = { title:title, opts:opts, cb:cb }; render(); }
@@ -11345,7 +11370,7 @@ function mbOpen(id){
 function mbBack(){
   var go = function(){ MB.edit = null; MB.dirty = false; MB.pop = null; view.form = {type:"menus", page:true, back:"owner"}; render(); window.scrollTo(0, 0); };
   if(!MB || !MB.dirty) return go();
-  mbPop("저장하지 않은 변경이 있습니다", [{ v:"save", label:"저장하고 나가기" }, { v:"drop", label:"저장하지 않고 나가기", sub:"고친 내용이 사라집니다" }], async function(v){ if(v === "save"){ if(await mbSave()) go(); } else go(); });
+  mbPop("저장하지 않은 변경이 있습니다", [{ v:"save", label:"저장하고 나가기" }, { v:"drop", label:"저장하지 않고 나가기" }], async function(v){ if(v === "save"){ if(await mbSave()) go(); } else go(); });
 }
 function mbNewPage(kind){
   return { id:newId("pg"), title:"", sub:"", foot:"", scale:100, sections:[{ title:"", kind:kind, items:[mbNewItem(kind)] }] };
@@ -11445,22 +11470,38 @@ function sheetMenu(){
       '<div class="btn-row"><button class="btn sm" onclick="mbAddItem(' + si + ')">항목 추가</button><button class="btn sm ghost" onclick="mbAddSec(' + si + ')">묶음 추가</button></div></div>';
   }).join("");
   setTimeout(function(){ mbPrevRefresh(); }, 0);   /* 미리보기 폭에 맞춘 배율은 그린 뒤에야 앎 */
-  var bgName = (mbBgOpts(d.bg).filter(function(o){ return o.on; })[0] || {}).label || "꽃 테두리";
   return '<div class="mb-top"><button class="btn sm ghost" onclick="mbBack()">← 목록</button>' +
       '<input type="text" class="in-sm mb-name" value="' + esc(b.name || "") + '" placeholder="메뉴판 이름" oninput="mbSet(\'name\', this.value)">' +
-      '<button class="btn sm" onclick="mbPickBg()">배경 · ' + esc(bgName) + '</button>' +
+      '<button class="btn sm" onclick="mbPickBg()">배경 변경</button><button class="btn sm' + (MB.styleOpen ? ' on' : '') + '" onclick="MB.styleOpen=!MB.styleOpen; render()">꾸미기</button>' +
       '<span class="mb-stat" id="mb-stat">' + mbStatusText() + '</span>' +
       '<span class="btn-row"><button class="btn sm" onclick="mbPrint()">PDF로 저장</button><button class="btn sm" onclick="mbPng()">사진으로 저장</button><button class="btn sm primary" onclick="mbSave()">저장</button></span></div>' +
     '<div class="mb-chips">' + chips + '</div>' +
     /* 페이지 순서·복제·삭제는 제목 칸과 떨어진 따로 한 줄(09-25 재아) */
     '<div class="mb-pagebar"><span class="muted">' + (pi + 1) + '장</span><button class="btn sm ghost" onclick="mbArr(\'pages\', \'up\', ' + pi + ')"' + (pi ? '' : ' disabled') + '>◀ 앞으로</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'down\', ' + pi + ')"' + (pi < d.pages.length - 1 ? '' : ' disabled') + '>뒤로 ▶</button><button class="btn sm ghost" onclick="mbArr(\'pages\', \'dup\', ' + pi + ')">페이지 복제</button><button class="btn sm ghost danger" onclick="mbArrDel(\'pages\', ' + pi + ', \'이 페이지\')"' + (d.pages.length > 1 ? '' : ' disabled') + '>페이지 삭제</button></div>' +
-    '<div class="mb-grid"><div class="mb-form">' +
+    '<div class="mb-grid"><div class="mb-form">' + (MB.styleOpen ? mbStyleHtml(d) : '') +
       '<div class="mb-pagebox"><div class="mb-g2">' + mbIn("pages." + pi + ".title", pg.title, "페이지 제목", {ph:"요리메뉴 등", change:true}) + mbIn("pages." + pi + ".sub", pg.sub, "페이지 부제목", {ph:"(오전 11:00 - 오후 3:30) 등"}) + '</div>' +
         mbIn("pages." + pi + ".foot", pg.foot, "페이지 하단", {area:true, rows:2, ph:"한옥반점의 만두는 매장에서 직접 빚습니다 등"}) +
         '<span class="mb-scale">글씨 크기 <button class="ibtn2" onclick="mbScale(-5)" aria-label="작게">−</button><b>' + (Number(pg.scale) || 100) + '%</b><button class="ibtn2" onclick="mbScale(5)" aria-label="크게">＋</button></span></div>' +
       secs +
     '</div><div class="mb-side"><div class="mb-prev-h"><b>' + (pi + 1) + ' / ' + d.pages.length + '</b><span id="mb-over" class="tag rust sm" style="display:none">한 장을 넘칩니다 — 글씨를 줄이거나 페이지를 나누세요</span></div><div class="mb-prev" id="mb-prev"></div></div></div>' +
     mbPopHtml();
+}
+
+/* ---------- 꾸미기(09-25 재아) — 글꼴 셋, 색 다섯. 메뉴판마다 따로(data.style), 저장해야 남음 ---------- */
+var MB_STYLE_DEF = { ft:"Jua", fn:"Jua", fd:"Gowun Dodum", c1:"#A8733A", c2:"#7E5A7B", c3:"#C1935F", cb:"#D9BD9A", ci:"#1D1A17" };
+var MB_SWATCH = ["#A8733A", "#8C2F2F", "#B3402A", "#2F5D4A", "#2B4C7E", "#7E5A7B", "#1D1A17", "#6D6760", "#C1935F", "#D9BD9A"];
+function mbSetStyle(k, v){ var b = mbCur(); if(!b) return; b.data.style = b.data.style || {}; b.data.style[k] = v; mbTouch(); render(); }
+function mbStyleReset(){ var b = mbCur(); if(!b) return; b.data.style = {}; mbTouch(); render(); }
+function mbStyleHtml(d){
+  var st = Object.assign({}, MB_STYLE_DEF, d.style || {});
+  var font = function(k, label){ return '<label class="f mb-f"><div class="lb">' + label + '</div><select class="in-sm" onchange="mbSetStyle(\'' + k + '\', this.value)">' +
+    MB_FONT_LIST.map(function(f){ return '<option value="' + esc(f[0]) + '"' + (st[k] === f[0] ? ' selected' : '') + ' style="font-family:\'' + esc(f[0]) + '\'">' + esc(f[1]) + '</option>'; }).join("") + '</select></label>'; };
+  var color = function(k, label){ return '<div class="f mb-f"><div class="lb">' + label + '</div><div class="mb-sw">' +
+    MB_SWATCH.map(function(c){ return '<button class="mb-swc' + (String(st[k]).toLowerCase() === c.toLowerCase() ? ' on' : '') + '" style="background:' + c + '" onclick="mbSetStyle(\'' + k + '\', \'' + c + '\')" aria-label="' + c + '"></button>'; }).join("") +
+    '<input type="color" value="' + esc(st[k]) + '" onchange="mbSetStyle(\'' + k + '\', this.value)" aria-label="다른 색"></div></div>'; };
+  return '<div class="mb-style"><div class="mb-style-h"><b>꾸미기</b><button class="btn sm ghost" onclick="mbStyleReset()">기본으로</button></div>' +
+    '<div class="mb-g3">' + font("ft", "제목 글꼴") + font("fn", "이름·가격 글꼴") + font("fd", "설명 글꼴") + '</div>' +
+    color("c1", "제목·강조 색") + color("ci", "이름·가격 색") + color("c3", "설명 색") + color("c2", "선 색") + color("cb", "카드 테두리 색") + '</div>';
 }
 
 /* ---------- 내보내기 — 지금 화면의 내용 그대로(저장 안 했어도) ---------- */
