@@ -2209,6 +2209,14 @@ button.sa-card:hover{border-color:var(--text-3)}
 .cd-bh b{line-height:1.2}
 .cd-fin{margin-left:auto; font-weight:700; color:var(--pine)}
 button.cd-fin{border-color:var(--pine)!important; color:var(--pine)!important}
+
+/* 09-25 재아: 정규 근무 — 한 기간 안에 요일 묶음 줄 */
+.hr-row{position:relative; border:1px solid var(--border); border-radius:10px; padding:10px 12px 8px; margin:0 0 10px; background:var(--surface)}
+.hr-row-del{position:absolute; top:6px; right:6px}
+.hr-row-add{margin-top:2px}
+.beta-t{font-size:10px; font-weight:800; letter-spacing:.04em; margin-left:3px; vertical-align:1px}
+.hr-pd{display:inline-flex; align-items:center; justify-content:center; text-decoration:none; opacity:.8; vertical-align:-2px}
+.hr-pd svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -9935,11 +9943,27 @@ function hrSchedHist(s){
   return h.slice().sort(function(a, b){ return (a.from || "").localeCompare(b.from || ""); });
 }
 function hrSchedFromOld(x){ x = x || {}; return { days: x.days && x.days.length === 7 ? x.days.slice() : [false,false,false,false,false,false,false], spans: x.spans && x.spans.length ? x.spans : [{ start: x.start || "10:00", end: x.end || "22:00", break: Number(x.break || 0) }] }; }
-function hrSchedAt(s, date){ var h = hrSchedHist(s), cur = h[0]; h.forEach(function(e){ if(!e.from || e.from <= date) cur = e; }); return { days: cur.days || [false,false,false,false,false,false,false], spans: (cur.spans && cur.spans.length ? cur.spans : [{start:"10:00", end:"22:00", break:0}]) }; }
+/* 09-25 재아: 한 기간 안에서 요일마다 시간이 다를 수 있음(월·화 10~15시, 수·목 17~22시, 하루 두 번 출근, 점심 휴게).
+   기간 한 칸 = {from, rows:[{days:[7], spans:[{start,end,break}]}]}. 옛 모양({days, spans})은 한 줄짜리 rows 로 읽음 */
+function hrSchedRows(e){
+  if(e && Array.isArray(e.rows) && e.rows.length) return e.rows;
+  return [{ days: (e && e.days) || [false,false,false,false,false,false,false], spans: (e && e.spans && e.spans.length ? e.spans : [{start:"10:00", end:"22:00", break:0}]) }];
+}
+function hrSchedAt(s, date){
+  var h = hrSchedHist(s), cur = h[0]; h.forEach(function(e){ if(!e.from || e.from <= date) cur = e; });
+  var rows = hrSchedRows(cur), dow = new Date(date + "T00:00:00").getDay(), days = [false,false,false,false,false,false,false];
+  rows.forEach(function(r){ (r.days || []).forEach(function(on, i){ if(on) days[i] = true; }); });
+  var row = rows.find(function(r){ return r.days && r.days[dow]; }) || rows[0];
+  return { days: days, spans: row.spans && row.spans.length ? row.spans : [{start:"10:00", end:"22:00", break:0}], rows: rows };
+}
 function hrPayHist(s){ var h = Array.isArray(s.pay_hist) && s.pay_hist.length ? s.pay_hist : [{ from:"", pay:Number(s.pay || 0) }]; return h.slice().sort(function(a, b){ return (a.from || "").localeCompare(b.from || ""); }); }
 function hrPayAt(s, date){ var h = hrPayHist(s), cur = h[0]; h.forEach(function(e){ if(!e.from || e.from <= date) cur = e; }); return Number(cur.pay || 0); }
 function hrSpanText(sp){ return sp.start + "–" + sp.end + (Number(sp.break) ? "(휴게 " + sp.break + ")" : ""); }   /* 24시간 표기 — 오전/오후를 떼면 10:00–3:00 처럼 헷갈림 */
-function hrSchedText(s, date){ var c = hrSchedAt(s, date || todayStr()), ds = HR_DAYS.filter(function(_, i){ return c.days[i]; }); return ds.length ? ds.join("·") + " " + c.spans.map(hrSpanText).join(" + ") : "정규 근무 없음"; }
+function hrSchedText(s, date){
+  var c = hrSchedAt(s, date || todayStr());
+  var parts = c.rows.map(function(r){ var ds = [1,2,3,4,5,6,0].filter(function(i){ return r.days && r.days[i]; }).map(function(i){ return HR_DAYS[i]; }); return ds.length ? ds.join("·") + " " + (r.spans || []).map(hrSpanText).join(" + ") : ""; }).filter(Boolean);
+  return parts.length ? parts.join(" / ") : "정규 근무 없음";
+}
 function hrOnDuty(s, date){ var c = hrSchedAt(s, date), dow = new Date(date + "T00:00:00").getDay(); if(!c.days[dow]) return false; if(s.start_date && date < s.start_date) return false; if(s.end_date && date > s.end_date) return false; return true; }
 /* 한 칸의 근무 구간들 — [{s0,e0,brk,hours}]. 정규는 그 날짜의 시간표, 변형은 적힌 시각(spans 우선, 없으면 start/end) */
 function hrSpans(s, a){
@@ -10138,14 +10162,21 @@ async function hrDayClick(date){
 }
 
 /* ---------- 직원 편집 ---------- */
-function hrStaffNew(){ HR.edit = { probation:{on:false, to:"", rate:90}, id:newId("stf"), name:"", nick:"", role:"홀", phone:"", pay_type:"hourly", pay:0, tax:"4대보험", weekly_pay:true, absent_deduct:false, sched_hist:[{from:"", days:[false,true,true,true,true,true,true], spans:[{start:"10:00", end:"22:00", break:60}]}], pay_hist:[{from:"", pay:0}], start_date:todayStr(), end_date:null, memo:"", active:true, sort:HR.staff.length, _new:true, tab:"sched" }; render(); }
-function hrStaffEdit(id){ var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return; HR.edit = deepClone(s); HR.edit.ext = hrExt(s); HR.edit.probation = Object.assign({on:false, to:"", rate:90}, (s.sched && s.sched.probation) || {}); HR.edit.sched_hist = hrSchedHist(s).map(function(e){ return { from:e.from || "", days:(e.days || []).slice(), spans:(e.spans || []).map(function(x){ return Object.assign({}, x); }) }; }); HR.edit.pay_hist = hrPayHist(s).map(function(e){ return Object.assign({}, e); }); HR.edit.sev = null; HR.edit.tab = "sched"; render(); }
+function hrStaffNew(){ HR.edit = { probation:{on:false, to:"", rate:90}, id:newId("stf"), name:"", nick:"", role:"홀", phone:"", pay_type:"hourly", pay:0, tax:"4대보험", weekly_pay:true, absent_deduct:false, sched_hist:[{from:"", rows:[{days:[false,true,true,true,true,true,true], spans:[{start:"10:00", end:"22:00", break:60}]}]}], pay_hist:[{from:"", pay:0}], start_date:todayStr(), end_date:null, memo:"", active:true, sort:HR.staff.length, _new:true, tab:"sched" }; render(); }
+function hrStaffEdit(id){ var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return; HR.edit = deepClone(s); HR.edit.ext = hrExt(s); HR.edit.probation = Object.assign({on:false, to:"", rate:90}, (s.sched && s.sched.probation) || {}); HR.edit.sched_hist = hrSchedHist(s).map(function(e){ return { from:e.from || "", rows:hrSchedRows(e).map(function(r){ return { days:(r.days || []).slice(), spans:(r.spans || []).map(function(x){ return Object.assign({}, x); }) }; }) }; }); HR.edit.pay_hist = hrPayHist(s).map(function(e){ return Object.assign({}, e); }); HR.edit.sev = null; HR.edit.tab = "sched"; render(); }
 function hrEditSet(k, v){ if(HR.edit) HR.edit[k] = v; }
-function hrEditDay(i, j){ HR.edit.sched_hist[i].days[j] = !HR.edit.sched_hist[i].days[j]; render(); }
-function hrEditSpan(i, j, k, v){ HR.edit.sched_hist[i].spans[j][k] = k === "break" ? Number(v || 0) : v; }
-function hrEditSpanAdd(i){ HR.edit.sched_hist[i].spans.push({start:"17:00", end:"22:00", break:0}); render(); }
-function hrEditSpanDel(i, j){ var sp = HR.edit.sched_hist[i].spans; if(sp.length > 1){ sp.splice(j, 1); render(); } }
-function hrEditSchedAdd(){ var h = HR.edit.sched_hist, last = h[h.length - 1]; h.push({ from: monthStr(new Date(Date.now() + 32 * 864e5)) + "-01", days:last.days.slice(), spans:last.spans.map(function(x){ return Object.assign({}, x); }) }); render(); }
+/* 요일을 켜면 같은 기간의 다른 줄에서는 꺼짐 — 한 요일이 두 시간표에 걸리지 않게 */
+function hrEditDay(i, r, j){
+  var rows = HR.edit.sched_hist[i].rows, on = !rows[r].days[j];
+  rows[r].days[j] = on; if(on) rows.forEach(function(x, k){ if(k !== r) x.days[j] = false; });
+  render();
+}
+function hrEditSpan(i, r, j, k, v){ HR.edit.sched_hist[i].rows[r].spans[j][k] = k === "break" ? Number(v || 0) : v; }
+function hrEditSpanAdd(i, r){ var sp = HR.edit.sched_hist[i].rows[r].spans, last = sp[sp.length - 1]; sp.push({start:(last && last.end) || "17:00", end:"22:00", break:0}); render(); }
+function hrEditSpanDel(i, r, j){ var sp = HR.edit.sched_hist[i].rows[r].spans; if(sp.length > 1){ sp.splice(j, 1); render(); } }
+function hrEditRowAdd(i){ HR.edit.sched_hist[i].rows.push({ days:[false,false,false,false,false,false,false], spans:[{start:"10:00", end:"15:00", break:0}] }); render(); }
+function hrEditRowDel(i, r){ var rows = HR.edit.sched_hist[i].rows; if(rows.length > 1){ rows.splice(r, 1); render(); } }
+function hrEditSchedAdd(){ var h = HR.edit.sched_hist, last = h[h.length - 1]; h.push({ from: monthStr(new Date(Date.now() + 32 * 864e5)) + "-01", rows:last.rows.map(function(r){ return { days:r.days.slice(), spans:r.spans.map(function(x){ return Object.assign({}, x); }) }; }) }); render(); }
 function hrEditSchedDel(i){ if(HR.edit.sched_hist.length > 1){ HR.edit.sched_hist.splice(i, 1); render(); } }
 function hrEditPayAdd(){ var h = HR.edit.pay_hist, last = h[h.length - 1]; h.push({ from: monthStr(new Date(Date.now() + 32 * 864e5)) + "-01", pay:last.pay }); render(); }
 function hrEditPayDel(i){ if(HR.edit.pay_hist.length > 1){ HR.edit.pay_hist.splice(i, 1); render(); } }
@@ -10171,7 +10202,14 @@ async function hrStaffSave(){
   /* 새 직원인데 PIN 을 안 넣었으면 묻기만(막지 않음 — 기기를 안 쓰는 직원도 있음) */
   if(e._new && !(e.pinNew || "").trim() && !await uiConfirm("PIN 없이 저장할까요?", "PIN 이 없으면 이 직원 이름으로 기기에 들어올 수 없습니다. 나중에 직원 정보에서 넣을 수 있습니다.", {ok:"PIN 없이 저장", cancel:"PIN 넣기"})) return;
   if(!await hrPinApply(e, (e.nick || "").trim() || (e.name || "").trim())) return;
-  var sh = e.sched_hist.map(function(x){ return { from:x.from || "", days:x.days, spans:x.spans.filter(function(sp){ return sp.start && sp.end; }).map(function(sp){ return {start:sp.start, end:sp.end, break:Number(sp.break || 0)}; }) }; }).sort(function(a, b){ return a.from.localeCompare(b.from); });
+  /* 줄(요일 묶음)마다 저장 + 옛 모양(days=모든 줄 요일, spans=첫 줄)도 같이 — 옛 판·서버 트리거가 읽을 수 있게 */
+  var sh = e.sched_hist.map(function(x){
+    var rows = (x.rows || hrSchedRows(x)).map(function(r){ return { days:r.days.slice(), spans:r.spans.filter(function(sp){ return sp.start && sp.end; }).map(function(sp){ return {start:sp.start, end:sp.end, break:Number(sp.break || 0)}; }) }; })
+      .filter(function(r, k, all){ return r.spans.length && (r.days.some(Boolean) || all.length === 1); });
+    if(!rows.length) rows = [{ days:[false,false,false,false,false,false,false], spans:[{start:"10:00", end:"22:00", break:0}] }];
+    var days = [false,false,false,false,false,false,false]; rows.forEach(function(r){ r.days.forEach(function(on, i){ if(on) days[i] = true; }); });
+    return { from:x.from || "", rows:rows, days:days, spans:rows[0].spans };
+  }).sort(function(a, b){ return a.from.localeCompare(b.from); });
   var ph = e.pay_hist.map(function(x){ return { from:x.from || "", pay:Number(x.pay || 0) }; }).sort(function(a, b){ return a.from.localeCompare(b.from); });
   var cur = sh[sh.length - 1], sp0 = cur.spans[0] || {start:"10:00", end:"22:00", break:0};
   var row = { id:e.id, store:view.storeKey || "hanok", name:(e.name || "").trim() || (e.nick || "").trim(), nick:(e.nick || "").trim(), role:(e.role || "").trim(), phone:phoneNorm(e.phone || ""),
@@ -10197,7 +10235,7 @@ async function hrSetupSave(){
   var d = HR.setup; if(!d) return;
   try{
     await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:d }, prefer:"resolution=merge-duplicates,return=minimal" });
-    HR.cfg = d; HR.setup = null; logEvent("워크시프트 설정", (d.over5 ? "5인 이상" : "5인 미만")); render();
+    HR.cfg = d; HR.setup = null; logEvent("워크시프트 설정", (d.mode === "pro" ? "전문가 모드 · " + (d.over5 ? "5인 이상" : "5인 미만") : "기본 모드")); render();
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
 
@@ -10207,14 +10245,21 @@ function hrGroups(list){
   var keys = HR_ROLES.filter(function(r){ return g[r]; }).concat(Object.keys(g).filter(function(r){ return HR_ROLES.indexOf(r) < 0; }).sort());
   return keys.map(function(r){ return { role:r, list:g[r] }; });
 }
+/* 09-25 재아: 기본 모드(주간표 + 월별 근무 시간 기록)와 전문가 모드(BETA: 급여·연차·계산서). 기본은 기본 모드 —
+   급여 계산은 법이 복잡해 틀리면 책임 문제가 생기므로, 쓰고 싶은 사장님만 워크시프트 설정에서 켜게 */
+function hrPro(){ return !!(HR && HR.cfg && HR.cfg.mode === "pro"); }
 function sheetStaff(){
+  if(HR && !hrPro() && (HR.view === "pay" || HR.view === "leave")) HR.view = "rec";
+  if(HR && hrPro() && HR.view === "rec") HR.view = "pay";
   if(!HR || HR.loading) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
   if(HR.err) return '<div class="alert rust"><span class="ic">!</span><div><div class="a-t">불러오지 못했습니다</div><div class="a-s">' + esc(HR.err) + '</div></div></div><div class="btn-row" style="margin-top:12px"><button class="btn" onclick="HR.loading=true; render(); hrLoad().then(render)">다시 시도</button></div>';
-  var top = '<div class="hr-top"><div class="seg"><button class="' + (HR.view === "week" ? "on" : "") + '" onclick="HR.view=\'week\'; render()">주간표</button><button class="' + (HR.view === "pay" ? "on" : "") + '" onclick="HR.view=\'pay\'; render()">급여</button><button class="' + (HR.view === "leave" ? "on" : "") + '" onclick="HR.view=\'leave\'; hrLeaveLoad()">연차</button></div>' +
+  var top = '<div class="hr-top"><div class="seg"><button class="' + (HR.view === "week" ? "on" : "") + '" onclick="HR.view=\'week\'; render()">주간표</button>' +
+      (hrPro() ? '<button class="' + (HR.view === "pay" ? "on" : "") + '" onclick="HR.view=\'pay\'; render()">급여</button><button class="' + (HR.view === "leave" ? "on" : "") + '" onclick="HR.view=\'leave\'; hrLeaveLoad()">연차</button>'
+               : '<button class="' + (HR.view === "rec" ? "on" : "") + '" onclick="HR.view=\'rec\'; render()">기록</button>') + '</div>' +
       '<div class="btn-row">' + (HR.view === "pay" ? '<button class="btn sm ghost" onclick="HR.help=true; render()" title="계산 방법·법 안내">?</button>' : '') + (HR.view === "week" ? '<button class="btn sm ' + (HR.retired ? "" : "ghost") + '" onclick="HR.retired=!HR.retired; render()">' + (HR.retired ? "재직자 보기" : "퇴사자 보기") + '</button>' : '') +
       '<button class="btn sm ghost" onclick="hrSetupOpen()">설정</button><button class="btn sm primary" onclick="hrStaffNew()">＋ 직원</button></div></div>';
   var body = !HR.staff.length ? '<div class="empty">직원이 없습니다. "＋ 직원" 으로 첫 사람을 넣고 정규 근무(요일·시간)를 정해 두면, 칸을 눌러 ○ 만 찍으면 됩니다.</div>'
-           : HR.view === "pay" ? hrPayView() : HR.view === "leave" ? hrLeaveView() : hrWeekView();
+           : HR.view === "pay" ? hrPayView() : HR.view === "leave" ? hrLeaveView() : HR.view === "rec" ? hrRecView() : hrWeekView();
   return top + body + (HR.pop ? hrPopHtml() : "") + (HR.edit ? hrEditHtml() : "") + (HR.slip ? hrSlipHtml() : "") + (HR.setup ? hrSetupHtml() : "") + (HR.adj ? hrAdjHtml() : "") + (HR.help ? hrHelpHtml() : "");
 }
 /* 기간 옮기기(재아 09-20): 화살표 말고도 날짜를 바로 골라 뛸 수 있게 — 제목 옆 달력 입력 */
@@ -10222,7 +10267,7 @@ async function hrJumpWeek(v){ if(!v) return; HR.week = hrWeekStart(v); HR.loadin
 async function hrJumpMonth(v){ if(!/^\d{4}-\d{2}$/.test(v || "")) return; HR.month = v; HR.loading = true; render(); await hrLoadRange(); HR.loading = false; render(); }
 /* 기간 머리(09-20 재아): 가운데 제목·기간, 양옆 화살표. ‹ › 는 주(급여는 달), « » 는 달(급여는 해). 달력 입력은 뺌 */
 function hrPeriodHead(title, sub, onPrev, onToday, onNext, isNow){
-  var pay = HR.view === "pay";
+  var pay = HR.view === "pay" || HR.view === "rec";
   var big = pay ? ["hrMoveMonth(-12)", "hrMoveMonth(12)", "1년 전", "1년 뒤"] : ["hrMoveWeek(-4)", "hrMoveWeek(4)", "4주 전", "4주 뒤"];
   return '<div class="hr-period center' + (isNow ? '' : ' notnow') + '">' +
     '<div class="hr-period-nav"><button class="hr-nb" onclick="' + big[0] + '" title="' + big[2] + '">&laquo;</button><button class="hr-nb" onclick="' + onPrev + '" aria-label="이전">&lsaquo;</button></div>' +
@@ -10250,20 +10295,20 @@ function hrWeekView(){
     }).join("");
     return '<tr' + (s.active === false ? ' class="gone"' : '') + '><th class="hr-name"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.nick && s.name !== s.nick ? s.name + " · " : "") + esc(s.role || "") + (s.active === false && s.end_date ? " · " + s.end_date.slice(5).replace("-", "/") + " 퇴사" : "") + '</small></button></th>' + tds +
       /* 줄마다 하나씩(연장·야간·주휴·결근) — 한 줄에 '·' 로 이으면 좁은 칸에서 낱말 중간이 잘려 깨져 보였음(재아 09-20) */
-      '<td class="hr-sum"><b>' + hrRound(wk.hours) + 'h</b><small>' + wk.days + '일 근무</small>' + (wk.ot ? '<small>연장 ' + hrRound(wk.ot) + 'h</small>' : '') + (wk.night ? '<small>야간 ' + hrRound(wk.night) + 'h</small>' : '') + (wk.weeklyPay ? '<small>주휴 ' + hrRound(wk.weeklyPay) + 'h</small>' : '') + (wk.absent ? '<small class="rust">결근 ' + wk.absent + '</small>' : '') + '</td></tr>';
+      '<td class="hr-sum"><b>' + hrRound(wk.hours) + 'h</b><small>' + wk.days + '일 근무</small>' + (!hrPro() ? (wk.absent ? '<small class="rust">결근 ' + wk.absent + '</small>' : '') + '</td></tr>' : '') + (!hrPro() ? '' : (wk.ot ? '<small>연장 ' + hrRound(wk.ot) + 'h</small>' : '') + (wk.night ? '<small>야간 ' + hrRound(wk.night) + 'h</small>' : '') + (wk.weeklyPay ? '<small>주휴 ' + hrRound(wk.weeklyPay) + 'h</small>' : '') + (wk.absent ? '<small class="rust">결근 ' + wk.absent + '</small>' : '') + '</td></tr>');
   };
   var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><th class="hr-name">' + esc(g.role) + '</th><td colspan="8"></td></tr>' + g.list.map(rowHtml).join(""); }).join("");
   if(!list.length) trs = '<tr><td colspan="9" class="empty">' + (HR.retired ? "퇴사한 직원이 없습니다." : "재직 중인 직원이 없습니다.") + '</td></tr>';
   return head + '<div class="hr-scroll"><table class="hr-grid week"><thead><tr><th class="hr-name"></th>' + ths + '<th class="hr-sum">이번 주</th></tr></thead><tbody>' + trs + '</tbody></table></div>' +
     '<div class="hr-legend"><span><i class="hc reg">○</i>정규</span><span><i class="hc alt">△</i>다른 시간</span><span><i class="hc abs">×</i>결근</span><span><i class="hc off">–</i>휴무</span><span><i class="hc due">정규</i>안 찍은 근무일(지난 날은 빨강)</span><span><i class="r-ex">1.5x</i>배율(휴일 등)</span><span><i class="dot-ex"></i>메모</span></div>' +
-    '<p class="f-note">칸을 누르면 찍습니다(안 찍힌 칸은 상태를 골라야 저장). 이름을 누르면 정규 근무·시급을 기간별로 고칩니다. 날짜를 누르면 공휴일 지정/해제. ' +
-      hrOver5Note(HR.week.slice(0, 7)) + '</p>';
+    '<p class="f-note">칸을 누르면 찍습니다(안 찍힌 칸은 상태를 골라야 저장). 이름을 누르면 정규 근무' + (hrPro() ? '·시급' : '') + '을 기간별로 고칩니다. 날짜를 누르면 공휴일 지정/해제. ' +
+      (hrPro() ? hrOver5Note(HR.week.slice(0, 7)) : '') + '</p>';
 }
 function hrPayView(){
   var m = HR.month, mx = new Date(m + "-01T00:00:00"), title = mx.getFullYear() + "년 " + (mx.getMonth() + 1) + "월";
   var last = hrMonthEnd(m), list = HR.staff.filter(function(s){ return s.active !== false || !s.end_date || s.end_date >= m + "-01"; });   /* 퇴사자도 퇴사한 달까지 */
   var pd = hrPayday(m), pdx = new Date(pd + "T00:00:00");
-  var head = hrPeriodHead(title, "급여 · 지급일 " + (pdx.getMonth() + 1) + "/" + pdx.getDate() + ' <button class="hr-pd" onclick="event.stopPropagation(); hrPaydayPick(\'' + m + '\')">바꾸기</button>', "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
+  var head = hrPeriodHead(title, "급여지급일 " + (pdx.getMonth() + 1) + "/" + pdx.getDate() + ' <button class="hr-pd" onclick="event.stopPropagation(); hrPaydayPick(\'' + m + '\')" title="지급일 수정" aria-label="지급일 수정">' + ICON.edit + '</button>', "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
   var tot = { gross:0, ded:0, net:0, employer:0 };
   var rowHtml = function(s){
     var t = hrCalc(s, m); tot.gross += t.gross; tot.ded += t.dedTotal; tot.net += t.net; tot.employer += t.employer;
@@ -10278,6 +10323,38 @@ function hrPayView(){
   return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay"><thead><tr><th>직원</th><th>시급·월급</th><th>근무</th><th>시간</th><th>총지급</th><th>공제</th><th>실지급</th><th class="hr-acts-h"></th></tr></thead><tbody>' + trs +
     '<tr class="tot"><td colspan="4">합계</td><td class="won">' + hrWon(tot.gross) + '</td><td class="won">−' + hrWon(tot.ded) + '</td><td class="won"><b>' + hrWon(tot.net) + '</b></td><td></td></tr></tbody></table></div>' +
     '<p class="f-note"><button class="btn sm ghost" onclick="HR.help=true; render()">? 계산 방법·법 안내</button> ' + '총지급 = 기본급 + 연장·야간 가산(5인 이상) + 주휴수당(시급제, 주 15h 이상 개근) + 배율 가산. 월급제는 월급 고정 + 가산(통상시급 = 월급 ÷ 209), 결근 공제는 직원마다 켬. 공제 = 4대보험(근로자분) 또는 3.3%. 사업주 부담 4대보험(산재 제외) 약 ' + hrWon(tot.employer) + '. 퇴사자는 퇴사한 달까지 회색으로. <b>참고용 계산</b> — 신고·정산은 세무사/노무사 확인 후.</p>';
+}
+/* ---------- 기록(기본 모드, 09-25 재아): 급여 대신 '얼마나 일했는지' 를 달마다 모아 봄 ----------
+   근무일 · 총 시간(휴게 뺌) · 정규 시간 밖(더 일한 시간) · 다른 시간(△) · 결근 · 휴무. 돈 계산은 하지 않음 */
+function hrRecCalc(s, m){
+  var t = { days:0, hours:0, extra:0, alt:0, abs:0, off:0 };
+  hrMonthDays(m).forEach(function(d){
+    if(s.start_date && d < s.start_date) return; if(s.end_date && d > s.end_date) return;
+    var a = HR.att[s.id + "|" + d]; if(!a) return;
+    if(a.status === "결근"){ t.abs++; return; }
+    if(a.status === "휴무"){ t.off++; return; }
+    var h = hrHours(s, a); if(!h) return;
+    t.days++; t.hours += h; if(a.status === "변형") t.alt++;
+    var sh = hrSchedH(s, d); if(h > sh) t.extra += h - sh;
+  });
+  t.hours = hrRound(t.hours); t.extra = hrRound(t.extra);
+  return t;
+}
+function hrRecView(){
+  var m = HR.month, mx = new Date(m + "-01T00:00:00"), title = mx.getFullYear() + "년 " + (mx.getMonth() + 1) + "월";
+  var list = HR.staff.filter(function(s){ return s.active !== false || !s.end_date || s.end_date >= m + "-01"; });
+  var head = hrPeriodHead(title, "근무 기록", "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
+  var tot = { days:0, hours:0 };
+  var rowHtml = function(s){
+    var t = hrRecCalc(s, m); tot.days += t.days; tot.hours += t.hours;
+    return '<tr' + (s.active === false ? ' class="gone"' : '') + '><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.role || "") + (s.active === false ? " · 퇴사" : "") + '</small></button></td>' +
+      '<td>' + t.days + '일</td><td><b>' + t.hours + 'h</b></td><td>' + (t.extra ? t.extra + 'h' : '<span class="muted">—</span>') + '</td><td>' + (t.alt ? t.alt + '일' : '<span class="muted">—</span>') + '</td>' +
+      '<td>' + (t.abs ? '<span class="rust">' + t.abs + '일</span>' : '<span class="muted">—</span>') + '</td><td>' + (t.off ? t.off + '일' : '<span class="muted">—</span>') + '</td></tr>';
+  };
+  var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><td colspan="7">' + esc(g.role) + '</td></tr>' + g.list.map(rowHtml).join(""); }).join("");
+  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay"><thead><tr><th>직원</th><th>근무일</th><th>총 근무 시간</th><th>정규 시간 밖</th><th>다른 시간</th><th>결근</th><th>휴무</th></tr></thead><tbody>' + trs +
+    '<tr class="tot"><td>합계</td><td>' + tot.days + '일</td><td><b>' + hrRound(tot.hours) + 'h</b></td><td colspan="4"></td></tr></tbody></table></div>' +
+    '<p class="f-note">주간표에 찍은 근무를 달마다 모았습니다(휴게 시간은 뺌). 정규 시간 밖 = 정해 둔 정규 시간보다 더 일한 시간. 급여 계산이 필요하면 워크시프트 설정 → 전문가 모드(BETA).</p>';
 }
 /* ---------- 급여계산서: 영수증 모양 (재아 09-19 "직원한테 보내기 안 민망하게") ----------
    hrSlipData 가 줄 목록을 만들고, 화면(HTML)·인쇄·사진 저장(캔버스)이 같은 줄을 씁니다 — 셋이 늘 같게 */
@@ -10383,9 +10460,9 @@ function hrPopHtml(){
   return '<div class="overlay" onclick="HR.pop=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead(esc(hrLabel(s)) + ' · ' + dateLabel(p.date)) +
     '<p class="f-note" style="margin:-6px 0 12px">정규 근무: ' + esc(hrSchedText(s, p.date)) + '</p>' +
-    '<div class="seg hr-seg">' + seg("status", "정규", "○ 정규") + seg("status", "변형", "△ 다른 시간") + seg("status", "결근", "× 결근") + seg("status", "휴무", "– 휴무") + seg("status", "연차", "연 연차") + '</div>' +
+    '<div class="seg hr-seg">' + seg("status", "정규", "○ 정규") + seg("status", "변형", "△ 다른 시간") + seg("status", "결근", "× 결근") + seg("status", "휴무", "– 휴무") + (hrPro() ? seg("status", "연차", "연 연차") : "") + '</div>' +
     (p.status === "변형" ? '<div style="margin-top:12px">' + spans + (p.spans.length < 2 ? '<button class="btn sm ghost" onclick="hrPopSpanAdd()">＋ 타임 추가 (점심·저녁 따로)</button>' : '') + '</div>' : '') +
-    (p.status === "정규" || p.status === "변형" ? '<div class="f" style="margin-top:12px"><div class="lb">배율 <span class="lbl-note">휴일 근무 같은 때(연장·야간은 자동)</span></div><div class="seg">' + seg("rate", 1, "1x") + seg("rate", 1.5, "1.5x") + seg("rate", 2, "2x") + '</div></div>' : '') +
+    (hrPro() && (p.status === "정규" || p.status === "변형") ? '<div class="f" style="margin-top:12px"><div class="lb">배율 <span class="lbl-note">휴일 근무 같은 때(연장·야간은 자동)</span></div><div class="seg">' + seg("rate", 1, "1x") + seg("rate", 1.5, "1.5x") + seg("rate", 2, "2x") + '</div></div>' : '') +
     '<label class="f" style="margin-top:12px"><div class="lb">메모 <span class="lbl-note">선택</span></div><input type="text" value="' + esc(p.memo || "") + '" placeholder="예: 늦게 옴, 행사 지원" oninput="hrPopSet(\'memo\', this.value)"></label>' +
     '<div class="sheet-actions">' + (p._new ? '' : '<button class="btn ghost danger" onclick="hrPopDel()">지우기</button>') + '<button class="btn ghost" onclick="HR.pop=null; render()">취소</button><button class="btn primary" data-enter onclick="hrPopSave()">저장</button></div></div></div>';
 }
@@ -10396,11 +10473,17 @@ function hrEditHtml(){
   var body = "";
   if(e.tab === "sched"){
     body = e.sched_hist.map(function(h, i){
-      var days = HR_DAYS.map(function(d, j){ return '<button class="' + (h.days[j] ? "on" : "") + '" onclick="hrEditDay(' + i + ',' + j + ')">' + d + '</button>'; }).join("");
-      var spans = h.spans.map(function(sp, j){ return '<div class="grid3 hr-spanrow"><label class="f"><div class="lb">시작</div><input type="time" value="' + esc(sp.start) + '" onchange="hrEditSpan(' + i + ',' + j + ',\'start\',this.value)"></label><label class="f"><div class="lb">종료</div><input type="time" value="' + esc(sp.end) + '" onchange="hrEditSpan(' + i + ',' + j + ',\'end\',this.value)"></label><label class="f"><div class="lb">휴게(분)' + (h.spans.length > 1 ? ' <button class="btn sm ghost" style="float:right; padding:0 6px; min-height:0" onclick="hrEditSpanDel(' + i + ',' + j + ')">×</button>' : '') + '</div><input type="number" min="0" step="10" value="' + Number(sp.break || 0) + '" oninput="hrEditSpan(' + i + ',' + j + ',\'break\',this.value)"></label></div>'; }).join("");
+      if(!h.rows) h.rows = hrSchedRows(h).map(function(r){ return { days:r.days.slice(), spans:r.spans.map(function(x){ return Object.assign({}, x); }) }; });
+      var rowsHtml = h.rows.map(function(row, r){
+        var days = [1,2,3,4,5,6,0].map(function(j){ return '<button class="' + (row.days[j] ? "on" : "") + '" onclick="hrEditDay(' + i + ',' + r + ',' + j + ')">' + HR_DAYS[j] + '</button>'; }).join("");
+        var spans = row.spans.map(function(sp, j){ return '<div class="grid3 hr-spanrow"><label class="f"><div class="lb">' + (row.spans.length > 1 ? (j + 1) + '번째 출근' : '출근') + '</div><input type="time" value="' + esc(sp.start) + '" onchange="hrEditSpan(' + i + ',' + r + ',' + j + ',\'start\',this.value)"></label><label class="f"><div class="lb">퇴근</div><input type="time" value="' + esc(sp.end) + '" onchange="hrEditSpan(' + i + ',' + r + ',' + j + ',\'end\',this.value)"></label><label class="f"><div class="lb">휴게·점심(분)' + (row.spans.length > 1 ? ' <button class="btn sm ghost" style="float:right; padding:0 6px; min-height:0" onclick="hrEditSpanDel(' + i + ',' + r + ',' + j + ')">×</button>' : '') + '</div><input type="number" min="0" step="10" value="' + Number(sp.break || 0) + '" oninput="hrEditSpan(' + i + ',' + r + ',' + j + ',\'break\',this.value)"></label></div>'; }).join("");
+        return '<div class="hr-row">' + (h.rows.length > 1 ? '<button class="btn sm ghost hr-row-del" onclick="hrEditRowDel(' + i + ',' + r + ')">이 줄 삭제</button>' : '') +
+          '<div class="f"><div class="lb">요일</div><div class="seg hr-days">' + days + '</div></div>' + spans +
+          (row.spans.length < 3 ? '<button class="btn sm ghost" onclick="hrEditSpanAdd(' + i + ',' + r + ')">＋ 하루에 한 번 더 출근</button>' : '') + '</div>';
+      }).join("");
       return '<div class="hr-hist"><div class="hr-hist-h"><label class="f" style="margin:0"><div class="lb">' + (i === 0 && !h.from ? "처음부터" : "적용 시작일") + '</div>' + (i === 0 && !h.from ? '<span class="muted">입사 때부터</span>' : '<input type="date" value="' + esc(h.from) + '" onchange="HR.edit.sched_hist[' + i + '].from=this.value">') + '</label>' + (e.sched_hist.length > 1 ? '<button class="btn sm ghost" onclick="hrEditSchedDel(' + i + ')">이 기간 삭제</button>' : '') + '</div>' +
-        '<div class="f"><div class="lb">근무 요일</div><div class="seg hr-days">' + days + '</div></div>' + spans + (h.spans.length < 2 ? '<button class="btn sm ghost" onclick="hrEditSpanAdd(' + i + ')">＋ 타임 추가 (하루 두 타임)</button>' : '') + '</div>';
-    }).join("") + '<div class="btn-row"><button class="btn sm" onclick="hrEditSchedAdd()">＋ 다른 기간의 근무 시간</button></div><p class="f-note">근무 시간이 바뀌면 "다른 기간" 으로 추가하고 시작일을 적으세요 — 그 전 날짜는 옛 시간표로 계산됩니다.</p>';
+        rowsHtml + '<button class="btn sm hr-row-add" onclick="hrEditRowAdd(' + i + ')">＋ 요일별로 다른 시간 추가</button></div>';
+    }).join("") + '<div class="btn-row"><button class="btn sm" onclick="hrEditSchedAdd()">＋ 다른 기간의 근무 시간</button></div><p class="f-note">요일마다 시간이 다르면 "요일별로 다른 시간 추가" 로 줄을 늘리세요(한 요일은 한 줄에만). 근무 시간이 통째로 바뀌면 "다른 기간" 으로 추가하고 시작일을 적으세요 — 그 전 날짜는 옛 시간표로 계산됩니다.</p>';
   }else if(e.tab === "pay"){
     body = '<div class="grid2"><div class="f"><div class="lb">급여 방식</div><div class="seg">' + segv("pay_type", "hourly", "시급") + segv("pay_type", "monthly", "월급") + '</div></div>' +
       '<div class="f"><div class="lb">공제</div><div class="seg">' + segv("tax", "4대보험", "4대보험") + segv("tax", "3.3%", "3.3%") + segv("tax", "없음", "없음") + '</div></div></div>' +
@@ -10435,14 +10518,14 @@ function hrEditHtml(){
   }
   return '<div class="overlay" onclick="HR.edit=null; render()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' +
     sheetHead(e._new ? "직원 추가" : "직원") +
-    '<div class="grid2"><label class="f"><div class="lb">별칭 <span class="lbl-note">화면에 먼저 보임</span></div><input type="text" value="' + esc(e.nick || "") + '" placeholder="예: 만두언니" oninput="hrEditSet(\'nick\', this.value)"></label>' +
+    '<div class="grid2"><label class="f"><div class="lb">별칭</div><input type="text" value="' + esc(e.nick || "") + '" placeholder="예: 만두언니" oninput="hrEditSet(\'nick\', this.value)"></label>' +
     '<label class="f"><div class="lb">이름</div><input type="text" value="' + esc(e.name || "") + '" oninput="hrEditSet(\'name\', this.value)"></label></div>' +
     /* PIN — 새 직원은 여기서 만들고, 있는 직원은 바꿀 때만 넣음(09-25 재아). 번호는 서버에만(bcrypt), 화면·표에는 안 남음 */
     (function(){ var cur = hrPinOf(e.id);
-      return '<div class="hr-pin3"><label class="f"><div class="lb">2차 PIN</div><input type="password" inputmode="numeric" maxlength="6" autocomplete="off" value="' + esc(e.pinAdm || "") + '" oninput="hrEditSet(\'pinAdm\', this.value)"></label>' +
-        '<label class="f"><div class="lb">PIN <span class="lbl-note">' + (cur ? (cur.active === false ? "있음 · 퇴사로 막힘" : "있음 · 바꿀 때만") : "4자리") + '</span></div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="' + (cur ? "그대로 두기" : "••••") + '" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
+      return '<div class="hr-pin3"><label class="f"><div class="lb">2차 PIN 확인</div><input type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••" value="' + esc(e.pinAdm || "") + '" oninput="hrEditSet(\'pinAdm\', this.value)"></label>' +
+        '<label class="f"><div class="lb">PIN 등록' + (cur ? ' <span class="lbl-note">' + (cur.active === false ? "있음 · 퇴사로 막힘" : "있음 · 바꿀 때만") + '</span>' : '') + '</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="' + (cur ? "그대로 두기" : "••••") + '" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
         '<label class="f"><div class="lb">PIN 확인</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew2 || "") + '" oninput="hrEditSet(\'pinNew2\', this.value)"></label></div>'; })() +
-    '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + tab("pay", "급여·퇴직금") + tab("etc", "기타") + '</div>' +
+    '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + (hrPro() ? tab("pay", "급여·퇴직금") : "") + tab("etc", "기타") + '</div>' +
     '<div class="searchbox" style="flex:1; min-height:0; overflow:auto">' + body + '</div>' +
     '<div class="sheet-actions">' + (e._new ? '' : '<button class="btn ghost ' + (e.active === false ? "" : "danger") + '" onclick="hrStaffRetire()">' + (e.active === false ? "재직으로" : "퇴사") + '</button>') +
     '<button class="btn ghost" onclick="HR.edit=null; render()">취소</button><button class="btn primary" data-enter onclick="hrStaffSave()">저장</button></div></div></div>';
@@ -10450,7 +10533,12 @@ function hrEditHtml(){
 function hrSetupHtml(){
   var d = HR.setup;
   var num = function(path, label, note){ var ks = path.split("."), v = ks.length === 2 ? d[ks[0]][ks[1]] : d[ks[0]]; return '<label class="f"><div class="lb">' + label + (note ? ' <span class="lbl-note">' + note + '</span>' : '') + '</div><input type="number" step="0.001" value="' + v + '" oninput="' + (ks.length === 2 ? 'HR.setup.' + ks[0] + '.' + ks[1] : 'HR.setup.' + ks[0]) + '=Number(this.value)"></label>'; };
-  return '<div class="overlay" onclick="HR.setup=null; render()"><div class="sheet" onclick="event.stopPropagation()">' + sheetHead("워크시프트 설정") +
+  var pro = d.mode === "pro";
+  var modeHtml = '<div class="f"><div class="lb">모드</div><div class="seg"><button class="' + (!pro ? "on" : "") + '" onclick="HR.setup.mode=\'basic\'; render()">기본</button><button class="' + (pro ? "on" : "") + '" onclick="HR.setup.mode=\'pro\'; render()">전문가 <span class="beta-t">BETA</span></button></div>' +
+    '<div class="f-note">' + (pro ? "주간표 + 급여 계산·임금명세서·연차·퇴직금. 급여 계산은 <b>참고용</b>이니 신고·정산은 세무사·노무사와 확인하세요." : "주간표에 근무를 찍고, '기록' 에서 직원별 근무 시간을 달마다 모아 봅니다. 급여는 계산하지 않습니다.") + '</div></div>';
+  if(!pro) return '<div class="overlay" onclick="HR.setup=null; render()"><div class="sheet" onclick="event.stopPropagation()">' + sheetHead("워크시프트 설정") + modeHtml +
+    '<div class="sheet-actions"><button class="btn ghost" onclick="HR.setup=null; render()">취소</button><button class="btn primary" onclick="hrSetupSave()">저장</button></div></div></div>';
+  return '<div class="overlay" onclick="HR.setup=null; render()"><div class="sheet" onclick="event.stopPropagation()">' + sheetHead("워크시프트 설정") + modeHtml +
     '<div class="f"><div class="lb">사업장 규모 <span class="lbl-note">5인 이상이면 연장·야간·휴일 가산 의무</span></div><div class="seg"><button class="' + ((d.over5Mode || "auto") === "auto" ? "on" : "") + '" onclick="HR.setup.over5Mode=\'auto\'; render()">근태로 자동</button><button class="' + (d.over5Mode === "yes" ? "on" : "") + '" onclick="HR.setup.over5Mode=\'yes\'; HR.setup.over5=true; render()">5인 이상</button><button class="' + (d.over5Mode === "no" ? "on" : "") + '" onclick="HR.setup.over5Mode=\'no\'; HR.setup.over5=false; render()">5인 미만</button></div>' +
       '<div class="f-note">"그날 몇 명" 이 아니라 <b>한 달 평균</b>으로 봅니다(근로기준법 시행령 7조의2): 날마다 나온 사람 수를 더해 영업일로 나눈 값이 5 이상이면 5인 이상. 5인 미만인 날이 절반을 넘으면 미만, 반대면 이상. 자동이면 달마다 근태에서 계산합니다. ' + hrOver5Note(HR.month) + '</div></div>' +
     '<div class="f"><div class="lb">월급제 정규 외 근무 <span class="lbl-note">정규 시간을 넘긴 만큼 통상시급으로 따로 줌</span></div><div class="seg"><button class="' + (!d.inclusive ? "on" : "") + '" onclick="HR.setup.inclusive=false; render()">따로 계산</button><button class="' + (d.inclusive ? "on" : "") + '" onclick="HR.setup.inclusive=true; render()">월급에 포함(포괄)</button></div><div class="f-note">근로계약서에 "월급에 연장근로 ○시간 포함" 이라고 써 뒀으면(포괄임금) 포함으로. 아니면 따로 계산이 법대로입니다.</div></div>' +
@@ -11704,7 +11792,7 @@ function sheetMenus(){
       var n = ((b.data || {}).pages || []).length, pg = ((b.data || {}).pages || [])[0];
       var at = b.updated_at ? new Date(b.updated_at) : null;
       return '<div class="mb-it"><button class="mb-thumb" onclick="mbOpen(\'' + esc(b.id) + '\')" aria-label="' + esc(b.name) + ' 열기">' + (pg ? mbPageHtml(b, pg, 0.2) : '') + '</button>' +
-        '<div class="mb-it-b"><b>' + esc(b.name || "(이름 없음)") + '</b><small>' + n + '장' + (at ? ' · 마지막 수정(' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ')' : '') + '</small>' +
+        '<div class="mb-it-b"><b>' + esc(b.name || "(이름 없음)") + '</b><small>' + n + 'p' + (at ? ' · 마지막 수정(' + (at.getMonth() + 1) + '/' + at.getDate() + ' ' + pad(at.getHours()) + ':' + pad(at.getMinutes()) + ')' : '') + '</small>' +
         '<div class="btn-row"><button class="btn sm primary" onclick="mbOpen(\'' + esc(b.id) + '\')">열기</button><button class="btn sm" onclick="mbCopy(\'' + esc(b.id) + '\')">복제</button><button class="btn sm ghost danger" onclick="mbDel(\'' + esc(b.id) + '\')">삭제</button></div></div></div>';
     }).join("") + '</div>';
   /* 배경 관리(09-25 재아: 목록에서 배경을 올려 두고 편집에서 골라 씀) */
@@ -11723,7 +11811,7 @@ function sheetMenus(){
     (MB && !MB.loading && !MB.err ? bgs : '') + mbPopHtml();
 }
 async function mbAdd(){
-  var name = await uiPrompt("메뉴판 추가", "이름 — 추석 특별 메뉴판, 외국인 메뉴판 등", {value:"", ok:"만들기"}); if(name == null) return;
+  var name = await uiPrompt("메뉴판 추가", "메뉴판 이름", {value:"", ok:"만들기"}); if(name == null) return;
   name = String(name).trim() || "새 메뉴판";
   try{ var b = await mbInsert(name, { bg:mbBgDefault(), pages:[ mbNewPage("dish") ] }); logEvent("메뉴판 추가", name); mbOpen(b.id); }
   catch(e){ uiAlert("만들지 못했습니다", e.message || String(e), "warn"); }
@@ -11943,7 +12031,7 @@ function mbDownload(blob, name){ var a = document.createElement("a"); a.href = U
 function mbLoadH2c(){ return new Promise(function(res, rej){ if(window.html2canvas) return res(); var s = document.createElement("script"); s.src = MB_H2C; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("사진 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
 function mbPng(){
   var b = mbCur(); if(!b) return;
-  mbPop("사진으로 저장", [{ v:"cur", label:"지금 페이지만", sub:(MB.page + 1) + "장" }, { v:"all", label:"모든 페이지", sub:b.data.pages.length + "장" }], function(v){ mbPngRun(v === "all" ? b.data.pages.map(function(_, i){ return i; }) : [MB.page]); });
+  mbPop("사진으로 저장", [{ v:"cur", label:"지금 페이지만", sub:(MB.page + 1) + "p" }, { v:"all", label:"모든 페이지", sub:b.data.pages.length + "p" }], function(v){ mbPngRun(v === "all" ? b.data.pages.map(function(_, i){ return i; }) : [MB.page]); });
 }
 async function mbPngRun(idx){
   var b = mbCur(); if(!b) return;
@@ -13956,13 +14044,13 @@ function sheetRate(){
   return `
     <div class="wide-sheet">
     ${sheetHead("예약률 추이")}
-    <div class="chart-nav rate-nav">
+    <!-- 09-25 재아: 급여표처럼 — 오늘이 든 기간이 아니면 검은 띠, 가운데(기간)를 누르면 오늘 기간으로. 닫기 단추는 뺌(위 × · 뒤로) -->
+    <div class="hr-period center rate-period ${d === todayStr() ? "" : "notnow"}">
       <button class="hr-nb" onclick="rateMove(-21)" aria-label="앞 3주">&lsaquo;</button>
-      <span class="rate-per">${dateLabel(shiftDate(d,-20))} – ${dateLabel(d)}</span>   <!-- 그래프가 21일치(rateChart(d,21))라 첫날은 d−20. 화살표는 3주씩(09-25 재아: 주 단위가 아니라 기간 단위로) -->
+      <div class="hr-period-t${d === todayStr() ? "" : " go"}" ${d === todayStr() ? "" : `role="button" tabindex="0" title="오늘 기간으로" onclick="view.rateEnd=todayStr(); render()"`}><b>${dateLabel(shiftDate(d,-20))} – ${dateLabel(d)}</b>${d === todayStr() ? "" : "<small>눌러서 오늘 기간으로</small>"}</div>   <!-- 그래프가 21일치(rateChart(d,21))라 첫날은 d−20 -->
       <button class="hr-nb" onclick="rateMove(21)" aria-label="다음 3주">&rsaquo;</button>
     </div>
     ${rateChart(d, 21)}
-    <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>
     </div>`;
 }
 /* ============================================================
