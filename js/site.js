@@ -55,7 +55,7 @@ window.SITE_READY.then(function(){
       <div><h5>주차</h5><p>${esc(INFO.parking)}</p></div>
       <div><h5>소식</h5><a href="news.html">소식</a><a href="${INFO.instagram}" target="_blank" rel="noopener">인스타그램</a></div>
     </div>
-    <div class="foot-copy"><span>© ${new Date().getFullYear()} 한옥반점</span><span>대표 ${esc(INFO.owner)} · 사업자등록번호 ${esc(INFO.bizno)}</span></div>`;
+    <div class="foot-copy"><span>© ${new Date().getFullYear()} 한옥반점</span><span>대표 ${esc(INFO.owner)} · 사업자등록번호 ${esc(INFO.bizno)}</span><a href="privacy.html" class="foot-priv">개인정보처리방침</a></div>`;   /* 09-25 */
   document.body.append(foot);
 
   /* ---------- 팝업창: 여러 개면 왼쪽 위부터 나란히(겹치지 않게). '오늘 하루 보지 않기' 는 그 팝업만 하루 숨김. ?notice=1 이면 무조건 ---------- */
@@ -63,6 +63,7 @@ window.SITE_READY.then(function(){
     /* 사진 팝업인데 사진을 아직 안 올렸으면 띄우지 않음(빈 틀이 뜨지 않게) */
     const list = (window.NOTICES || []).filter(n => n && n.title && !(n.kind === "img" && !n.img));
     if(!list.length) return;
+    if(document.body.dataset.page === "privacy") return;   /* 개인정보처리방침은 읽는 페이지라 팝업을 띄우지 않음(09-25) */
     const force = /[?&]notice=1/.test(location.search);
     if(!force && /[?&]shot(?!=notice)/.test(location.search)) return;
     const t = new Date(); const ymd = t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");

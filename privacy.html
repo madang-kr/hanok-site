@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E0D0C">
+<title>개인정보처리방침 — 한옥반점</title>
+<meta name="description" content="한옥반점 개인정보처리방침">
+<link rel="icon" href="img/logo.png" type="image/png">
+<link rel="stylesheet" href="css/site.css">
+<script>document.documentElement.className += " pending";</script><!-- 내용이 정해질 때까지 잠깐 숨김(js/content.js 가 풂) -->
+</head>
+<body data-page="privacy">
+<!-- 09-25 재아 "개인정보처리방침도 구현해봐" — 실제 동작(무엇을 어디에 얼마나 두는지)에 맞춰 씀.
+     바뀌면 같이 고칠 곳: 예약 창 동의 문구(js/reserve.js 'priv'), 보관 기간(서버 정리 작업), 위탁·국외 이전(문자 업체를 붙이면 추가).
+     대표·주소·전화는 data/site.js 의 INFO 에서 채움(홈페이지 관리에서 고친 값과 같게) -->
+
+<main id="main-content">
+
+<section class="page-head"><img class="pic" src="img/bg2.jpg" alt=""><div class="wrap"><h1>개인정보처리방침</h1><p>한옥반점이 손님의 개인정보를 어떻게 다루는지 알려드립니다.</p></div></section>
+
+<section class="sec">
+  <div class="wrap policy">
+    <p>한옥반점(이하 '가게')은 「개인정보 보호법」에 따라 손님의 개인정보를 보호하고, 이와 관련한 고충을 원활하게 처리하기 위해 다음과 같이 개인정보처리방침을 둡니다.</p>
+
+    <h2>1. 처리하는 개인정보와 목적</h2>
+    <table>
+      <tr><th>구분</th><th>항목</th><th>목적</th></tr>
+      <tr><td>홈페이지 예약</td><td>필수: 성함, 휴대폰 번호<br>선택: 요청사항(알레르기·유아용 의자·기념일 등)</td><td>예약 접수·확인, 확정 연락, 좌석과 식사 준비</td></tr>
+      <tr><td>전화·방문·네이버 예약</td><td>성함, 전화번호, 인원, 요청사항, 방문 기록</td><td>예약 관리, 방문 안내, 노쇼 관리, 방문 감사 인사</td></tr>
+      <tr><td>홈페이지 방문 통계</td><td>이름·연락처 없이 브라우저에 만든 임의 번호, 본 페이지, 기기 종류(PC·태블릿·휴대폰), 들어온 경로</td><td>방문자 수 등 통계</td></tr>
+    </table>
+    <p class="cap">가게는 만 14세 미만 아동의 개인정보를 받지 않습니다.</p>
+
+    <h2>2. 보유 기간</h2>
+    <ul>
+      <li>예약 정보: <b>예약일로부터 1년</b>이 지나면 파기합니다. 손님이 삭제를 요청하시면 그 전이라도 바로 파기합니다.</li>
+      <li>홈페이지 방문 통계: 수집일로부터 1년</li>
+      <li>다른 법령에서 보관을 정한 경우에는 그 기간 동안 보관합니다.</li>
+    </ul>
+
+    <h2>3. 제3자 제공</h2>
+    <p>가게는 손님의 개인정보를 다른 곳에 제공하지 않습니다. 다만 법령에 따라 수사기관 등이 요구하는 경우는 예외입니다.</p>
+
+    <h2>4. 처리 위탁과 국외 이전</h2>
+    <p>가게는 예약 관리를 위해 아래 업체의 서비스를 씁니다.</p>
+    <table>
+      <tr><th>받는 곳</th><th>하는 일</th><th>옮기는 항목 · 위치</th><th>보유 기간</th></tr>
+      <tr><td>Supabase Inc.</td><td>예약 정보 저장(데이터베이스)</td><td>1번의 예약 정보 · 대한민국(서울) 서버</td><td>2번과 같음</td></tr>
+      <tr><td>GitHub, Inc.</td><td>예약 정보 백업 보관</td><td>1번의 예약 정보 · 미국<br>(매일 인터넷으로 전송)</td><td>2번과 같음</td></tr>
+      <tr><td>Google LLC</td><td>방문 감사 문자 초안 작성(AI)</td><td>성함, 방문 인원·좌석 종류, 요청사항 일부 · 미국<br>(문자를 쓸 때 인터넷으로 전송)</td><td>글을 만든 뒤 가게는 보관을 맡기지 않음(업체 약관에 따른 기간)</td></tr>
+    </table>
+    <p class="cap">국외 이전을 원하지 않으시면 가게에 말씀해 주세요. 감사 문자와 백업에서 손님 정보를 빼 드립니다.</p>
+
+    <h2>5. 손님의 권리</h2>
+    <p>손님은 언제든 자신의 개인정보를 열람하거나, 고치거나, 삭제하거나, 처리를 멈추라고 요청하실 수 있습니다. 전화(<a class="num" data-info="tel"></a>)나 방문으로 말씀해 주시면 바로 처리합니다. 대리인을 통해서도 요청하실 수 있습니다.</p>
+    <p>홈페이지 예약에서 개인정보 수집에 동의하지 않으셔도 됩니다. 이 경우 온라인 예약은 할 수 없고, 전화로 예약하실 수 있습니다.</p>
+
+    <h2>6. 파기 방법</h2>
+    <p>보유 기간이 지난 개인정보는 다시 살릴 수 없는 방법으로 지웁니다. 종이 기록(수기 예약지 등)은 잘게 찢거나 태워 없앱니다.</p>
+
+    <h2>7. 안전하게 지키는 방법</h2>
+    <ul>
+      <li>예약 관리 화면은 직원 PIN과 사장님 2차 비밀번호로만 열립니다. 직원이 그만두면 그 PIN을 바로 지웁니다.</li>
+      <li>모든 전송은 암호화(HTTPS)합니다.</li>
+      <li>누가 언제 무엇을 했는지 기록을 남깁니다.</li>
+    </ul>
+
+    <h2>8. 자동으로 모으는 장치</h2>
+    <p>가게 홈페이지는 쿠키를 쓰지 않습니다. 다만 방문 통계를 위한 임의 번호와 '오늘 하루 보지 않기' 선택을 손님 브라우저에 저장합니다. 브라우저 설정에서 사이트 데이터를 지우시면 없어집니다.</p>
+
+    <h2>9. 개인정보 보호책임자</h2>
+    <table>
+      <tr><th>책임자</th><td>대표 <span data-info="owner"></span></td></tr>
+      <tr><th>연락처</th><td><a class="num" data-info="tel"></a></td></tr>
+      <tr><th>주소</th><td><span data-info="addr"></span></td></tr>
+    </table>
+
+    <h2>10. 권익 침해 구제</h2>
+    <p>개인정보 침해에 대한 신고나 상담은 아래 기관에 하실 수 있습니다.</p>
+    <ul>
+      <li>개인정보침해신고센터 (국번 없이) 118 · privacy.kisa.or.kr</li>
+      <li>개인정보분쟁조정위원회 1833-6972 · kopico.go.kr</li>
+      <li>대검찰청 (국번 없이) 1301 · 경찰청 (국번 없이) 182</li>
+    </ul>
+
+    <h2>11. 시행일</h2>
+    <p>이 방침은 2026년 9월 25일부터 적용합니다. 바뀌면 이 페이지에 알려드립니다.</p>
+  </div>
+</section>
+
+</main>
+
+<script src="data/site.js"></script>
+<script src="js/config.js"></script>
+<script src="js/content.js"></script>
+<script src="js/site.js"></script>
+<script src="js/reserve.js"></script>
+<script>
+/* 대표·전화·주소는 홈페이지 설정(INFO) 값으로 */
+(function fill(again){
+  var I = window.INFO || (window.SITE && window.SITE.info) || {};
+  document.querySelectorAll("[data-info]").forEach(function(el){
+    var k = el.getAttribute("data-info"), v = I[k] || "";
+    el.textContent = v;
+    if(k === "tel" && el.tagName === "A") el.setAttribute("href", "tel:" + v);
+  });
+  if(!again) setTimeout(function(){ fill(true); }, 1500);   /* 홈페이지 관리에서 고친 값이 늦게 오면 한 번 더 */
+})();
+</script>
+</body>
+</html>

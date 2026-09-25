@@ -643,3 +643,16 @@ body.has-preview .fab{bottom:56px}
 .lb-n{position:fixed; bottom:18px; left:0; right:0; text-align:center; color:rgba(255,255,255,.7); font-size:13px; letter-spacing:.04em}
 body.lb-open{overflow:hidden}
 @media (max-width:640px){ .lb-nav{width:44px; height:44px; font-size:28px; margin-top:-22px} .lb-nav.prev{left:8px} .lb-nav.next{right:8px} }
+
+/* 개인정보처리방침(09-25) */
+.policy{max-width:860px; line-height:1.85}
+.policy h2{font-size:20px; margin:44px 0 12px}
+.policy p{margin:0 0 12px}
+.policy ul{margin:0 0 12px; padding-left:20px}
+.policy li{margin:4px 0}
+.policy table{width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:14.5px}
+.policy th, .policy td{border:1px solid var(--line-2); padding:10px 12px; text-align:left; vertical-align:top}
+.policy th{color:var(--ink); font-weight:600; white-space:nowrap}
+.policy a{text-decoration:underline}
+@media (max-width:640px){ .policy table{font-size:13px} .policy th, .policy td{padding:8px} .policy th{white-space:normal} }
+.foot-copy .foot-priv{font-weight:700; color:var(--ink)}

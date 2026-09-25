@@ -6172,7 +6172,7 @@ function mirrorDraft(key){ if(view.draft){ view.draft[key] = deepClone(store().s
 /* 설정 두 개의 차이를 '키: 이전 → 이후' 로 — 관리자 → 설정 변경 내역 */
 function settingsDiff(a, b){
   const out = [], keys = {}; Object.keys(a||{}).concat(Object.keys(b||{})).forEach(k=>{ keys[k]=1; });
-  const NAME = {_cd:null, _closedDay:null, _reloadAt:null, holidaysLegal:"법정 공휴일", holidayMode:"공휴일 운영시간", tierVip:"VIP 기준", tierVvip:"VVIP 기준", tierNoshow:"노쇼 1회당 빼는 방문", minuteSteps:"분 단위 예약", tvIdleFull:"예약 없을 때 TV", breakEntryBuffer:"브레이크 전 마지막 입장", noshowCancelHours:"노쇼로 볼 시간", menuBgs:null, menuBgDefault:null, menuBgFlowerName:null, menuBgFlowerOff:null, noshowExcluded:"노쇼 경고 제외", scheduled:null, rooms:"좌석", joins:"룸 합침", schedules:"운영시간", overrides:"임시 일정", holidays:"공휴일 추가", holidaysOff:"공휴일 제외", courseGroups:"코스 구성", sources:"예약경로", sms:"문자 안내", displayRows:"디스플레이 배치", tvType:"디스플레이 형식", groupSize:"단체 기준", noshowExcluded:"노쇼 경고 제외", uiZoom:"화면 크기", closeGapMin:"겹침 경고", noshowWarnCount:"노쇼 경고 기준", noshowCancelRule:"취소→노쇼 기준", tvAd:"광고 영상", ai:"AI 설정", smsFreeLog:null, holidayAsWeekend:"공휴일=주말", minCountAdultsOnly:"정원 기준", chairDefault:"유아의자 기본", loSoon:"임박 기준", breakMode:"브레이크 방식", _setlog:null};
+  const NAME = {_cd:null, _closedDay:null, _reloadAt:null, holidaysLegal:"법정 공휴일", holidayMode:"공휴일 운영시간", tierVip:"VIP 기준", tierVvip:"VVIP 기준", tierNoshow:"노쇼 1회당 빼는 방문", minuteSteps:"분 단위 예약", tvIdleFull:"예약 없을 때 TV", tvMaskName:"TV 성함 가리기", breakEntryBuffer:"브레이크 전 마지막 입장", noshowCancelHours:"노쇼로 볼 시간", menuBgs:null, menuBgDefault:null, menuBgFlowerName:null, menuBgFlowerOff:null, noshowExcluded:"노쇼 경고 제외", scheduled:null, rooms:"좌석", joins:"룸 합침", schedules:"운영시간", overrides:"임시 일정", holidays:"공휴일 추가", holidaysOff:"공휴일 제외", courseGroups:"코스 구성", sources:"예약경로", sms:"문자 안내", displayRows:"디스플레이 배치", tvType:"디스플레이 형식", groupSize:"단체 기준", noshowExcluded:"노쇼 경고 제외", uiZoom:"화면 크기", closeGapMin:"겹침 경고", noshowWarnCount:"노쇼 경고 기준", noshowCancelRule:"취소→노쇼 기준", tvAd:"광고 영상", ai:"AI 설정", smsFreeLog:null, holidayAsWeekend:"공휴일=주말", minCountAdultsOnly:"정원 기준", chairDefault:"유아의자 기본", loSoon:"임박 기준", breakMode:"브레이크 방식", _setlog:null};
   Object.keys(keys).forEach(k=>{
     if(NAME[k] === null) return;
     const x = JSON.stringify(a ? a[k] : undefined), y = JSON.stringify(b ? b[k] : undefined);
@@ -8615,6 +8615,8 @@ function renderSettings(){
       <button class="${(st.tvType||tvType())!=="grid"?'on':''}" onclick="setPolicy('tvType','list')">목록형</button>
       <button class="${(st.tvType||tvType())==="grid"?'on':''}" onclick="setPolicy('tvType','grid')">좌석표형</button>
     </div>
+
+    <div class="sa-line" style="margin-top:14px"><span class="sa-line-l"><b>손님 성함 가리기</b><small>켜면 TV 에 '안 * 복' 처럼 첫 글자·끝 글자만</small></span><button type="button" class="sa-sw${st.tvMaskName === true ? ' on' : ''}" role="switch" aria-checked="${st.tvMaskName === true}" aria-label="손님 성함 가리기" onclick="setPolicy('tvMaskName', ${st.tvMaskName === true ? 'false' : 'true'})"><i></i></button></div>   <!-- 09-25 재아: 기본은 안 가림 -->
 
     <div class="subhead">남은 예약이 없을 때</div>
     <div class="seg">
@@ -15772,7 +15774,9 @@ function reflowTwoCol(ul){
    글자 수는 그대로 지킵니다 — 네 글자면 '남 * * 수'. 외국 이름도 같은 규칙(재아 2026-09-17): 띄어쓰기는 빼고
    첫 글자와 끝 글자만 남김 — Tom Cruise → T * * * * * * * e. 서버(mask_name, patch_12차)도 같은 모양 */
 function maskName(n){
-  return String(n||"").trim();   /* 09-20(재아): TV 는 매장 안에 두니 이름을 가리지 않음. 서버 쪽도 patch_20차(mask_name 을 그대로 돌려줌). 아래는 옛 가림 규칙 — 되돌릴 때 */
+  /* 09-25(재아): 기본은 그대로, 설정 → 디스플레이 '손님 성함 가리기' 를 켜면 가림. 공개 뷰도 서버에서 같이 가림(36차) */
+  const on = view.storeKey && DATA && DATA[view.storeKey] && DATA[view.storeKey].settings && DATA[view.storeKey].settings.tvMaskName === true;
+  if(!on) return String(n||"").trim();
   const s = String(n||"").trim().replace(/\s+/g, "");
   if(s.indexOf("*") >= 0) return String(n||"").trim();   /* 서버(mask_name)가 이미 가린 이름 */
   if(s.length<=1) return s;
@@ -16011,6 +16015,8 @@ document.addEventListener("keydown", function(e){
     if(view.form && view.form.type === "site" && SA && (SA.postZoom != null || SA.postPreview)){ e.preventDefault(); SA.postZoom = null; SA.postPreview = null; render(); return; }
     if(view.form){ e.preventDefault(); closeSheet(); }
     else if(view.moreOpen){ closeMore(); }
+    /* 09-25 재아: 홈(대시보드)에서 Esc — 다른 날짜를 보고 있으면 오늘로, 이미 오늘이면 새로고침(상단 ↻ 단추와 같음) */
+    else if(view.tab === "dash" && AUTHED && !view.display){ e.preventDefault(); if(view.date !== todayStr()) goToday(); else manualRefresh(); }
     return;
   }
   /* 대시보드 단축키(09-20 재아): / = 예약 검색, + 또는 = = 예약 등록. 입력칸에 커서가 있거나 창이 떠 있으면 안 됨 */
