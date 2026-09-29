@@ -12,6 +12,8 @@
      · 이 기기에 저장된 예약(예약 시스템이 켜질 때마다 저장하는 캐시 hanok.cache.v1.*)을 날짜별로 보기·검색·인쇄
      · 비상 접수: 새 예약을 이 기기에만 적어 둠(hanok.sos.v1) → 서버가 돌아오면 예약 시스템이 "넣을까요?" 하고 옮김(14j-sos.js)
      · 백업 파일 받기: 저장된 예약 + 비상 접수를 파일 하나로
+     · 백업 파일로 열기(09-29 재아): 매일 백업(GitHub hanok-backup 의 reservations.json · stores.json)이나 여기서 받은 백업 파일을
+       올리거나 붙여 넣으면 그걸로 봄 — 한 번도 로그인 안 한 기기(노트북 등)에서도. 파일을 가진 사람만 열 수 있으니 PIN 은 안 물음
      · 서버에 아무것도 보내지 않음. 직원 PIN 은 이 기기에 저장된 확인값(오프라인 잠금 해제와 같은 것)으로만 확인
      · 인터넷이 없어도 열리게 sw.js 가 이 장을 기기에 저장(예약 시스템을 한 번 연 기기는 미리 받아 둠)
      구형 기기도 열리게 ?. ?? 같은 새 문법은 쓰지 않음
@@ -71,6 +73,7 @@
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function dlabel(ds){ var d = new Date(ds + "T00:00:00"); return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + "일월화수목금토"[d.getDay()] + ")"; }
   function hm(t){ if(!t) return ""; var p = t.split(":"), h = +p[0]; return (h < 12 ? "오전 " : "오후 ") + (h % 12 || 12) + ":" + p[1]; }
+  function fmtPhone(p){ var d = String(p || "").replace(/\D/g, ""); if(d.length === 11) return d.slice(0, 3) + "-" + d.slice(3, 7) + "-" + d.slice(7); if(d.length === 10) return d.slice(0, 3) + "-" + d.slice(3, 6) + "-" + d.slice(6); return String(p || ""); }   /* 백업 파일은 숫자만 */
   function strHash(str){ var h = 5381, i; for(i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }   /* 예약 시스템 02-supabase.js 와 같은 계산 */
 
   /* 이 기기에 저장된 예약 캐시 — 서버가 여러 개였던 기기면 가장 최근 것 */
@@ -105,15 +108,17 @@
       app.innerHTML = '<div class="lock"><h1>비상 페이지</h1><p class="muted">예약 시스템이 열리지 않을 때 이 기기에 저장된 예약을 봅니다.</p>' +
         '<input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN">' +
         '<div class="err">' + esc(S.err) + '</div><button class="btn primary" id="go" style="width:100%">열기</button>' +
+        '<div class="card" style="margin-top:26px; text-align:left"><b>또는 백업 파일로 열기</b><p class="muted" style="margin:4px 0 10px">매일 백업의 reservations.json · stores.json, 또는 여기서 받은 백업 파일</p>' + loadBoxHtml() + '</div>' +
         '<p class="muted" style="margin-top:18px"><a href="../">예약 시스템으로</a></p></div>';
+      bindLoad();
       var p = document.getElementById("pin");
       document.getElementById("go").onclick = function(){ unlock(p.value.replace(/\D/g, "")); };
       p.onkeydown = function(e){ if(e.key === "Enter") unlock(p.value.replace(/\D/g, "")); };
       p.focus(); return;
     }
     var at = S.cache.c.at ? new Date(S.cache.c.at) : null;
-    var head = '<div class="top noprint"><span class="badge">비상</span><h1>한옥반점 예약 (이 기기 저장본)</h1><span style="flex:1"></span><a class="btn" href="../">예약 시스템</a></div>' +
-      '<div class="note noprint">마지막 저장: <b>' + (at ? at.getFullYear() + ". " + (at.getMonth() + 1) + ". " + at.getDate() + ". " + pad(at.getHours()) + ":" + pad(at.getMinutes()) : "알 수 없음") + '</b> — 그 뒤에 다른 기기에서 바뀐 예약은 여기 없습니다. 새 예약은 \'비상 접수\' 에 적어 두세요.</div>' +
+    var head = '<div class="top noprint"><span class="badge">비상</span><h1>한옥반점 예약 (' + (S.cache.k === "backup" ? "백업 파일" : "이 기기 저장본") + ')</h1><span style="flex:1"></span><a class="btn" href="../">예약 시스템</a></div>' +
+      '<div class="note noprint">' + (S.cache.k === "backup" ? "백업 시각" : "마지막 저장") + ': <b>' + (at ? at.getFullYear() + ". " + (at.getMonth() + 1) + ". " + at.getDate() + ". " + pad(at.getHours()) + ":" + pad(at.getMinutes()) : "알 수 없음") + '</b> — 그 뒤에 다른 기기에서 바뀐 예약은 여기 없습니다. 새 예약은 \'비상 접수\' 에 적어 두세요.</div>' +
       '<div class="tabs noprint">' + tab("list", "예약 보기") + tab("add", "비상 접수 (" + sosList().filter(function(x){ return !x.imported; }).length + ")") + tab("backup", "백업") + '</div>';
     app.innerHTML = head + (S.tab === "list" ? listHtml() : S.tab === "add" ? addHtml() : backupHtml());
     bind();
@@ -123,7 +128,7 @@
   function dayRows(ds){
     var st = store(), q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, "");
     var rows = (st ? st.reservations : []).filter(function(r){ return r.date === ds && r.status !== "취소"; }).map(function(r){ return { r:r, sos:false }; })
-      .concat(sosList().filter(function(x){ return x.date === ds && !x.imported; }).map(function(x){ return { r:x, sos:true }; }));
+      .concat(sosList().concat(S.fileSos || []).filter(function(x){ return x.date === ds && !x.imported; }).map(function(x){ return { r:x, sos:true }; }));
     if(q) rows = rows.filter(function(o){ var r = o.r; return String(r.name || "").toLowerCase().indexOf(q) >= 0 || (qd.length >= 2 && String(r.phone || "").replace(/\D/g, "").indexOf(qd) >= 0); });
     return rows.sort(function(a, b){ return String(a.r.time).localeCompare(String(b.r.time)); });
   }
@@ -133,7 +138,7 @@
       var r = o.r, seat = o.sos ? (r.seat === "room" ? "룸" : r.seat === "table" ? "테이블" : "") : (seatName(r.roomId) || seatName(r.tentativeRoomId) || (String(r.seatPref || "").indexOf("room") === 0 ? "룸" : "테이블"));
       var ppl = (r.people || 0) + "명" + (r.infants ? " (어린이 " + r.infants + ")" : "");
       return '<div class="res"><span class="t">' + esc(hm(r.time)) + '</span><span class="n">' + esc(r.name) + (o.sos ? '<span class="tag sos">비상 접수</span>' : '') + (r.status === "노쇼" ? '<span class="tag gone">노쇼</span>' : r.status === "방문" ? '<span class="tag gone">방문</span>' : '') + '</span><span>' + esc(ppl) + '</span>' +
-        '<span class="s">' + esc([seat, r.phone, r.request, r.allergy ? "알러지 " + r.allergy : "", r.memo].filter(Boolean).join(" · ")) + '</span></div>';
+        '<span class="s">' + esc([seat, fmtPhone(r.phone), r.request, r.allergy ? "알러지 " + r.allergy : "", r.memo].filter(Boolean).join(" · ")) + '</span></div>';
     }).join("") : '<div class="empty">이 날 예약이 없습니다' + (S.q ? " (검색 결과 없음)" : "") + '</div>';
     return '<div class="card"><div class="dnav noprint"><button class="btn" data-d="-1">‹</button><b>' + esc(dlabel(S.date)) + '</b><button class="btn" data-d="1">›</button><button class="btn" data-today>오늘</button>' +
       '<input type="date" id="dpick" value="' + S.date + '" style="width:auto"></div>' +
@@ -162,7 +167,59 @@
     var st = store(), n = st ? st.reservations.length : 0;
     return '<div class="card"><p>이 기기에 저장된 예약 <b>' + n + '건</b>과 비상 접수 <b>' + sosList().length + '건</b>을 파일로 받습니다.</p>' +
       '<div class="row"><button class="btn primary" id="b-json">백업 파일 받기</button><button class="btn" id="b-csv">오늘부터 예약 목록(엑셀용 CSV)</button></div>' +
-      '<p class="muted" style="margin-top:12px">백업 파일에는 손님 이름·전화번호가 들어 있습니다. 다 쓰면 지워 주세요.</p></div>';
+      '<p class="muted" style="margin-top:12px">백업 파일에는 손님 이름·전화번호가 들어 있습니다. 다 쓰면 지워 주세요.</p></div>' +
+      '<div class="card"><b>백업 파일로 보기</b><p class="muted" style="margin:4px 0 10px">매일 백업(GitHub hanok-backup)의 reservations.json · stores.json 을 올리거나, 파일 내용을 복사해 붙여 넣으세요. 여기서 받은 백업 파일도 됩니다.</p>' + loadBoxHtml() +
+      (S.cache.k === "backup" && S.devCache ? '<div class="row" style="margin-top:10px"><button class="btn" id="b-back">이 기기 저장본으로 돌아가기</button></div>' : '') + '</div>';
+  }
+  /* ---------- 백업 파일 올리기·붙여넣기 ---------- */
+  function loadBoxHtml(){
+    return '<div class="row"><input type="file" id="l-file" accept=".json,.txt,application/json" multiple style="flex:1 1 220px"></div>' +
+      '<textarea id="l-paste" rows="4" placeholder="또는 파일 내용을 여기에 붙여 넣기 (reservations.json 등)" style="margin-top:8px"></textarea>' +
+      '<div class="err" id="l-err"></div><button class="btn primary" id="l-go">백업으로 열기</button>';
+  }
+  function bindLoad(){
+    var go = document.getElementById("l-go"); if(!go) return;
+    go.onclick = function(){
+      var f = document.getElementById("l-file"), txt = document.getElementById("l-paste").value, files = f && f.files ? Array.prototype.slice.call(f.files) : [];
+      var texts = []; if(txt.trim()) texts.push({ name:"붙여넣기", text:txt });
+      if(!files.length) return loadTexts(texts);
+      var left = files.length;
+      files.forEach(function(file){ var r = new FileReader(); r.onload = function(){ texts.push({ name:file.name, text:String(r.result || "") }); if(--left === 0) loadTexts(texts); }; r.onerror = function(){ if(--left === 0) loadTexts(texts); }; r.readAsText(file); });
+    };
+  }
+  /* 서버 행(reservations.json) → 예약 시스템 모양. 모양이 이상한 줄은 버림 */
+  function rowToRes(row){
+    if(!row || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.date)) || !/^\d{2}:\d{2}$/.test(String(row.time)) || row.deleted_at) return null;
+    var r = {}, k, d = row.data || {};
+    for(k in d) if(Object.prototype.hasOwnProperty.call(d, k)) r[k] = d[k];
+    r.id = String(row.id || ""); r.date = row.date; r.time = row.time; r.status = row.status || "확정"; r.name = String(row.name || "");
+    r.phone = String(row.phone || ""); r.people = parseInt(row.people, 10) || 0; r.roomId = row.room_id || null;
+    r._upd = row.updated_at || "";   /* 백업 시각을 모를 때 가장 늦게 고친 예약 시각으로 */
+    return r;
+  }
+  function loadTexts(texts){
+    var err = document.getElementById("l-err");
+    if(!texts.length){ if(err) err.textContent = "파일을 고르거나 내용을 붙여 넣으세요."; return; }
+    var res = null, settings = null, name = "", at = "", sos = null, cache = null, bad = [];
+    texts.forEach(function(t){
+      var s0 = t.text.trim();
+      if(/^\d{4}-\d{2}-\d{2}T[\d:]+Z?$/.test(s0)){ at = s0; return; }   /* backup-at.txt */
+      var o; try{ o = JSON.parse(s0); }catch(e){ bad.push(t.name); return; }
+      if(o && o.kind === "hanok-sos-backup" && o.data){ cache = o.data; at = at || o.cacheAt || o.at || ""; sos = o.sos || null; return; }
+      if(o && o.data && (o.data.hanok || o.at)){ cache = o.data; at = at || o.at || ""; return; }   /* 기기 캐시 모양 */
+      if(Array.isArray(o) && o.length && o[0].settings && o[0].key){ var h = o.filter(function(x){ return x.key === "hanok"; })[0] || o[0]; settings = h.settings || {}; name = h.name || ""; return; }   /* stores.json */
+      if(Array.isArray(o) && (!o.length || (o[0].date && o[0].time))){ res = (res || []).concat(o.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean)); return; }   /* reservations.json */
+      bad.push(t.name);
+    });
+    if(!cache && !res){ if(err) err.textContent = bad.length ? "읽을 수 없는 파일: " + bad.join(", ") + " — reservations.json 이 있어야 합니다." : "reservations.json 이 없습니다."; return; }
+    if(!cache){
+      var last = ""; res.forEach(function(r){ var u = r._upd || r.updatedAt || ""; if(u > last) last = u; });
+      cache = { hanok:{ name:name || "한옥반점", settings:settings || {}, reservations:res } };
+      at = at || last;
+    }else if(settings && cache.hanok && !(cache.hanok.settings || {}).rooms){ cache.hanok.settings = settings; }
+    if(S.ok && S.cache && S.cache.k !== "backup") S.devCache = S.cache;
+    S.cache = { k:"backup", c:{ at:at, data:cache } }; S.fileSos = sos; S.ok = true; S.tab = "list"; S.date = S.date || today(); S.err = "";
+    render();
   }
 
   /* ---------- 동작 ---------- */
@@ -179,6 +236,8 @@
       var id = b.getAttribute("data-del"); sosSave(sosList().filter(function(x){ return x.id !== id; })); render(); }; });
     var bj = document.getElementById("b-json"); if(bj) bj.onclick = backupJson;
     var bc = document.getElementById("b-csv"); if(bc) bc.onclick = backupCsv;
+    var bb = document.getElementById("b-back"); if(bb) bb.onclick = function(){ S.cache = S.devCache; S.devCache = null; render(); };
+    bindLoad();
   }
   function val(id){ var e = document.getElementById(id); return e ? String(e.value || "").trim() : ""; }
   function addSave(){
@@ -197,7 +256,7 @@
   }
   function stamp(){ var d = new Date(); return ymd(d) + "_" + pad(d.getHours()) + pad(d.getMinutes()); }
   function backupJson(){
-    download("한옥반점_비상백업_" + stamp() + ".json", JSON.stringify({ kind:"hanok-sos-backup", at:new Date().toISOString(), cacheAt:S.cache.c.at, data:S.cache.c.data, sos:sosList() }), "application/json");
+    download("한옥반점_비상백업_" + stamp() + ".json", JSON.stringify({ kind:"hanok-sos-backup", at:new Date().toISOString(), cacheAt:S.cache.c.at, data:S.cache.c.data, sos:sosList().concat(S.fileSos || []) }), "application/json");
   }
   function backupCsv(){
     var st = store(), from = today(), cell = function(v){ v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
