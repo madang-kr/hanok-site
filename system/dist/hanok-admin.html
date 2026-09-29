@@ -2525,6 +2525,9 @@ label.pin-keep input{appearance:auto; -webkit-appearance:checkbox; width:18px; h
 .lk-back{margin-top:var(--s16); background:none; border:none; color:var(--text-3);
   font-size:var(--fs-sub); font-weight:600; text-decoration:underline}
 .lk-back:hover{color:var(--text-2)}
+
+/* 잠금 화면 아래 비상 페이지 링크(09-29) — 눈에 덜 띄게 */
+.lk-sos{display:block; margin-top:18px; text-align:center; font-size:13px; color:var(--text-3); text-decoration:underline; text-underline-offset:3px}
 /* ============================================================
    9. 테마 (한옥)
    ============================================================ */
@@ -6017,6 +6020,7 @@ function renderLock(){
         <div class="pkeys">${keys}</div>
         ${supaOn() ? "" : `<div class="lk-open"><b>서버 설정이 없는 빌드</b> — supabase.dev.json 또는 supabase.prod.json 을 넣고 다시 빌드하세요</div>`}
         <!-- '매장 다시 고르기' 는 뺌(09-20) — 매장이 하나 -->
+        <a class="lk-sos" href="${esc(typeof sosUrl === "function" ? sosUrl() : "sos/")}">서버가 안 될 때 · 비상 페이지</a>   <!-- 09-29 재아: SOS -->
       </div>
     </div>`;
 }
@@ -6412,6 +6416,7 @@ setInterval(function(){
   /* 지난 '확정' → '방문' 자동 처리는 영업일(새벽 4시)이 바뀔 때 — 전엔 자정에 해서 새벽 퇴근하기의 노쇼 확인을 못 했음(09-25 전수검토) */
   if(AUTHED && BIZ_SEEN !== bizToday()){ if(BIZ_SEEN !== null && autoCloseDays()) saveData(); BIZ_SEEN = bizToday(); }
   sessionTick();   /* 토큰 만료 5분 전 갱신 */
+  if(typeof sosCheck === "function") sosCheck();   /* 비상 페이지에 적어 둔 예약 옮기기 · 비상 페이지 미리 받기(14j, 09-29) */
   if(SAVE_FAIL && !OFFLINE) flush();   /* 저장 못 한 것이 있으면 다시 */
   if(AUTHED && !view.display && typeof publishAvail === "function" && AVAIL_DIRTY) publishAvail();   /* 미뤄 둔 남은 자리 올리기 */
   if(typeof thanksTick === "function") thanksTick();   /* 감사 문자 — 보낼 시각이 된 것(14g) */
@@ -12457,6 +12462,50 @@ var MB_SEED = { bg:"", pages:[
     { badge:"", name:"금문고량주", side:"", desc:"", prices:[{label:"대 600ml", price:"150000"}, {label:"중 300ml", price:"80000"}] },
     { badge:"", name:"츠루우메 유즈", side:"(유자사케)", desc:"", prices:[{label:"보틀 720ml", price:"110000"}, {label:"하이볼 150ml", price:"12000"}, {label:"잔술 90ml", price:"15000"}] } ] }] }
 ] };
+/* ---------- SOS 비상 페이지 연결 (2026-09-29 재아) ----------
+   비상 페이지(system/sos/)는 서버·인터넷이 끊겼을 때 이 기기에 저장된 예약을 보고, 새 예약을 기기에만 적어 두는 한 장.
+   ① 이 앱을 연 기기는 비상 페이지를 미리 받아 둠(서비스 워커 sos/sw.js — 범위는 /system/sos/ 뿐) → 인터넷이 끊겨도 열림
+   ② 서버가 돌아오면 비상 페이지에 적어 둔 예약(localStorage hanok.sos.v1)을 "넣을까요?" 하고 예약으로 옮김 — 한 기기에서 한 번만 */
+var SOS_KEY = "hanok.sos.v1", SOS_ASKED = false, SOS_SW = false;
+function sosUrl(){ var p = location.pathname, i = p.indexOf("/system"); return (i >= 0 ? p.slice(0, i) : "") + "/system/sos/"; }
+function sosRegister(){
+  if(SOS_SW) return; SOS_SW = true;
+  try{ if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register(sosUrl() + "sw.js", { scope: sosUrl() }).catch(function(){}); }catch(e){}
+}
+function sosAll(){ try{ return JSON.parse(localStorage.getItem(SOS_KEY) || "[]") || []; }catch(e){ return []; } }
+function sosPending(){ return sosAll().filter(function(x){ return x && !x.imported && x.date && x.time && x.name; }); }
+/* 1분 갱신(06-modal tick)이 부름 — 서버와 이어져 있고 창이 없을 때만 한 번 묻기 */
+async function sosCheck(){
+  sosRegister();
+  if(SOS_ASKED || !AUTHED || OFFLINE || !view.storeKey || view.display || view.form || WZ || MODAL || (DATA && DATA._readonly)) return;
+  var list = sosPending(); if(!list.length) return;
+  SOS_ASKED = true;
+  list.sort(function(a, b){ return (a.date + a.time).localeCompare(b.date + b.time); });
+  var lines = list.slice(0, 8).map(function(x){ return "· " + dateLabel(x.date) + " " + hm(x.time) + " " + x.name + " " + (x.people || 0) + "명"; }).join("\n") + (list.length > 8 ? "\n외 " + (list.length - 8) + "건" : "");
+  if(!await uiConfirm("비상 페이지에 적어 둔 예약 " + list.length + "건", lines + "\n\n예약으로 넣을까요? 자리는 잠정 배정됩니다.", {ok:"넣기", cancel:"나중에", tone:"ok"})) return;
+  sosImport(list);
+}
+function sosImport(list){
+  if(readonlyBlock()) return;
+  var done = {};
+  list.forEach(function(x){
+    var pr = reqAsRes({ id:"sos", date:x.date, time:x.time, name:x.name, phone:x.phone || "", people:x.people || 1, kids:x.infants || 0, seat:x.seat === "room" ? "room" : "table", createdAt:x.createdAt || new Date().toISOString() });
+    var rec = {
+      id:"res_" + String(x.id).replace(/[^A-Za-z0-9]/g, "").slice(0, 24), date:x.date, time:x.time, name:x.name, phone:x.phone ? phoneNorm(x.phone) : "",
+      people:x.people || 1, infants:x.infants || 0, chairs:0, roomId:null, extraIds:[], seatPref:pr.seatPref,
+      tentativeRoomId:pr.tentativeRoomId, tentativeExtra:pr.tentativeExtra, tentativeSplit:pr.tentativeSplit,
+      source:"기타", sourceDetail:"비상 접수", createdAt:x.createdAt || new Date().toISOString(),
+      menuType:"해당 없음", courses:{}, courseUndecided:false, allergy:"", allergyChecked:true, request:x.request || "",
+      memo:"비상 페이지에서 옮김", status:"확정"
+    };
+    if(store().reservations.some(function(r){ return r.id === rec.id; })){ done[x.id] = 1; return; }   /* 이미 옮긴 것 */
+    createReservation(rec); done[x.id] = 1;
+  });
+  saveData();
+  try{ localStorage.setItem(SOS_KEY, JSON.stringify(sosAll().map(function(x){ return done[x.id] ? Object.assign({}, x, { imported:true }) : x; }))); }catch(e){}
+  logEvent("비상 접수 옮김", Object.keys(done).length + "건");
+  showToast("비상 접수 " + Object.keys(done).length + "건을 넣었습니다"); render();
+}
 /* ============================================================
    입력 시트 (예약 / 직원 / 근태)
    ============================================================ */
