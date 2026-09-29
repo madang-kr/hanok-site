@@ -146,7 +146,10 @@
         <div class="rv-f"></div>
       </div>`;
     document.body.append(ov); document.body.classList.add("rv-open");
-    ov.addEventListener("click", e => { if(e.target === ov) confirmClose(); });
+    /* 바깥을 눌러야만 닫힘 — 창 안에서 끌거나(글자 고르기·스크롤) 바깥에서 손을 떼도 닫히던 것(09-29 재아) */
+    let downOut = false;
+    ov.addEventListener("pointerdown", e => { downOut = e.target === ov; });
+    ov.addEventListener("click", e => { if(e.target === ov && downOut) confirmClose(); downOut = false; });
     $(".rv-x", ov).addEventListener("click", confirmClose);
     document.addEventListener("keydown", onKey);
     render();
