@@ -2291,6 +2291,12 @@ button.cd-fin{border-color:var(--pine)!important; color:var(--pine)!important}
 .rowitem.gs-past:hover{opacity:.75}
 textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .searchbox.gs-hist{flex:none; overflow:visible; min-height:0}
+
+/* 현장 손님 등록(09-29) — 인원 − n ＋, '선택' 구분 줄 */
+.wk-num{display:flex; align-items:center; gap:12px; height:44px}
+.wk-num b{min-width:32px; text-align:center; font-size:var(--fs-title, 18px)}
+.wk-opt{margin:14px 0 8px; padding-top:12px; border-top:1px solid var(--border); font-size:var(--fs-label); font-weight:700; color:var(--text-3)}
+.cd-row .time-col small{display:block; font-size:11px; color:var(--rust); font-weight:600}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -4798,7 +4804,10 @@ function takeSnapshot(){
   SNAP_DAY = today;
   saveData();
 }
+/* 09-29 재아: 지난 '확정' 을 새벽에 저절로 '방문' 으로 바꾸던 것을 멈춤 — 안 온 손님도 방문이 되어 감사 문자가 나갈 수 있어서.
+   이제 방문 처리는 퇴근하기의 '퇴근' 에서 한꺼번에(노쇼만 골라 두고). 안 누른 날은 '확정' 으로 쌓여 확인 필요에 뜨고 다음 퇴근하기에 같이 나옴 */
 function autoCloseDays(){
+  return 0;
   if(!DATA || clockBad()) return 0;   /* 시계가 틀린 기기가 미래 예약을 '방문' 으로 올리지 않게 */
   const today = bizToday();   /* 영업일 기준(새벽 4시 전은 전날 영업 중) — 자정 기준이면 새벽 퇴근하기 전에 노쇼가 '방문' 이 됐음(09-25) */
   let n = 0;
@@ -11109,21 +11118,25 @@ async function openCloseDay(date){
   }
   view.form = {type:"closeday", page:true, date:d, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""}; render();
 }
+/* 09-29 재아: 방문/노쇼를 하나하나 고르던 것 → 방문 처리 안 된 예약 중 안 온 손님만 '노쇼' 로 고르고 '노쇼 처리 완료'.
+   '퇴근' 을 누르면 남은 것(오늘과 그 전에 쌓인 '확정')이 한꺼번에 '방문' 이 됨. 전 날짜에 쌓인 것도 여기 같이 나옴 */
+function cdLeft(day){ return store().reservations.filter(function(r){ return r.status === "확정" && r.date <= day; }); }
 function sheetCloseDay(){
   var today = (view.form && view.form.date) || bizToday();
-  /* 그날 예약 전부(확정·방문·노쇼) — 누른 건 사라지지 않고 검게 표시된 채 남음. 한 번 더 누르면 풀림(09-24 재아) */
-  var all = store().reservations.filter(function(r){ return r.date === today && (r.status === "확정" || r.status === "방문" || r.status === "노쇼"); }).sort(function(a,b){ return a.time.localeCompare(b.time); });
+  var marked = view.cdNs || {};
+  var all = store().reservations.filter(function(r){ return (r.status === "확정" && r.date <= today) || (r.status === "노쇼" && (r.date === today || marked[r.id])); })
+    .sort(function(a,b){ return (a.date + a.time).localeCompare(b.date + b.time); });
   var left = all.filter(function(r){ return r.status === "확정"; });
-  var rows = all.map(function(r){ return '<div class="rowitem cd-row s-' + r.status + '"><span class="time-col">' + esc(hm(r.time)) + '</span><span class="grow"><span class="t">' + tierTag(r) + groupTag(r) + esc(r.name) + '</span><span class="s">' + esc(pplText(r)) + ' · ' + seatKindText(r) + '</span></span>' +   /* 자리는 룸/테이블만(09-24) */
-    '<span class="btn-row"><button class="btn sm cd-v ' + (r.status === "방문" ? "on" : "ghost") + '" onclick="cdMark(\'' + r.id + '\', \'방문\')">방문</button><button class="btn sm cd-ns ' + (r.status === "노쇼" ? "on" : "ghost") + '" onclick="cdMark(\'' + r.id + '\', \'노쇼\')">노쇼</button></span></div>'; }).join("");
-  var done = left.length === 0, cs = cdStep(today);
+  var rows = all.map(function(r){ return '<div class="rowitem cd-row s-' + r.status + '"><span class="time-col">' + (r.date !== today ? '<small>' + esc(pkShort(r.date)) + '</small>' : '') + esc(hm(r.time)) + '</span><span class="grow"><span class="t">' + tierTag(r) + groupTag(r) + esc(r.name) + '</span><span class="s">' + esc(pplText(r)) + ' · ' + seatKindText(r) + '</span></span>' +   /* 자리는 룸/테이블만(09-24) */
+    '<span class="btn-row"><button class="btn sm cd-ns ' + (r.status === "노쇼" ? "on" : "ghost") + '" onclick="cdMark(\'' + r.id + '\', \'노쇼\')">노쇼</button></span></div>'; }).join("");
+  var cs = cdStep(today), done = !!cs.noshow;
   /* 09-25 재아: 끝난 단계는 단추 자리에 '완료'. 워크시프트·감사 문자의 '완료' 는 다시 눌러 들어갈 수 있음 */
   var fin = function(fn){ return fn ? '<button class="btn sm cd-fin" onclick="' + fn + '">완료</button>' : '<span class="cd-fin">완료</span>'; };
   var step = function(n, ok, title, right, body){ return '<div class="cd-step' + (ok ? ' done' : '') + '"><div class="cd-n">' + n + '</div><div class="cd-b"><div class="cd-bh"><b>' + title + '</b>' + (right || '') + '</div>' + (body || '') + '</div></div>'; };
   return '<div class="cd-wrap">' +
     '<div class="cd-hello"><b>' + (today === bizToday() ? "오늘도 고생 많으셨습니다." : dateLabel(today) + " 정리") + '</b><small>' + esc(dateLabel(today)) + '</small></div>' +
-    step(1, done, "손님 방문 처리", done ? fin("") : '<button class="btn sm primary" onclick="cdMarkAll()">남은 ' + left.length + '건 전부 방문</button>',
-      all.length ? '<div class="card searchbox" style="margin-top:8px">' + rows + '</div>' : '<small>이날 예약이 없습니다.</small>') +
+    step(1, done, "노쇼 처리", done ? fin("cdNsReopen()") : '<button class="btn sm primary" onclick="cdStepSet(\'noshow\'); render()">노쇼 처리 완료</button>',
+      done ? '' : (all.length ? '<div class="card searchbox" style="margin-top:8px">' + rows + '</div>' : '<small>방문 처리할 예약이 없습니다.</small>')) +
     step(2, !!cs.staff, "워크시프트", cs.staff ? fin("cdStaffOpen()") : '<button class="btn sm" onclick="cdStaffOpen()">워크시프트 작성</button>') +
     step(3, !!cs.thanks, "감사 문자", cs.thanks ? fin("cdThanksOpen()") : '<button class="btn sm" onclick="cdThanksOpen()">감사 문자 작성</button>') +
     step(4, false, "끝", '<button class="btn sm primary" onclick="cdLeave()">퇴근</button>') +
@@ -11138,21 +11151,21 @@ async function cdMark(id, st){
   /* 09-25 전수검토: 전엔 '상태' 라는 빈 변경을 남겨 모든 예약에 파란 '변경' 표시가 붙었음. 예약 상세(markRes)와 같게 —
      방문은 변동으로 안 셈, 노쇼는 '노쇼', 되돌림은 '변경(상태)' */
   var old = r.status; r.status = to; r.auto = false;
+  view.cdNs = view.cdNs || {}; if(to === "노쇼") view.cdNs[r.id] = 1;   /* 전 날짜 예약도 노쇼로 바꾼 뒤 목록에 남게 */
   if(to === "노쇼") addChange(r, "노쇼", []);
   else if(to === "확정" && (old === "취소" || old === "노쇼")) addChange(r, "변경", [{n:"상태", a:old, b:"확정"}]);
   else touch(r);
   logEvent("상태 변경", r.date + " " + r.time + " " + r.name + " " + old + " → " + to + " (퇴근하기)");
   reflowTentatives(r.date); saveData(); render();
 }
-async function cdMarkAll(){
-  var today = (view.form && view.form.date) || bizToday();
-  var left = store().reservations.filter(function(r){ return r.date === today && r.status === "확정"; });
-  if(!left.length) return;
-  if(!await uiConfirm("남은 " + left.length + "건을 전부 방문으로 표시할까요?", "안 온 손님이 있으면 그 줄만 노쇼로 바꾸면 됩니다.", {ok:"전부 방문", cancel:"취소"})) return;
-  if(readonlyBlock()) return;
-  left.forEach(function(r){ r.status = "방문"; r.auto = false; touch(r); });   /* 방문은 변동으로 안 셈(markRes 와 같게) */
-  logEvent("상태 변경", today + " 남은 " + left.length + "건 전부 방문 (퇴근하기)");
-  saveData(); render();
+/* '노쇼 처리 완료' 를 되돌려 목록을 다시 봄 — 서버 기록(_cd.noshow)을 지움 */
+function cdNsReopen(){ var d = (view.form && view.form.date) || bizToday(), st = store().settings, c = Object.assign({}, cdStep(d)); delete c.noshow; st._cd = c; mirrorDraft("_cd"); saveData(); render(); }
+/* 퇴근 때: 남은 '확정'(오늘과 그 전) → 전부 '방문'. 방문은 변동으로 안 셈(markRes 와 같게) */
+function cdVisitAll(day){
+  var left = cdLeft(day); if(!left.length) return 0;
+  left.forEach(function(r){ r.status = "방문"; r.auto = false; touch(r); });
+  logEvent("상태 변경", day + " 까지 남은 " + left.length + "건 방문 처리 (퇴근)");
+  return left.length;
 }
 /* ---------- 퇴근하기 안의 '오늘 워크시프트' 팝업(09-24 재아) ----------
    워크시프트 화면으로 넘어가지 않고 그 자리에서 오늘 줄만. 누르면 바로 저장(워크시프트 표와 같은 자료 attendance) */
@@ -11233,9 +11246,10 @@ function cdThanksDone(){ if(view.form && view.form.type === "closeday") cdStepSe
 /* ---------- 퇴근 — '수고하셨습니다' + 폭죽 뒤 잠금 화면으로(09-24 재아) ---------- */
 async function cdLeave(){
   /* 09-25 전수검토: 안 끝낸 단계가 있으면 한 줄로 알림(막지 않음) */
-  var dd = (view.form && view.form.date) || bizToday(), cs0 = cdStep(dd), left0 = store().reservations.filter(function(r){ return r.date === dd && r.status === "확정"; }).length;
-  var miss = [left0 ? "방문 처리 안 한 예약 " + left0 + "건" : "", cs0.staff ? "" : "워크시프트", cs0.thanks ? "" : "감사 문자"].filter(Boolean);
-  if(miss.length && !await uiConfirm("아직 안 끝난 것이 있습니다", miss.join(" · ") + "\n\n그래도 퇴근할까요?", {ok:"퇴근", cancel:"돌아가기"})) return;
+  var dd = (view.form && view.form.date) || bizToday(), cs0 = cdStep(dd), left0 = cdLeft(dd).length;
+  var miss = [left0 && !cs0.noshow ? "노쇼 처리" : "", cs0.staff ? "" : "워크시프트", cs0.thanks ? "" : "감사 문자"].filter(Boolean);
+  if(miss.length && !await uiConfirm("아직 안 끝난 것이 있습니다", miss.join(" · ") + (left0 ? "\n퇴근하면 남은 예약 " + left0 + "건이 방문으로 처리됩니다." : "") + "\n\n그래도 퇴근할까요?", {ok:"퇴근", cancel:"돌아가기"})) return;
+  if(left0){ if(readonlyBlock()) return; cdVisitAll(dd); saveData(); }   /* 09-29 재아: 퇴근 = 남은 예약 전부 방문 */
   /* 저장을 먼저 끝냄 — 저장 못 한 게 있으면 잠글 때 뜨는 확인창이 폭죽 덮개 밑에 깔려 화면이 멈췄음 */
   try{ await flush(); }catch(e){}
   if(typeof SAVE_FAIL !== "undefined" && SAVE_FAIL){ await uiAlert("아직 저장되지 않은 것이 있습니다", "인터넷 연결을 확인하고 화면 아래 '다시 시도' 를 누른 뒤 퇴근하세요.", "warn"); return; }
@@ -11322,7 +11336,8 @@ function sheetOwner(){
     item("openStaffPage()", ICON.staff, "워크시프트", "직원 근무표 · 급여") +
     item("openGuestsPage()", ICON.users, "손님 관리", "단골·메모 · 노쇼 관리") +
     item("openMessagesPage()", ICON.sms, "문자 관리", "감사 문자 · 직접 보내기 · 기록") +
-    item("openCloseDay()", ICON.home, "퇴근하기", st._closedDay === bizToday() ? "오늘 퇴근 완료" : "방문 처리 · 근무 · 감사 문자 차례로") +
+    item("openCloseDay()", ICON.home, "퇴근하기", st._closedDay === bizToday() ? "오늘 퇴근 완료" : "노쇼 처리 · 근무 · 감사 문자 차례로") +
+    item("openWalkIn()", ICON.users, "현장 손님 등록", "예약 없이 오신 손님") +
     item("openRate('owner')", ICON.chart, "예약률 추이", "최근 예약률과 흐름") +   /* 관리 → 사장님 칸으로(09-25 재아) */
     '</div></div><div class="own-section"><h2>설정</h2><div class="own-grid">' +
     item("openOwnerSetting('hours')", ICON.clock, "운영시간", hoursFor(todayStr()).open + " ~ " + hoursFor(todayStr()).close) +
@@ -11345,6 +11360,64 @@ function sheetOwner(){
 }
 /* Esc: 퇴근하기 안의 작은 창부터 닫음(바로 퇴근하기 화면 전체가 닫히지 않게) */
 function cdEsc(){ if(HR && HR.pop && view.cdStaff){ HR.pop = null; render(); return true; } if(view.cdStaff){ cdStaffClose(); return true; } if(view.cdThanks){ cdThanksClose(); return true; } return false; }
+
+/* ---------- 현장 손님 등록(09-29 재아) ----------
+   예약 없이 오신 손님을 한 창에서: 필수 = 이름·전화번호·인원, 선택 = 룸/테이블·코스·요청사항·알러지·메모.
+   지금 시각으로 '방문' 예약 한 건을 만듦(경로 '방문') — 방문 횟수·VIP·감사 문자·손님 관리가 예약 손님과 똑같이 셈 */
+function openWalkIn(){
+  view.wk = { name:"", phone:"", adults:2, kids:0, seat:"", course:"", request:"", allergy:"", memo:"" };
+  var pg = view.form && view.form.page ? view.form : null;
+  view.form = { type:"walkin" }; view.under = pg; render();   /* 사장님 화면 위에 팝업 — 닫으면 그 화면으로(view.under) */
+  setTimeout(function(){ var el = document.getElementById("wk-name"); if(el && !isMobile()) el.focus(); }, 50);
+}
+function wkSet(k, v){ view.wk[k] = v; }
+function sheetWalkIn(){
+  var w = view.wk || {}, gs = courseGroups(bizToday());
+  var seg = function(k, v, label){ return '<button class="' + (w[k] === v ? "on" : "") + '" onclick="view.wk.' + k + '=' + (typeof v === "number" ? v : "\'" + v + "\'") + '; render()">' + label + '</button>'; };
+  var num = function(k, min, max){ return '<div class="wk-num"><button class="btn sm" onclick="view.wk.' + k + '=Math.max(' + min + ', view.wk.' + k + '-1); render()" aria-label="하나 빼기">−</button><b>' + w[k] + '</b><button class="btn sm" onclick="view.wk.' + k + '=Math.min(' + max + ', view.wk.' + k + '+1); render()" aria-label="하나 더하기">＋</button></div>'; };
+  var opts = '<option value="">선택 안 함</option>' + gs.map(function(g){ var ks = cgKeys(g); return '<optgroup label="' + esc(g.label) + '">' + (g.items || []).map(function(it, i){ return '<option value="' + esc(ks[i]) + '"' + (w.course === ks[i] ? " selected" : "") + '>' + esc(it) + '</option>'; }).join("") + '</optgroup>'; }).join("");
+  return sheetHead("현장 손님 등록") +
+    '<div class="grid2">' +
+      '<label class="f"><div class="lb">이름</div><input id="wk-name" value="' + esc(w.name) + '" placeholder="예: 김영수" oninput="wkSet(\'name\', this.value)" autocomplete="off"></label>' +
+      '<label class="f"><div class="lb">전화번호</div><input id="wk-phone" value="' + esc(w.phone) + '" placeholder="010-0000-0000" inputmode="tel" oninput="wkSet(\'phone\', this.value)" autocomplete="off"></label>' +
+      '<div class="f"><div class="lb">성인</div>' + num("adults", 1, 40) + '</div>' +
+      '<div class="f"><div class="lb">어린이 <span class="lbl-note">유아 포함</span></div>' + num("kids", 0, 20) + '</div>' +
+    '</div>' +
+    '<div class="wk-opt">선택</div>' +
+    '<div class="grid2">' +
+      '<div class="f"><div class="lb">자리</div><div class="seg">' + seg("seat", "", "선택 안 함") + seg("seat", "table", "테이블") + seg("seat", "room", "룸") + '</div></div>' +
+      '<label class="f"><div class="lb">코스</div><select onchange="view.wk.course=this.value">' + opts + '</select></label>' +
+    '</div>' +
+    '<label class="f"><div class="lb">요청사항</div><input value="' + esc(w.request) + '" oninput="wkSet(\'request\', this.value)"></label>' +
+    '<label class="f"><div class="lb">알러지</div><input value="' + esc(w.allergy) + '" oninput="wkSet(\'allergy\', this.value)"></label>' +
+    '<label class="f"><div class="lb">메모</div><input value="' + esc(w.memo) + '" oninput="wkSet(\'memo\', this.value)"></label>' +
+    '<div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button><button class="btn primary" onclick="saveWalkIn()">등록</button></div>';
+}
+async function saveWalkIn(){
+  var w = view.wk || {};
+  var name = String(w.name || "").trim(), phone = phoneNorm(w.phone || ""), digits = phone.replace(/\D/g, "");
+  var bad = [];
+  if(!name) bad.push("이름");
+  if(digits.length < 9) bad.push("전화번호");
+  if(!(w.adults >= 1)) bad.push("인원");
+  if(bad.length){ await uiAlert(bad.join("·") + "을(를) 넣어 주세요", "", "warn"); return; }
+  if(readonlyBlock()) return;
+  var date = bizToday(), m = toMin(nowHM()); var time = minToHM(m - (m % 5));   /* 지금 시각(5분 단위로 내림) */
+  if(!await confirmNewRes(date, phone)) return;   /* 같은 날 같은 번호·블랙리스트·노쇼 이력 확인(막지 않음) */
+  var people = (w.adults || 0) + (w.kids || 0);
+  var pr = reqAsRes({ id:"wk", date:date, time:time, name:name, phone:phone, people:people, kids:w.kids || 0, seat:w.seat === "room" ? "room" : "table", createdAt:new Date().toISOString() });
+  var courses = {}; if(w.course) courses[w.course] = w.adults;
+  var rec = {
+    id:"res_" + newId("w").slice(2, 14), date:date, time:time, name:name, phone:phone, people:people, infants:w.kids || 0, chairs:0,
+    roomId:null, extraIds:[], seatPref:pr.seatPref, tentativeRoomId:pr.tentativeRoomId, tentativeExtra:pr.tentativeExtra, tentativeSplit:pr.tentativeSplit,
+    source:"방문", sourceDetail:"현장 등록", createdAt:new Date().toISOString(),
+    menuType: w.course ? "코스" : "해당 없음", courses:courses, courseUndecided:false,
+    allergy:String(w.allergy || "").trim(), allergyChecked:true, request:String(w.request || "").trim(), memo:String(w.memo || "").trim(), status:"방문"
+  };
+  createReservation(rec); saveData();
+  showToast(name + " 손님 등록 · " + hm(time), "보기", function(){ openMark(rec.id); });
+  view.wk = null; closeSheet();
+}
 /* ---------- 감사 문자 (thanks_sms, 18차 재아) ----------
    다녀간 손님께 다음 날 보내는 짧은 감사 문자. **'방문' 으로 확인된 예약만** 대상(안 온 손님께는 안 감).
    글은 Gemini 가 예약 정보(이름·인원·룸/테이블·시간·요청·어린이·손님 메모)와 사장님 키워드(팔순·생일·회식·날씨…)로 만듭니다 —
@@ -11407,7 +11480,8 @@ function thQueued(resId){ return (TH.queue || []).find(function(q){ return q.res
 /* 대상: 그 날짜에 '방문' 인 예약(전화번호 있는 것). 같은 번호가 여러 건이면 한 건만 */
 function thTargets(){
   var seen = {};
-  return store().reservations.filter(function(r){ return r.date === TH.date && r.status === "방문" && (r.phone || "").replace(/\D/g, "").length >= 9; })
+  /* 09-29: 퇴근 전엔 아직 '확정' — 노쇼·취소만 빼고(방문 처리는 퇴근 때). 서버 발송(37차)은 보낼 때 '방문' 이 아니면 취소 → 퇴근을 안 누른 날은 안 나감 */
+  return store().reservations.filter(function(r){ return r.date === TH.date && (r.status === "방문" || (r.status === "확정" && r.date <= bizToday())) && (r.phone || "").replace(/\D/g, "").length >= 9; })
     .sort(function(a, b){ return a.time.localeCompare(b.time); })
     .filter(function(r){ var d = r.phone.replace(/\D/g, ""); if(seen[d]) return false; seen[d] = 1; return true; });
 }
@@ -11546,7 +11620,7 @@ async function thSendNow(id){
 async function thDeliver(q){
   try{
     const r0 = store().reservations.find(function(x){ return x.id === q.res_id; });
-    if(r0 && r0.status !== "방문"){   /* 퇴근 뒤 노쇼·취소로 고친 손님(09-25 전수검토) */
+    if(r0 && (r0.status === "노쇼" || r0.status === "취소")){   /* 퇴근 뒤 노쇼·취소로 고친 손님(09-25 전수검토). 퇴근 전 '확정' 은 보냄(09-29) */
       await sb("/rest/v1/thanks_sms?id=eq." + encodeURIComponent(q.id) + "&status=eq.%EB%8C%80%EA%B8%B0", { method:"PATCH", body:{status:"취소"}, prefer:"return=minimal" });
       return false;
     }
@@ -12728,7 +12802,7 @@ function toastSaved(rec){
 }
 
 function renderSheet(){
-  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, apwlist:sheetAdminPwList, export:sheetExport, menus:sheetMenus, menu:sheetMenu, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, redit:sheetRoomEdit, jedit:sheetJoinEdit, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
+  const inner = { res:sheetRes, mark:sheetMark, unassigned:sheetUnassigned, pick:sheetPick, check:sheetCheck, search:sheetSearch, num:sheetNum, noshow:sheetNoshow, pin:sheetPin, pinadd:sheetPinAdd, apwlist:sheetAdminPwList, export:sheetExport, menus:sheetMenus, menu:sheetMenu, apw:sheetAdminPw, hours:sheetHours, tedit:sheetTableEdit, redit:sheetRoomEdit, jedit:sheetJoinEdit, walkin:sheetWalkIn, naver:sheetNaver, setlog:sheetSetLog, pinlist:sheetPinList, zoomadj:sheetZoomAdj, logs:sheetLogs, smslog:sheetSmsLog, smsfree:sheetSmsFree, rate:sheetRate, sched:sheetSchedule, ovr:sheetOverride, blocks:sheetBlocks, reqs:sheetRequests, req:sheetRequest, reqrej:sheetReqReject, sched2:sheetScheduled, site:sheetSite, staff:sheetStaff, guests:sheetGuests, owner:sheetOwner, messages:sheetMessages, thanks:sheetThanks, devreq:sheetDevReq, closeday:sheetCloseDay }[view.form.type]();   /* staff·guests 는 14d·14e(15차) */
   /* 검색은 창 높이를 고정해 두고 결과만 안에서 스크롤 — 칠 때마다 창이 늘었다 줄었다 하지 않게(재아) */
   const wide = view.form.type==="rate" ? " sheet-wide" : ((view.form.type==="search" || (view.form.type==="reqs" && reqPending().length >= 3)) ? " sheet-tall" : "");   /* 홈페이지 예약은 3건부터 높이를 고정하고 목록만 스크롤(재아 09-17). 0~2건이면 빈 상자를 길게 안 보임(검토 D3) */
   if(view.form.page) return `<div class="sheet page-sheet">${inner}</div>`;   /* 화면형: 덮개 없이 본문 자리에 */
