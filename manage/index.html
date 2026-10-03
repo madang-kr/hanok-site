@@ -6234,7 +6234,7 @@ function renderStoreCore(){
   const stt = shopState(s.settings);
   /* 8차-O(재아): 네이버 가져오기·빠른 입력은 팝업 시트가 아니라 화면 전체로 (view.form.page) */
   const pageForm = !!(view.form && view.form.page);
-  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:"사장님", messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:"개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
+  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:(DEV_EMBED ? "설정" : "사장님"), messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:"개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
   const body = pageForm ? `<div class="page-wrap${view.form.wide ? " wide" : ""}">${renderSheet()}</div>` : (view.tab==="settings" ? renderSettings : renderDash)();
 
   return `
@@ -6242,7 +6242,7 @@ function renderStoreCore(){
       ${pageForm ? `<header class="topbar page ${notodayView()?'notoday':''}"><div class="topbar-in">
         <button class="storename" onclick="goHomeScreen()" title="홈으로"><span class="sn-brand">HANOK</span></button>
         <div class="bar-mid"><span class="bdate static">${pageTitle}</span></div>
-        <div class="bar-right">${view.form.back ? `<button class="tvbtn icon b-pageback" onclick="closeSheet()" title="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로" aria-label="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로 돌아가기">${ICON.back}</button>` : `<button class="tvbtn icon b-exit" onclick="closeSheet()" title="닫기" aria-label="닫기">✕</button>`}</div>
+        <div class="bar-right">${view.form.back ? `<button class="tvbtn icon b-pageback" onclick="closeSheet()" title="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로" aria-label="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로 돌아가기">${ICON.back}</button>` : (DEV_EMBED && view.form.type === "owner") ? "" : `<button class="tvbtn icon b-exit" onclick="closeSheet()" title="닫기" aria-label="닫기">✕</button>`}</div>
       </div></header>` : `<header class="topbar ${notodayView()?'notoday':''} ${isMobile()?'mobile':''} ${view.tab==="settings"?'settings':''}"><div class="topbar-in">
         <!-- 매장 이름 = 예전 맨 왼쪽 버튼의 역할. 대시보드에서는 매장 선택으로, 설정에서는 대시보드로. 아이콘·화살표 없이 글자만(6차-K) -->
         <!-- 8차-P(재아): HANOK 은 홈(대시보드·오늘)으로, 이미 홈이면 새로고침. 매장 나가기·로그아웃은 더보기 -->
