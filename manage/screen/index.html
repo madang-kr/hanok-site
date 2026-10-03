@@ -14195,65 +14195,6 @@ const WZ_STEPS = [
 const WZ_LABELS = ["경로","날짜·시간","인원","좌석","메뉴","예약자","요청사항"];
 const LAST_STEP = 6;
 
-/* 코스 구성 기본값 — 실제 값은 설정(settings.courseGroups)에서 관리합니다 */
-const DEFAULT_COURSE_GROUPS = [
-  { id:"cg_dinner",  label:"저녁 (종일)", items:["오","촉","한","위"],     when:["종일"] },
-  { id:"cg_wdlunch", label:"평일 점심",   items:["요리사","동한","서한"],  when:["평일점심"] },
-  { id:"cg_welunch", label:"주말 점심",   items:["요리사","B","A"],        when:["주말점심"] }
-];
-const WHEN_OPTS = ["종일","평일점심","평일저녁","주말점심","주말저녁"];
-function courseGroups(date){
-  /* 09-25 재아: 특별 기간(크리스마스 한정 코스 등)이면 그 날짜는 그 기간의 코스·점심 세트만 — 홈페이지 예약 창과 같은 규칙.
-     코스·세트·특별 기간의 원본은 여기(설정 → 코스·세트) 하나이고, 홈페이지는 이 값을 받아 보여 줍니다 */
-  const sp = specialOn(date);
-  if(sp) return specialGroups(sp, date);
-  return (date ? settingsAt(date) : store().settings).courseGroups || DEFAULT_COURSE_GROUPS;
-}
-/* 그 날짜에 걸린 특별 기간(코스가 하나라도 있는 것) */
-function specialOn(date, st){
-  if(!date) return null;
-  const list = (st || store().settings).specials || [];
-  return list.find(s => s && s.from && s.to && date >= s.from && date <= s.to && ((s.dinner || []).length || (!s.lunchOff && (s.lunch || []).length))) || null;
-}
-/* 특별 기간 → 코스 묶음 모양. 코스는 종일, 점심 세트는 점심 시간에만(끌 수 있음).
-   특별 기간 코스 이름이 평소 코스와 같으면('오 코스' = 평소의 '오', 'A 세트' = 주말 점심 'A') 평소 코스로 이어 줍니다 —
-   그래야 특별 기간을 나중에 만들어도 이미 받은 예약의 코스가 그대로 맞고, 통계도 한 코스로 셉니다.
-   그래서 이 묶음은 g.keys(항목마다 실제 키)를 가집니다. 새 이름이면 sp_<id>_d|이름 */
-function specialGroups(sp, date){
-  const t = (sp.title || "특별").trim(), g = [], reg = (settingsAt(date).courseGroups || DEFAULT_COURSE_GROUPS);
-  const dow = date ? new Date(date + "T00:00:00").getDay() : 1;
-  const we = dow === 0 || dow === 6 || (store().settings.holidayAsWeekend !== false && typeof isHoliday === "function" && isHoliday(date));
-  const keyOf = (n, suf) => regKeyOf(reg, n, we) || ("sp_" + sp.id + "_" + suf + "|" + n);
-  const grp = (suf, label, names, when) => { const keys = names.map(n => keyOf(n, suf)); return { id:"sp_" + sp.id + "_" + suf, label, items:keys.map(k => k.split("|")[1]), keys, names, when, special:true }; };
-  if((sp.dinner || []).length) g.push(grp("d", t + " 코스", sp.dinner, ["종일"]));
-  if(!sp.lunchOff && (sp.lunch || []).length) g.push(grp("l", t + " 점심 세트", sp.lunch, ["평일점심","주말점심"]));
-  return g;
-}
-/* 이름 → 평소 코스 키. 짧은 이름('오')이 같거나, 뒤의 '코스'·'세트'·'추천세트' 를 떼면 같으면('오 코스' · 'A 세트' · '요리사 추천세트').
-   둘 이상이면(요리사 = 평일·주말 점심) 그 날(평일/주말)에 맞는 쪽 */
-function courseShort(n){ return String(n || "").trim().replace(/\s*(코스|세트)$/, "").replace(/\s*추천$/, "").trim(); }
-function regKeyOf(reg, n, we){
-  n = String(n || "").trim(); if(!n) return "";
-  const hits = [], sn = courseShort(n);
-  reg.forEach(g => (g.items || []).forEach(it => { if(it === n || it === sn) hits.push({ g, it }); }));
-  if(!hits.length) return "";
-  const want = (we ? "주말" : "평일") + "점심";
-  const h = hits.find(x => (x.g.when || []).indexOf(want) >= 0) || hits[0];
-  return h.g.id + "|" + h.it;
-}
-/* 묶음의 실제 키들 — 특별 기간 묶음은 g.keys, 보통은 '묶음id|이름' */
-function cgKeys(g){ return g.keys || (g.items || []).map(it => g.id + "|" + it); }
-/* 코스 키의 앞부분(cg_xxx)으로 묶음을 찾습니다.
-   ※ 예전 키는 앞부분이 '순서 번호'(0, 1, 2) 였습니다. 설정에서 순서만 바꿔도
-      저장된 예약이 전부 다른 묶음을 가리키게 되는 구조라 고정 id 로 바꿨습니다.
-      옛 키는 migrate() 가 옮겨 주지만, 혹시 남아 있으면 번호로도 찾아 줍니다. */
-function courseGroupById(gs, id){
-  var i;
-  for(i = 0; i < gs.length; i++) if(gs[i].id === id) return gs[i];
-  if(/^\d+$/.test(id)) return gs[+id] || null;
-  return null;
-}
-
 /* ---------- 뒤로가기 보호 ----------
    앱은 주소를 history.replaceState 로만 바꾸므로 브라우저 뒤로가기가 눌리면 사이트 밖으로 나가 입력이 날아갔습니다.
    마법사·수정 시트를 열 때 history 에 한 칸(pushState) 넣어 두면 뒤로가기는 '닫기' 가 됩니다 —
@@ -14561,72 +14502,6 @@ function wzSummary(){
   if(WZ.seat) p.push(WZ.seatExtra && WZ.seatExtra.length ? seatLabelIds([WZ.seat].concat(WZ.seatExtra)) : seatLabel(WZ.seat));
   return p.map(x=>`<span>${esc(x)}</span>`).join("");
 }
-function hm(t){
-  /* 8차-Y(재아): 시각 칸과 같은 모양 '오후 5:30'. '5시 30분' 은 길고 칸마다 폭이 달랐습니다 */
-  const [h,m]=t.split(":").map(Number);
-  const ap = h<12?"오전":"오후";
-  const h12 = h%12===0?12:h%12;
-  return `${ap} ${h12}:${pad(m||0)}`;
-}
-function seatLabel(seat){
-  const st = store().settings;
-  if(seat==="any") return "좌석 상관없음";
-  if(seat==="hall-any" || seat==="table-any") return "테이블 (층 상관없음)";
-  if(/^table:/.test(seat||"")) return floorLabel(seat.slice(6));
-  if(seat==="room-any") return "룸 중 아무곳";
-  const j = allJoinsEver().find(g=>g.id===seat);   /* 예정으로 생기는 합침도(09-25) */
-  if(j) return j.ids.map(id=>{ const x = seatById(id); return x ? x.name : "?"; }).join("+") + " 룸";
-  const r = seatById(seat);
-  if(!r) return "미배정";
-  /* 이름 뒤에 종류를 붙여 직원이 바로 알게 — '조조 룸', '21 테이블' */
-  return r.type==="room" ? `${r.name} 룸` : `${r.name} 테이블`;
-}
-/* 여러 좌석(합침) 라벨 — '장비+관우 룸', '하후돈+하후상-1 테이블' */
-function seatLabelIds(ids){
-  if(!ids || !ids.length) return "미배정";
-  if(ids.length===1) return seatLabel(ids[0]);
-  const xs = ids.map(seatById).filter(Boolean);
-  const kind = xs.length && xs[0].type==="room" ? " 룸" : " 테이블";
-  return xs.map(x=>x.name).join("+") + kind;
-}
-/* 예약의 확정 좌석 라벨 / 잠정 좌석 라벨 */
-function resSeatLabel(r){
-  if(r.roomId) return seatLabelIds([r.roomId].concat(r.extraIds||[]));
-  if(isTablePref(r.seatPref)) return seatLabel(r.seatPref) + tableHint(r);   /* 테이블 예약은 층까지만 — 미배정이 아닙니다 */
-  return "미배정";
-}
-/* 4명을 넘는 테이블 예약만 숨은 배정(붙일 테이블)을 작게 덧붙입니다(재아) — 큰 팀은 어느 테이블을 붙일지 미리 알아야 준비가 됩니다.
-   4명 이하는 그날 남는 자리에 앉히므로 안 보여 줍니다 */
-function tableHint(r){
-  if(!isTablePref(r.seatPref) || pplOf(r) <= 4 || !r.tentativeRoomId) return "";
-  const names = seatsOf(r).map(id=>{ const x = seatById(id); return x ? x.name : ""; }).filter(Boolean);
-  return names.length ? ` (${names.join("+")}${r.tentativeSplit ? " 나눠" : ""})` : "";
-}
-/* 확인 시트·검색·상세에 쓰는 좌석 꼬리표(8차-AB 재아) — 잠정도 '배정된 것' 이라 붉게 쓰지 않습니다. 붉은색은 자리가 정말 없을 때만.
-   확정 룸/테이블 → 'pine', 잠정 → 색 없음 '장비 룸(잠정)' / '1층 테이블 · 21(잠정)', 자리 없음 → 'rust' */
-function seatTagText(r){
-  if(r.roomId) return { ok:true, text:resSeatLabel(r) };
-  var live = holdsSeat(r);   /* 취소·노쇼는 자리를 안 잡으니 '자리 없음' 이라고 붉게 쓰지 않습니다 */
-  var names = r.tentativeRoomId ? seatsOf(r).map(function(id){ var x = seatById(id); return x ? x.name : ""; }).filter(Boolean) : [];
-  if(isTablePref(r.seatPref)){
-    var fl = prefFloor(r.seatPref), head = fl ? floorLabel(fl) : "테이블 (층 상관없음)";
-    return names.length ? { ok:true, text: head + " · " + names.join("+") + (r.tentativeSplit ? " 나눠" : "") + "(잠정)" } : { ok:!live, text: live ? head + " · 자리 없음" : head };
-  }
-  return names.length ? { ok:true, text: seatLabelIds([r.tentativeRoomId].concat(r.tentativeExtra||[])) + "(잠정)" } : { ok:!live, text:"미배정" };
-}
-/* 룸 미배정(잠정 포함) 여부 — 테이블 예약은 층이 자리이므로 미배정으로 세지 않습니다 */
-function isUnassigned(r){ return !r.roomId && !isTablePref(r.seatPref); }
-/* 목록·시트에 쓰는 좌석 표시 한 줄 — 확정 좌석 / 테이블(층) / 룸 미정이면 '잠정 룸(잠정)' / 없으면 미배정 */
-function seatText(r){
-  if(r.roomId) return resSeatLabel(r);
-  if(isTablePref(r.seatPref)) return resSeatLabel(r);
-  return r.tentativeRoomId ? resTentLabel(r) + "(잠정)" : "미배정";
-}
-function resTentLabel(r){
-  if(isTablePref(r.seatPref)) return "";   /* 테이블 예약의 숨은 배정은 이름을 보여 주지 않습니다 — 층까지만 */
-  return r.tentativeRoomId ? seatLabelIds([r.tentativeRoomId].concat(r.tentativeExtra||[])) : "";
-}
-
 /* ---------- 0단계: 예약 경로 ---------- */
 function wzStepSource(){
   /* 경로는 설정(sources)에서 — 예전엔 셋만 박혀 있어 '방문' 이 빠져 있었습니다(누락 수정). '기타' 는 항상 마지막 */
@@ -15222,56 +15097,191 @@ function wzPhoneNone(v){
   if(next) WZ.phone = "";
   render();
 }
-/* 숫자만 남기고 010-0000-0000 형태로 자동 정리 */
-/* 010 으로 시작할 때만 자동으로 - 를 넣습니다.
-   직접 - 를 치는 분도 있어서, 사용자가 넣은 자리를 시스템이 다시 옮기면 오히려 방해가 됩니다.
-   그래서 이미 - 가 들어 있으면 손대지 않습니다. */
-/* ※ 예전에는 "값에 - 가 하나라도 있으면 손대지 않음" 이었는데, 시스템이 넣은 - 도 그 조건에 걸려
-      010-1234 까지 만든 뒤로는 다시 정리하지 않아 010-12345678 이 됐습니다.
-      이제 '사용자가 - 를 직접 쳤는지'(phoneManual)만 보고, 아니면 숫자만으로 매번 다시 만듭니다 */
-function fmtPhone(el, ev){
-  const raw = el.value;
-  if(ev && ev.inputType==="insertText" && ev.data==="-") WZ.phoneManual = true;
-  if(!raw.replace(/\D/g,"")) WZ.phoneManual = false;        /* 다 지우면 다시 자동으로 */
-  if(WZ.phoneManual){ WZ.phone = raw; return; }
-  /* + 로 시작하면 해외 번호 — 자리 규칙이 나라마다 달라 치는 대로 둠(+82 는 저장할 때 0 으로 바꿈) */
-  if(/^\s*\+/.test(raw)){ const t = "+" + raw.replace(/[^\d\s-]/g, "").replace(/^[\s-]+/, "").slice(0, 20); if(el.value !== t) el.value = t; WZ.phone = t; return; }
-  const d = raw.replace(/\D/g,"");
-  const out = phoneFmt(d.slice(0, phoneMax(d)));
-  if(el.value !== out) el.value = out;
-  WZ.phone = out;
+/* ---------- 6단계: 추가사항 ----------
+   09-20(재아): 알러지 칸을 없애고 요청사항에 적는 것으로 통합(유아의자와 같은 방식). 예약 객체의 allergy 는 빈 값으로 그대로 둠(옛 예약 표시용) */
+function wzStepExtra(){
+  return `
+    <label class="f big"><div class="lb">요청사항 <span class="lbl-note">선택</span></div>
+      <input id="wz-request" value="${esc(WZ.request)}" placeholder="예: 갑각류 알러지 1명, 유아용 의자, 송별회, 상견례 등">
+    </label>
+    <label class="f big"><div class="lb">메모 <span class="lbl-note">선택</span></div>
+      <input id="wz-memo" value="${esc(WZ.memo||"")}" placeholder="예: 사장님 지인, 상석 준비 등">
+    </label>
+    <div class="wz-review">
+      <div class="rv"><span>일시</span><b>${WZ.date?dateLabel(WZ.date):"-"} ${WZ.time?hm(WZ.time):""}</b></div>
+      <div class="rv"><span>인원</span><b>총 ${WZ.people||0}명${WZ.infants?` (어린이 ${WZ.infants}명 포함)`:""} ${groupTag({people:WZ.people||0})}</b></div>
+      <div class="rv"><span>좌석</span><b>${WZ.seat?(WZ.seatExtra&&WZ.seatExtra.length?seatLabelIds([WZ.seat].concat(WZ.seatExtra)):seatLabel(WZ.seat)):"-"}</b></div>
+      <div class="rv"><span>예약자</span><b>${esc(WZ.name)||"-"}${tierTag({phone:WZ.phone})}${WZ.phone?` · ${esc(WZ.phone)}`:""}</b></div>
+      <div class="rv"><span>식사</span><b>${esc(WZ.menuType||"-")}${WZ.menuType==="코스"&&courseCount()?` · ${esc(courseSummary(WZ.courses))}`:""}</b></div>
+    </div>`;
 }
-/* 번호 종류별 최대 자릿수 — 050x 안심번호는 12자리, 서울(02)은 10자리, 1588 류는 8자리, 나머지 11자리 */
-function phoneMax(d){ return /^050/.test(d) ? 12 : /^02/.test(d) ? 10 : /^1[5-9]/.test(d) ? 8 : 11; }
-/* 숫자열 → 하이픈 넣은 번호. 휴대폰(01x) 3-4-4, 서울(02) 2-3-4 / 2-4-4, 지역번호(033 등) 3-3-4 / 3-4-4, 1588 류 4-4.
-   입력 중(자릿수가 다 안 찼을 때)에도 앞부분 하이픈은 미리 넣어 줍니다 */
-/* 입력한 번호를 저장용 모양으로 — 숫자만 남기고 phoneFmt. 서버 왕복 뒤 모양이 달라져 충돌로 오인하던 것을 막습니다(점검 D10) */
-function phoneNorm(v){
-  const s = String(v || "").trim();
-  if(/^\+/.test(s)){
-    const dd = s.replace(/\D/g, "");
-    if(/^82/.test(dd)) return phoneFmt("0" + dd.slice(2).replace(/^0/, ""));   /* +82 10-… → 010-… (국내 번호로) */
-    return "+" + s.slice(1).replace(/[^\d\s-]/g, "").replace(/\s+/g, " ").trim();   /* 해외: 친 모양 그대로 */
+
+/* ---------- 새 예약 등록 — 마법사(wzSubmit)와 빠른 입력(saveRes)이 같은 길을 갑니다 ----------
+   같은 번호 확인 → 노쇼 이력 확인(confirmNewRes) → 등록 기록·문자 흉내·목록에 넣기·로그·잠정 배정(createReservation).
+   둘이 따로 있으면 데이터 모양(changes·updatedAt·source…)이 조금씩 달라집니다 */
+async function confirmNewRes(date, phone){
+  const s = store();
+  /* 같은 번호로 같은 날 이미 예약이 있으면 확인 */
+  if(phone){
+    const dup = s.reservations.filter(r=>r.date===date && r.status==="확정" &&
+      (r.phone||"").replace(/\D/g,"") === phone.replace(/\D/g,""));
+    if(dup.length){
+      const ok = await uiConfirm("같은 번호로 이미 예약이 있습니다",
+        dup.map(r=>`${hm(r.time)} ${r.name} 손님 ${pplText(r)}`).join("\n") +
+        "\n\n같은 팀이라면 기존 예약을 수정하는 편이 좋습니다.",
+        {ok:"새로 등록", cancel:"취소"});
+      if(!ok) return false;
+    }
   }
-  const d = s.replace(/\D/g, ""); return d ? phoneFmt(d) : "";
+  /* 블랙리스트면 확정 전에 확인 — 막지는 않음(작업 규칙: 경고는 알리기만, 09-29) */
+  const bl = phone ? custStat(phone) : null;
+  if(bl && bl.black && !await uiConfirm2(`블랙리스트에 있는 번호입니다.${bl.blackNote ? `\n사유: ${bl.blackNote}` : ""}\n\n예약을 확정할까요?`)) return false;
+  /* 노쇼 이력이 있으면 확정 전에 확인 */
+  const ns = noshowOf(phone);
+  if(ns && !await uiConfirm2(
+      `이 번호로 노쇼 기록이 ${ns.count}건 있습니다.\n` +
+      `(${ns.dates.slice(0,3).map(d=>d.slice(5).replace("-","월 ")+"일").join(", ")}${ns.dates.length>3?" 외":""})\n\n` +
+      `예약을 확정할까요?`)) return false;
+  return true;
 }
-/* 09-25 재아: 시작 번호마다 하이픈 자리·길이가 다름
-   010 3-4-4 · 011/016~019 3-3-4(10자리)·3-4-4 · 02 2-3-4·2-4-4 · 031 등 지역·070·080 3-3-4·3-4-4
-   0502~0508 안심번호 4-3-4·4-4-4 · 1588 류 4-4 · 서버에서 온 '+81…'(해외)는 그대로 */
-function phoneFmt(d){
-  if(!d) return "";
-  if(/^\+/.test(d)) return d;
-  let a = 3;                                   /* 앞자리(지역·통신사) 길이 */
-  if(d.indexOf("02") === 0) a = 2;
-  else if(/^050[2-8]/.test(d)) a = 4;          /* 0505-123-4567 안심번호 */
-  else if(/^1[5-9]/.test(d)) a = 4;            /* 1588-0000 같은 대표번호 */
-  if(d.length <= a) return d;
-  const rest = d.slice(a);
-  if(a === 4 && d.charAt(0) === "1") return d.slice(0,4) + "-" + rest;
-  /* 가운데 자리: 010 은 4, 그 외는 전체 길이가 (a+8) 이상이면 4, 아니면 3 */
-  const mid = /^010/.test(d) ? 4 : (d.length >= a+8 ? 4 : 3);
-  if(rest.length <= mid) return d.slice(0,a) + "-" + rest;
-  return d.slice(0,a) + "-" + rest.slice(0,mid) + "-" + rest.slice(mid);
+function createReservation(rec){
+  const s = store();
+  addChange(rec, "등록", []);
+  /* 접수 문자 — 등록 즉시 1회 (지금은 흉내) */
+  if(smsCfg().on && rec.phone && rec.status === "확정" && rec.date >= todayStr() && !(/네이버/.test(rec.source||"") && smsCfg().skipNaver !== false)) smsSend(rec, "접수");   /* 네이버·지난 날짜·취소 상태로 들어온 건엔 안 보냄(09-25) */
+  s.reservations.push(rec);
+  logEvent("예약 등록", `${rec.date} ${rec.time} ${rec.name} ${pplOf(rec)}명 ${rec.roomId?seatLabel(rec.roomId):(rec.tentativeRoomId?"잠정 "+seatLabel(rec.tentativeRoomId):"미배정")} 경로:${rec.source}${rec.sourceDetail?"/"+rec.sourceDetail:""}`);
+  reflowTentatives(rec.date);
+  return rec;
+}
+/* 자리를 고른 순간의 조건 — 등록 때 달라졌으면 다시 확인(09-25 전수검토: 단계 점으로 되돌아가 날짜를 바꾸면 조용히 이중 예약이 됐음) */
+function wzSeatKey(){ return [WZ.date, WZ.time, WZ.people, WZ.infants, WZ.seat, (WZ.seatExtra||[]).join(",")].join("|"); }
+/* ---------- 등록 ---------- */
+async function wzSubmit(){
+  wzSyncInputs();
+  if(!WZ.date || !WZ.time) return await uiAlert2("날짜와 시간을 선택하세요.");
+  if(!WZ.people) return await uiAlert2("인원을 선택하세요.");
+  if(!WZ.name.trim()) return await uiAlert2("예약자 성함을 입력하세요.");
+  if(!await confirmNewRes(WZ.date, phoneNorm(WZ.phone))) return;
+  const fixed = WZ.seat && !["any","hall-any","table-any","room-any"].includes(WZ.seat) && !/^table:/.test(WZ.seat);   /* 좌석을 특정했는지 (층 희망은 미정 취급) */
+  const rec = {
+    id:newId("res"), date:WZ.date, time:WZ.time,
+    name:WZ.name.trim(), phone:phoneNorm(WZ.phone),
+    people:WZ.people, infants:WZ.infants, chairs:0,   /* 유아의자 기능은 뺐음(재아 09-17) — 칸은 0 으로 유지(객체 모양 안 바꿈) */
+    roomId: fixed ? WZ.seat : null,
+    extraIds: fixed ? (WZ.seatExtra || []) : [],
+    seatPref: fixed ? null : WZ.seat,     /* 미배정일 때 희망 좌석 종류를 기억 */
+    tentativeRoomId: fixed ? null : (WZ.tentative || null),  /* 나중에 확정할 때 1순위로 뜨는 자리 */
+    tentativeSplit: fixed ? false : !!WZ.tentativeSplit,
+    tentativeExtra: fixed ? [] : (WZ.tentativeExtra || []),
+    source:WZ.source||"전화 예약",
+    sourceDetail:WZ.source==="기타" ? (WZ.sourceDetail||"").trim() : "",
+    createdAt:new Date().toISOString(),
+    menuType:WZ.menuType||"해당 없음", courses:Object.assign({}, (WZ.courses||{})),
+    courseUndecided: !!WZ.courseUndecided,
+    allergy:"", allergyChecked:true, request:WZ.request.trim(),
+    memo:(WZ.memo||"").trim(),
+    status:"확정"
+  };
+  if(fixed && WZ.seatOkKey !== wzSeatKey()){
+    const iss = saveIssues(rec, null);
+    if(iss.length && !await uiConfirm("자리를 고른 뒤 날짜·시각·인원이 바뀌었습니다", iss.map(x=>"· " + x).join("\n") + "\n\n이대로 등록할까요?", {ok:"그래도 등록", cancel:"다시 고치기"})) return;
+  }
+  if(WZ.reqId && typeof reqClaim === "function" && !await reqClaim(WZ.reqId, rec.id)) return;   /* 다른 기기가 먼저 처리했으면 만들지 않음(09-25) */
+  createReservation(rec);
+  /* 6차 전에는 view.date = rec.date 로 그 날짜로 점프했습니다. 이제 화면 날짜는 그대로 — 완료 화면에 날짜가 있고,
+     닫은 뒤 토스트의 '보기' 로 갈 수 있습니다(closeWizardDone) */
+  WZ.done = rec;
+  saveData(); render();
+}
+/* 등록 완료 화면 — 손님에게 그대로 읽어주면 되는 문장 */
+function wzDone(){
+  const r = WZ.done;
+  const d = new Date(r.date+"T00:00:00");
+  const dow = WD_KO[d.getDay()];
+  const [h,m] = r.time.split(":").map(Number);
+  const ap = h<12?"오전":"오후", h12 = h%12===0?12:h%12;
+  const seat = r.roomId ? resSeatLabel(r)
+             : seatText(r);
+  return `
+    <div class="wz done">
+      <div class="done-box">
+        <div class="check">✓</div>
+        <p class="done-msg">
+          <b>${d.getMonth()+1}월 ${d.getDate()}일 ${dow}요일, ${hm(WZ.done.time)}</b>,
+          <b>${esc(seat)}</b> 좌석,
+          <b>${esc(r.name)}</b>${tierTag(r)}${groupTag(r)} 손님<br>예약이 접수됐습니다
+        </p>
+        <div class="done-sub">${pplText(r)}${r.phone?` · ${esc(r.phone)}`:""}
+          ${r.menuType?`<br>식사: ${esc(r.menuType)}${r.courses&&Object.keys(r.courses).length?` (${esc(courseSummary(r.courses))})`:""}`:""}
+          ${r.allergy?`<br>알러지: ${esc(r.allergy)}`:""}${r.request?`<br>요청: ${esc(r.request)}`:""}</div>
+        <div class="done-btns">
+          <button class="btn lg" onclick="openWizard('${r.date}')">새 예약</button>
+          <button class="btn primary lg" onclick="closeWizardDone()">확인</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closeWizardDone(){ var r = WZ && WZ.done; WZ=null; render(); histPop(); toastSaved(r); }
+/* ---------- 코스·세트: 묶음 모델(courseGroups·specialGroups …)과 코스 고르기 창(마법사 5단계 · 예약 수정 공용) ----------
+   10-03 정리: 16-wizard.js 에서 옮김(내용은 그대로). 설정·네이버 가져오기·예약 창도 여기 것을 씀 */
+/* 코스 구성 기본값 — 실제 값은 설정(settings.courseGroups)에서 관리합니다 */
+const DEFAULT_COURSE_GROUPS = [
+  { id:"cg_dinner",  label:"저녁 (종일)", items:["오","촉","한","위"],     when:["종일"] },
+  { id:"cg_wdlunch", label:"평일 점심",   items:["요리사","동한","서한"],  when:["평일점심"] },
+  { id:"cg_welunch", label:"주말 점심",   items:["요리사","B","A"],        when:["주말점심"] }
+];
+const WHEN_OPTS = ["종일","평일점심","평일저녁","주말점심","주말저녁"];
+function courseGroups(date){
+  /* 09-25 재아: 특별 기간(크리스마스 한정 코스 등)이면 그 날짜는 그 기간의 코스·점심 세트만 — 홈페이지 예약 창과 같은 규칙.
+     코스·세트·특별 기간의 원본은 여기(설정 → 코스·세트) 하나이고, 홈페이지는 이 값을 받아 보여 줍니다 */
+  const sp = specialOn(date);
+  if(sp) return specialGroups(sp, date);
+  return (date ? settingsAt(date) : store().settings).courseGroups || DEFAULT_COURSE_GROUPS;
+}
+/* 그 날짜에 걸린 특별 기간(코스가 하나라도 있는 것) */
+function specialOn(date, st){
+  if(!date) return null;
+  const list = (st || store().settings).specials || [];
+  return list.find(s => s && s.from && s.to && date >= s.from && date <= s.to && ((s.dinner || []).length || (!s.lunchOff && (s.lunch || []).length))) || null;
+}
+/* 특별 기간 → 코스 묶음 모양. 코스는 종일, 점심 세트는 점심 시간에만(끌 수 있음).
+   특별 기간 코스 이름이 평소 코스와 같으면('오 코스' = 평소의 '오', 'A 세트' = 주말 점심 'A') 평소 코스로 이어 줍니다 —
+   그래야 특별 기간을 나중에 만들어도 이미 받은 예약의 코스가 그대로 맞고, 통계도 한 코스로 셉니다.
+   그래서 이 묶음은 g.keys(항목마다 실제 키)를 가집니다. 새 이름이면 sp_<id>_d|이름 */
+function specialGroups(sp, date){
+  const t = (sp.title || "특별").trim(), g = [], reg = (settingsAt(date).courseGroups || DEFAULT_COURSE_GROUPS);
+  const dow = date ? new Date(date + "T00:00:00").getDay() : 1;
+  const we = dow === 0 || dow === 6 || (store().settings.holidayAsWeekend !== false && typeof isHoliday === "function" && isHoliday(date));
+  const keyOf = (n, suf) => regKeyOf(reg, n, we) || ("sp_" + sp.id + "_" + suf + "|" + n);
+  const grp = (suf, label, names, when) => { const keys = names.map(n => keyOf(n, suf)); return { id:"sp_" + sp.id + "_" + suf, label, items:keys.map(k => k.split("|")[1]), keys, names, when, special:true }; };
+  if((sp.dinner || []).length) g.push(grp("d", t + " 코스", sp.dinner, ["종일"]));
+  if(!sp.lunchOff && (sp.lunch || []).length) g.push(grp("l", t + " 점심 세트", sp.lunch, ["평일점심","주말점심"]));
+  return g;
+}
+/* 이름 → 평소 코스 키. 짧은 이름('오')이 같거나, 뒤의 '코스'·'세트'·'추천세트' 를 떼면 같으면('오 코스' · 'A 세트' · '요리사 추천세트').
+   둘 이상이면(요리사 = 평일·주말 점심) 그 날(평일/주말)에 맞는 쪽 */
+function courseShort(n){ return String(n || "").trim().replace(/\s*(코스|세트)$/, "").replace(/\s*추천$/, "").trim(); }
+function regKeyOf(reg, n, we){
+  n = String(n || "").trim(); if(!n) return "";
+  const hits = [], sn = courseShort(n);
+  reg.forEach(g => (g.items || []).forEach(it => { if(it === n || it === sn) hits.push({ g, it }); }));
+  if(!hits.length) return "";
+  const want = (we ? "주말" : "평일") + "점심";
+  const h = hits.find(x => (x.g.when || []).indexOf(want) >= 0) || hits[0];
+  return h.g.id + "|" + h.it;
+}
+/* 묶음의 실제 키들 — 특별 기간 묶음은 g.keys, 보통은 '묶음id|이름' */
+function cgKeys(g){ return g.keys || (g.items || []).map(it => g.id + "|" + it); }
+/* 코스 키의 앞부분(cg_xxx)으로 묶음을 찾습니다.
+   ※ 예전 키는 앞부분이 '순서 번호'(0, 1, 2) 였습니다. 설정에서 순서만 바꿔도
+      저장된 예약이 전부 다른 묶음을 가리키게 되는 구조라 고정 id 로 바꿨습니다.
+      옛 키는 migrate() 가 옮겨 주지만, 혹시 남아 있으면 번호로도 찾아 줍니다. */
+function courseGroupById(gs, id){
+  var i;
+  for(i = 0; i < gs.length; i++) if(gs[i].id === id) return gs[i];
+  if(/^\d+$/.test(id)) return gs[+id] || null;
+  return null;
 }
 
 /* ---------- 5단계: 메뉴 ---------- */
@@ -15440,133 +15450,125 @@ function renderCourse(){
       </div>
     </div>`;
 }
-
-/* ---------- 6단계: 추가사항 ----------
-   09-20(재아): 알러지 칸을 없애고 요청사항에 적는 것으로 통합(유아의자와 같은 방식). 예약 객체의 allergy 는 빈 값으로 그대로 둠(옛 예약 표시용) */
-function wzStepExtra(){
-  return `
-    <label class="f big"><div class="lb">요청사항 <span class="lbl-note">선택</span></div>
-      <input id="wz-request" value="${esc(WZ.request)}" placeholder="예: 갑각류 알러지 1명, 유아용 의자, 송별회, 상견례 등">
-    </label>
-    <label class="f big"><div class="lb">메모 <span class="lbl-note">선택</span></div>
-      <input id="wz-memo" value="${esc(WZ.memo||"")}" placeholder="예: 사장님 지인, 상석 준비 등">
-    </label>
-    <div class="wz-review">
-      <div class="rv"><span>일시</span><b>${WZ.date?dateLabel(WZ.date):"-"} ${WZ.time?hm(WZ.time):""}</b></div>
-      <div class="rv"><span>인원</span><b>총 ${WZ.people||0}명${WZ.infants?` (어린이 ${WZ.infants}명 포함)`:""} ${groupTag({people:WZ.people||0})}</b></div>
-      <div class="rv"><span>좌석</span><b>${WZ.seat?(WZ.seatExtra&&WZ.seatExtra.length?seatLabelIds([WZ.seat].concat(WZ.seatExtra)):seatLabel(WZ.seat)):"-"}</b></div>
-      <div class="rv"><span>예약자</span><b>${esc(WZ.name)||"-"}${tierTag({phone:WZ.phone})}${WZ.phone?` · ${esc(WZ.phone)}`:""}</b></div>
-      <div class="rv"><span>식사</span><b>${esc(WZ.menuType||"-")}${WZ.menuType==="코스"&&courseCount()?` · ${esc(courseSummary(WZ.courses))}`:""}</b></div>
-    </div>`;
+/* ---------- 여러 화면이 같이 쓰는 글자 만들기: 시각(hm) · 좌석 이름(seatLabel …) · 전화번호 모양(fmtPhone …) ----------
+   10-03 정리: 16-wizard.js 에서 옮김(내용은 그대로). 마법사 것이 아니라 대시보드·검색·TV 등이 함께 씀 */
+function hm(t){
+  /* 8차-Y(재아): 시각 칸과 같은 모양 '오후 5:30'. '5시 30분' 은 길고 칸마다 폭이 달랐습니다 */
+  const [h,m]=t.split(":").map(Number);
+  const ap = h<12?"오전":"오후";
+  const h12 = h%12===0?12:h%12;
+  return `${ap} ${h12}:${pad(m||0)}`;
 }
-
-/* ---------- 새 예약 등록 — 마법사(wzSubmit)와 빠른 입력(saveRes)이 같은 길을 갑니다 ----------
-   같은 번호 확인 → 노쇼 이력 확인(confirmNewRes) → 등록 기록·문자 흉내·목록에 넣기·로그·잠정 배정(createReservation).
-   둘이 따로 있으면 데이터 모양(changes·updatedAt·source…)이 조금씩 달라집니다 */
-async function confirmNewRes(date, phone){
-  const s = store();
-  /* 같은 번호로 같은 날 이미 예약이 있으면 확인 */
-  if(phone){
-    const dup = s.reservations.filter(r=>r.date===date && r.status==="확정" &&
-      (r.phone||"").replace(/\D/g,"") === phone.replace(/\D/g,""));
-    if(dup.length){
-      const ok = await uiConfirm("같은 번호로 이미 예약이 있습니다",
-        dup.map(r=>`${hm(r.time)} ${r.name} 손님 ${pplText(r)}`).join("\n") +
-        "\n\n같은 팀이라면 기존 예약을 수정하는 편이 좋습니다.",
-        {ok:"새로 등록", cancel:"취소"});
-      if(!ok) return false;
-    }
+function seatLabel(seat){
+  const st = store().settings;
+  if(seat==="any") return "좌석 상관없음";
+  if(seat==="hall-any" || seat==="table-any") return "테이블 (층 상관없음)";
+  if(/^table:/.test(seat||"")) return floorLabel(seat.slice(6));
+  if(seat==="room-any") return "룸 중 아무곳";
+  const j = allJoinsEver().find(g=>g.id===seat);   /* 예정으로 생기는 합침도(09-25) */
+  if(j) return j.ids.map(id=>{ const x = seatById(id); return x ? x.name : "?"; }).join("+") + " 룸";
+  const r = seatById(seat);
+  if(!r) return "미배정";
+  /* 이름 뒤에 종류를 붙여 직원이 바로 알게 — '조조 룸', '21 테이블' */
+  return r.type==="room" ? `${r.name} 룸` : `${r.name} 테이블`;
+}
+/* 여러 좌석(합침) 라벨 — '장비+관우 룸', '하후돈+하후상-1 테이블' */
+function seatLabelIds(ids){
+  if(!ids || !ids.length) return "미배정";
+  if(ids.length===1) return seatLabel(ids[0]);
+  const xs = ids.map(seatById).filter(Boolean);
+  const kind = xs.length && xs[0].type==="room" ? " 룸" : " 테이블";
+  return xs.map(x=>x.name).join("+") + kind;
+}
+/* 예약의 확정 좌석 라벨 / 잠정 좌석 라벨 */
+function resSeatLabel(r){
+  if(r.roomId) return seatLabelIds([r.roomId].concat(r.extraIds||[]));
+  if(isTablePref(r.seatPref)) return seatLabel(r.seatPref) + tableHint(r);   /* 테이블 예약은 층까지만 — 미배정이 아닙니다 */
+  return "미배정";
+}
+/* 4명을 넘는 테이블 예약만 숨은 배정(붙일 테이블)을 작게 덧붙입니다(재아) — 큰 팀은 어느 테이블을 붙일지 미리 알아야 준비가 됩니다.
+   4명 이하는 그날 남는 자리에 앉히므로 안 보여 줍니다 */
+function tableHint(r){
+  if(!isTablePref(r.seatPref) || pplOf(r) <= 4 || !r.tentativeRoomId) return "";
+  const names = seatsOf(r).map(id=>{ const x = seatById(id); return x ? x.name : ""; }).filter(Boolean);
+  return names.length ? ` (${names.join("+")}${r.tentativeSplit ? " 나눠" : ""})` : "";
+}
+/* 확인 시트·검색·상세에 쓰는 좌석 꼬리표(8차-AB 재아) — 잠정도 '배정된 것' 이라 붉게 쓰지 않습니다. 붉은색은 자리가 정말 없을 때만.
+   확정 룸/테이블 → 'pine', 잠정 → 색 없음 '장비 룸(잠정)' / '1층 테이블 · 21(잠정)', 자리 없음 → 'rust' */
+function seatTagText(r){
+  if(r.roomId) return { ok:true, text:resSeatLabel(r) };
+  var live = holdsSeat(r);   /* 취소·노쇼는 자리를 안 잡으니 '자리 없음' 이라고 붉게 쓰지 않습니다 */
+  var names = r.tentativeRoomId ? seatsOf(r).map(function(id){ var x = seatById(id); return x ? x.name : ""; }).filter(Boolean) : [];
+  if(isTablePref(r.seatPref)){
+    var fl = prefFloor(r.seatPref), head = fl ? floorLabel(fl) : "테이블 (층 상관없음)";
+    return names.length ? { ok:true, text: head + " · " + names.join("+") + (r.tentativeSplit ? " 나눠" : "") + "(잠정)" } : { ok:!live, text: live ? head + " · 자리 없음" : head };
   }
-  /* 블랙리스트면 확정 전에 확인 — 막지는 않음(작업 규칙: 경고는 알리기만, 09-29) */
-  const bl = phone ? custStat(phone) : null;
-  if(bl && bl.black && !await uiConfirm2(`블랙리스트에 있는 번호입니다.${bl.blackNote ? `\n사유: ${bl.blackNote}` : ""}\n\n예약을 확정할까요?`)) return false;
-  /* 노쇼 이력이 있으면 확정 전에 확인 */
-  const ns = noshowOf(phone);
-  if(ns && !await uiConfirm2(
-      `이 번호로 노쇼 기록이 ${ns.count}건 있습니다.\n` +
-      `(${ns.dates.slice(0,3).map(d=>d.slice(5).replace("-","월 ")+"일").join(", ")}${ns.dates.length>3?" 외":""})\n\n` +
-      `예약을 확정할까요?`)) return false;
-  return true;
+  return names.length ? { ok:true, text: seatLabelIds([r.tentativeRoomId].concat(r.tentativeExtra||[])) + "(잠정)" } : { ok:!live, text:"미배정" };
 }
-function createReservation(rec){
-  const s = store();
-  addChange(rec, "등록", []);
-  /* 접수 문자 — 등록 즉시 1회 (지금은 흉내) */
-  if(smsCfg().on && rec.phone && rec.status === "확정" && rec.date >= todayStr() && !(/네이버/.test(rec.source||"") && smsCfg().skipNaver !== false)) smsSend(rec, "접수");   /* 네이버·지난 날짜·취소 상태로 들어온 건엔 안 보냄(09-25) */
-  s.reservations.push(rec);
-  logEvent("예약 등록", `${rec.date} ${rec.time} ${rec.name} ${pplOf(rec)}명 ${rec.roomId?seatLabel(rec.roomId):(rec.tentativeRoomId?"잠정 "+seatLabel(rec.tentativeRoomId):"미배정")} 경로:${rec.source}${rec.sourceDetail?"/"+rec.sourceDetail:""}`);
-  reflowTentatives(rec.date);
-  return rec;
+/* 룸 미배정(잠정 포함) 여부 — 테이블 예약은 층이 자리이므로 미배정으로 세지 않습니다 */
+function isUnassigned(r){ return !r.roomId && !isTablePref(r.seatPref); }
+/* 목록·시트에 쓰는 좌석 표시 한 줄 — 확정 좌석 / 테이블(층) / 룸 미정이면 '잠정 룸(잠정)' / 없으면 미배정 */
+function seatText(r){
+  if(r.roomId) return resSeatLabel(r);
+  if(isTablePref(r.seatPref)) return resSeatLabel(r);
+  return r.tentativeRoomId ? resTentLabel(r) + "(잠정)" : "미배정";
 }
-/* 자리를 고른 순간의 조건 — 등록 때 달라졌으면 다시 확인(09-25 전수검토: 단계 점으로 되돌아가 날짜를 바꾸면 조용히 이중 예약이 됐음) */
-function wzSeatKey(){ return [WZ.date, WZ.time, WZ.people, WZ.infants, WZ.seat, (WZ.seatExtra||[]).join(",")].join("|"); }
-/* ---------- 등록 ---------- */
-async function wzSubmit(){
-  wzSyncInputs();
-  if(!WZ.date || !WZ.time) return await uiAlert2("날짜와 시간을 선택하세요.");
-  if(!WZ.people) return await uiAlert2("인원을 선택하세요.");
-  if(!WZ.name.trim()) return await uiAlert2("예약자 성함을 입력하세요.");
-  if(!await confirmNewRes(WZ.date, phoneNorm(WZ.phone))) return;
-  const fixed = WZ.seat && !["any","hall-any","table-any","room-any"].includes(WZ.seat) && !/^table:/.test(WZ.seat);   /* 좌석을 특정했는지 (층 희망은 미정 취급) */
-  const rec = {
-    id:newId("res"), date:WZ.date, time:WZ.time,
-    name:WZ.name.trim(), phone:phoneNorm(WZ.phone),
-    people:WZ.people, infants:WZ.infants, chairs:0,   /* 유아의자 기능은 뺐음(재아 09-17) — 칸은 0 으로 유지(객체 모양 안 바꿈) */
-    roomId: fixed ? WZ.seat : null,
-    extraIds: fixed ? (WZ.seatExtra || []) : [],
-    seatPref: fixed ? null : WZ.seat,     /* 미배정일 때 희망 좌석 종류를 기억 */
-    tentativeRoomId: fixed ? null : (WZ.tentative || null),  /* 나중에 확정할 때 1순위로 뜨는 자리 */
-    tentativeSplit: fixed ? false : !!WZ.tentativeSplit,
-    tentativeExtra: fixed ? [] : (WZ.tentativeExtra || []),
-    source:WZ.source||"전화 예약",
-    sourceDetail:WZ.source==="기타" ? (WZ.sourceDetail||"").trim() : "",
-    createdAt:new Date().toISOString(),
-    menuType:WZ.menuType||"해당 없음", courses:Object.assign({}, (WZ.courses||{})),
-    courseUndecided: !!WZ.courseUndecided,
-    allergy:"", allergyChecked:true, request:WZ.request.trim(),
-    memo:(WZ.memo||"").trim(),
-    status:"확정"
-  };
-  if(fixed && WZ.seatOkKey !== wzSeatKey()){
-    const iss = saveIssues(rec, null);
-    if(iss.length && !await uiConfirm("자리를 고른 뒤 날짜·시각·인원이 바뀌었습니다", iss.map(x=>"· " + x).join("\n") + "\n\n이대로 등록할까요?", {ok:"그래도 등록", cancel:"다시 고치기"})) return;
+function resTentLabel(r){
+  if(isTablePref(r.seatPref)) return "";   /* 테이블 예약의 숨은 배정은 이름을 보여 주지 않습니다 — 층까지만 */
+  return r.tentativeRoomId ? seatLabelIds([r.tentativeRoomId].concat(r.tentativeExtra||[])) : "";
+}
+
+/* 숫자만 남기고 010-0000-0000 형태로 자동 정리 */
+/* 010 으로 시작할 때만 자동으로 - 를 넣습니다.
+   직접 - 를 치는 분도 있어서, 사용자가 넣은 자리를 시스템이 다시 옮기면 오히려 방해가 됩니다.
+   그래서 이미 - 가 들어 있으면 손대지 않습니다. */
+/* ※ 예전에는 "값에 - 가 하나라도 있으면 손대지 않음" 이었는데, 시스템이 넣은 - 도 그 조건에 걸려
+      010-1234 까지 만든 뒤로는 다시 정리하지 않아 010-12345678 이 됐습니다.
+      이제 '사용자가 - 를 직접 쳤는지'(phoneManual)만 보고, 아니면 숫자만으로 매번 다시 만듭니다 */
+function fmtPhone(el, ev){
+  const raw = el.value;
+  if(ev && ev.inputType==="insertText" && ev.data==="-") WZ.phoneManual = true;
+  if(!raw.replace(/\D/g,"")) WZ.phoneManual = false;        /* 다 지우면 다시 자동으로 */
+  if(WZ.phoneManual){ WZ.phone = raw; return; }
+  /* + 로 시작하면 해외 번호 — 자리 규칙이 나라마다 달라 치는 대로 둠(+82 는 저장할 때 0 으로 바꿈) */
+  if(/^\s*\+/.test(raw)){ const t = "+" + raw.replace(/[^\d\s-]/g, "").replace(/^[\s-]+/, "").slice(0, 20); if(el.value !== t) el.value = t; WZ.phone = t; return; }
+  const d = raw.replace(/\D/g,"");
+  const out = phoneFmt(d.slice(0, phoneMax(d)));
+  if(el.value !== out) el.value = out;
+  WZ.phone = out;
+}
+/* 번호 종류별 최대 자릿수 — 050x 안심번호는 12자리, 서울(02)은 10자리, 1588 류는 8자리, 나머지 11자리 */
+function phoneMax(d){ return /^050/.test(d) ? 12 : /^02/.test(d) ? 10 : /^1[5-9]/.test(d) ? 8 : 11; }
+/* 숫자열 → 하이픈 넣은 번호. 휴대폰(01x) 3-4-4, 서울(02) 2-3-4 / 2-4-4, 지역번호(033 등) 3-3-4 / 3-4-4, 1588 류 4-4.
+   입력 중(자릿수가 다 안 찼을 때)에도 앞부분 하이픈은 미리 넣어 줍니다 */
+/* 입력한 번호를 저장용 모양으로 — 숫자만 남기고 phoneFmt. 서버 왕복 뒤 모양이 달라져 충돌로 오인하던 것을 막습니다(점검 D10) */
+function phoneNorm(v){
+  const s = String(v || "").trim();
+  if(/^\+/.test(s)){
+    const dd = s.replace(/\D/g, "");
+    if(/^82/.test(dd)) return phoneFmt("0" + dd.slice(2).replace(/^0/, ""));   /* +82 10-… → 010-… (국내 번호로) */
+    return "+" + s.slice(1).replace(/[^\d\s-]/g, "").replace(/\s+/g, " ").trim();   /* 해외: 친 모양 그대로 */
   }
-  if(WZ.reqId && typeof reqClaim === "function" && !await reqClaim(WZ.reqId, rec.id)) return;   /* 다른 기기가 먼저 처리했으면 만들지 않음(09-25) */
-  createReservation(rec);
-  /* 6차 전에는 view.date = rec.date 로 그 날짜로 점프했습니다. 이제 화면 날짜는 그대로 — 완료 화면에 날짜가 있고,
-     닫은 뒤 토스트의 '보기' 로 갈 수 있습니다(closeWizardDone) */
-  WZ.done = rec;
-  saveData(); render();
+  const d = s.replace(/\D/g, ""); return d ? phoneFmt(d) : "";
 }
-/* 등록 완료 화면 — 손님에게 그대로 읽어주면 되는 문장 */
-function wzDone(){
-  const r = WZ.done;
-  const d = new Date(r.date+"T00:00:00");
-  const dow = WD_KO[d.getDay()];
-  const [h,m] = r.time.split(":").map(Number);
-  const ap = h<12?"오전":"오후", h12 = h%12===0?12:h%12;
-  const seat = r.roomId ? resSeatLabel(r)
-             : seatText(r);
-  return `
-    <div class="wz done">
-      <div class="done-box">
-        <div class="check">✓</div>
-        <p class="done-msg">
-          <b>${d.getMonth()+1}월 ${d.getDate()}일 ${dow}요일, ${hm(WZ.done.time)}</b>,
-          <b>${esc(seat)}</b> 좌석,
-          <b>${esc(r.name)}</b>${tierTag(r)}${groupTag(r)} 손님<br>예약이 접수됐습니다
-        </p>
-        <div class="done-sub">${pplText(r)}${r.phone?` · ${esc(r.phone)}`:""}
-          ${r.menuType?`<br>식사: ${esc(r.menuType)}${r.courses&&Object.keys(r.courses).length?` (${esc(courseSummary(r.courses))})`:""}`:""}
-          ${r.allergy?`<br>알러지: ${esc(r.allergy)}`:""}${r.request?`<br>요청: ${esc(r.request)}`:""}</div>
-        <div class="done-btns">
-          <button class="btn lg" onclick="openWizard('${r.date}')">새 예약</button>
-          <button class="btn primary lg" onclick="closeWizardDone()">확인</button>
-        </div>
-      </div>
-    </div>`;
+/* 09-25 재아: 시작 번호마다 하이픈 자리·길이가 다름
+   010 3-4-4 · 011/016~019 3-3-4(10자리)·3-4-4 · 02 2-3-4·2-4-4 · 031 등 지역·070·080 3-3-4·3-4-4
+   0502~0508 안심번호 4-3-4·4-4-4 · 1588 류 4-4 · 서버에서 온 '+81…'(해외)는 그대로 */
+function phoneFmt(d){
+  if(!d) return "";
+  if(/^\+/.test(d)) return d;
+  let a = 3;                                   /* 앞자리(지역·통신사) 길이 */
+  if(d.indexOf("02") === 0) a = 2;
+  else if(/^050[2-8]/.test(d)) a = 4;          /* 0505-123-4567 안심번호 */
+  else if(/^1[5-9]/.test(d)) a = 4;            /* 1588-0000 같은 대표번호 */
+  if(d.length <= a) return d;
+  const rest = d.slice(a);
+  if(a === 4 && d.charAt(0) === "1") return d.slice(0,4) + "-" + rest;
+  /* 가운데 자리: 010 은 4, 그 외는 전체 길이가 (a+8) 이상이면 4, 아니면 3 */
+  const mid = /^010/.test(d) ? 4 : (d.length >= a+8 ? 4 : 3);
+  if(rest.length <= mid) return d.slice(0,a) + "-" + rest;
+  return d.slice(0,a) + "-" + rest.slice(0,mid) + "-" + rest.slice(mid);
 }
-function closeWizardDone(){ var r = WZ && WZ.done; WZ=null; render(); histPop(); toastSaved(r); }
 /* ============================================================
    디스플레이 모드 — TV에 띄우는 오늘의 예약 안내
    (F11 전체화면으로 사용. 손님이 직접 조작하지 않음)
