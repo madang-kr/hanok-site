@@ -5013,12 +5013,6 @@ function sessionsFor(date){
   if(dh.closed) return [];
   return sessionsOfDay(dh);
 }
-/* 세션 점유 글자 — 룸/테이블이 같으면 하나로, 다르면 둘 다 */
-function stayLabel(se){
-  var f = function(v){ return v === "end" ? "끝까지" : (v || 110) + "분"; };
-  var t = se.stayTable != null ? se.stayTable : se.stay;
-  return t === se.stay ? (se.stay === "end" ? "세션 끝까지 한 팀" : f(se.stay)) : "룸 " + f(se.stay) + " · 테이블 " + f(t);
-}
 /* 그 시각이 속한 세션. 첫 세션 전이면 첫 세션 */
 function sessionAt(date, time){
   const ss = sessionsFor(date); if(!ss.length || !time) return null;
@@ -5168,10 +5162,6 @@ function blockSpans(room, date){
   }
   return out;
 }
-/* 그 날짜에 걸리는 사용 중지 항목(원본 block)들 — 라벨에 '기간' 을 적으려고. blockSpans 는 그 날의 분 구간만 주기 때문 */
-function blocksOn(room, date){
-  return roomBlocks(room).filter(function(b){ if(!b.from || date < b.from) return false; if(!b.openEnded && b.to && date > b.to) return false; return true; });
-}
 /* "9/17" · "9/17 ~ 9/19" · "9/17 부터" — 하루면 날짜 하나, 여러 날이면 시작 ~ 끝(재아) */
 function blockPeriod(b){
   const md = function(d){ return d ? (+d.slice(5,7)) + "/" + (+d.slice(8,10)) : ""; };
@@ -5236,8 +5226,6 @@ function adultCount(people, infants, date){
 /* 마지막으로 예약을 받을 수 있는 시각 */
 /* 유아용 의자 기본값을 어린이 수로 채울지(true) 0개로 둘지(false). 설정에서 바꿉니다 */
 function chairDefaultInfants(){ return store().settings.chairDefault === "infants"; }   /* 기본 0개(재아). 설정에서 '어린이 수와 같게' 를 고르면 따라감 */
-/* 자리 기준을 성인만으로 볼지, 어린이를 포함해 볼지 */
-function seatCountsInfants(){ return store().settings.minCountAdultsOnly === false; }
 
 /* 마지막으로 예약(입장)을 받을 수 있는 시각 — 그 시각이 속한 세션의 lastBook. 라스트오더(주방 마감)와는 다릅니다 */
 function lastBookMin(date, time){
@@ -6028,7 +6016,6 @@ function pinPush(n){
 }
 function pinBack(){ PIN_BUF = PIN_BUF.slice(0,-1); render(); }
 function pinClear(){ PIN_BUF=""; PIN_ERR=""; render(); }
-function backToStores(){ view.storeKey=null; PIN_BUF=""; PIN_ERR=""; render(); }
 /* ============================================================
    PIN 확인
    서버 모드(SUPA_CFG 있음): PIN 4자리 + "00" 으로 staff 계정 로그인 — 진짜 검증. 틀림 5회 → 60초 잠금.
@@ -8224,10 +8211,6 @@ function sheetRequests(){
       ${supaOn() ? "" : `<button class="btn ghost" onclick="reqSeedDemo()">흉내 예약 넣기</button>`}
       <button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
-function reqAgo(iso){
-  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return m < 1 ? "방금" : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.floor(m/60)}시간 전` : `${Math.floor(m/1440)}일 전`;
-}
 
 /* ---------- 요청 하나 ---------- */
 function openRequest(id){ view.form = {type:"req", id}; render(); }
@@ -8328,10 +8311,6 @@ function reqAcceptWizard(id, step){
   const el = document.getElementById("wz-src-detail"); if(el) el.value = WZ.sourceDetail;
   render();
 }
-/* 마법사가 등록을 마치면 요청을 확정으로 돌립니다(wzRegister 끝에서 부름) */
-function reqAfterRegister(rec){
-  /* 09-25: 서버 확정은 등록 전에 wzSubmit 이 reqClaim 으로 이미 잡음(두 기기 동시 처리 방지). 여기선 할 일 없음 */
-}
 /* 예약 창으로 확정할 때 — 등록 직전에 접수를 잡음. 실패(다른 기기가 처리)면 false */
 async function reqClaim(reqId, resId){
   let r; try{ r = await REQ_API.accept(reqId, resId); }catch(e){ await uiAlert("확정하지 못했습니다", (e.network ? "인터넷 연결을 확인하세요." : e.message || "") + "\n예약은 만들지 않았습니다.", "warn"); return false; }
@@ -8370,12 +8349,6 @@ async function reqReject(id, whyGiven){
   showToast("거절했습니다 · 문자 흉내");
   view.reqRej = null; openRequests();
 }
-/* 목록 시트에서 고르는 작은 상자 — 없으면 confirm 으로 대신 */
-async function uiPick(title, opts){
-  if(typeof uiChoose === "function") return uiChoose(title, opts);
-  const s = prompt(title + "\n" + opts.map((o,i)=>`${i+1}. ${o}`).join("\n"), "1");
-  const n = parseInt(s, 10); return n >= 1 && n <= opts.length ? n - 1 : null;
-}
 
 /* 새 홈페이지 예약이 들어오면 화면 위에 알림 — 확인하면 그 창으로, 닫으면 그냥 닫힘.
    실제 연동에서는 갱신(refresh) 때 못 보던 id 가 있으면 reqNotify(newOnes) 를 부르면 됩니다 */
@@ -8394,7 +8367,6 @@ function reqNotifyPending(){
   uiConfirm(`홈페이지 예약 대기 ${pend.length}건`, `${pend.length}건의 예약이 확정을 기다리고 있습니다.`, {ok:"확인하기", cancel:"닫기", tone:"ok"})
     .then(ok => { if(ok){ if(WZ) return; view.form = null; openRequests(); } });
 }
-function reqPush(q){ REQUESTS.push(q); render(); reqNotify([q]); }
 
 /* 흉내 데이터 — 사이트에서 접수한 것처럼 몇 건 넣습니다 */
 function reqSeedDemo(){
@@ -8576,7 +8548,6 @@ function sec(key, title, extra, inner, help){   /* help: 제목 오른쪽 ⓘ �
   if(view.setSec) return "";   /* 다른 구역이 열려 있으면 안 그림 */
   return `<button class="own-it" onclick="view.setSec='${key}'; render(); window.scrollTo(0,0)">${ICON[SET_ICON[key]] || ""}<b>${title}</b><small>${extra||""}</small></button>`;
 }
-function setSecBack(){ view.setSec = null; render(); }
 function renderSettings(){
   INFO_NOTES = [];                  /* ⓘ 설명은 그릴 때마다 새로 모읍니다 */
   const st = draft();               /* 임시본 — '적용하기'를 눌러야 반영됩니다 */
@@ -8921,55 +8892,12 @@ function copyScreenUrl(){
     ()=>uiAlert("복사 완료","TV 브라우저 주소창에 붙여넣으세요.","ok"),
     ()=>uiAlert("복사 실패","주소를 직접 입력해 주세요.","warn"));
 }
-function moveDisp(id, dir){
-  const st = draft();
-  const rows = (st.displayRows && st.displayRows.length===3)
-    ? st.displayRows.map(r=>[...r]) : displayRows().map(r=>[...r]);
-  const from = rows.findIndex(r=>r.includes(id));
-  const to = from + dir;
-  if(from<0 || to<0 || to>2) return;
-  rows[from] = rows[from].filter(x=>x!==id);
-  rows[to].push(id);
-  st.displayRows = rows;
-  render();
-}
 function setSetting(k,v){ draft()[k]=v; render(); }
-function toggleAdultOnly(){
-  const st = draft();
-  st.minCountAdultsOnly = st.minCountAdultsOnly===false;
-  render();
-}
-function toggleHoliday(){
-  const st = draft();
-  st.holidayMode = st.holidayMode===false;
-  render();
-}
-function addHoliday(){
-  const v = document.getElementById("hol-date").value;
-  if(!v) return;
-  const st = draft();
-  st.holidaysOff = (st.holidaysOff||[]).filter(x=>x!==v);
-  st.holidays = [...new Set([...(st.holidays||[]), v])];
-  view.holYear = Number(v.slice(0,4));
-  render();
-}
-function delHoliday(d){
-  const st = draft();
-  if((st.holidays||[]).indexOf(d) >= 0) st.holidays = st.holidays.filter(x=>x!==d);
-  else st.holidaysOff = (st.holidaysOff||[]).concat([d]);   /* 내장표의 날짜는 지울 수 없으니 '제외' 목록에 */
-  render();
-}
-function restoreHoliday(d){ const st = draft(); st.holidaysOff = (st.holidaysOff||[]).filter(x=>x!==d); render(); }
 /* 숫자 값을 팝업으로 고칩니다 (키패드 대신 큰 버튼) */
 function openNum(key, title, min, max, ctx){
   /* 좌석 고치기 창(redit·tedit·jedit)에서 열면 확인·취소 뒤 그 창으로 돌아감(09-25) */
   const ret = (view.form && ["redit","tedit","jedit"].indexOf(view.form.type) >= 0) ? view.form : null;
   view.form = {type:"num", key, title, min, max, ctx, val:null, ret};
-  render();
-}
-function toggleHolidayWeekend(){
-  const st = draft();
-  st.holidayAsWeekend = st.holidayAsWeekend===false;
   render();
 }
 function courseSet(){ const st=draft(); if(!st.courseGroups) st.courseGroups=deepClone(DEFAULT_COURSE_GROUPS); return st.courseGroups; }
@@ -9047,16 +8975,6 @@ async function delCourseRow(i){
   const g=courseSet();
   if(!await uiConfirm("행을 삭제할까요?", `${g[i].label} — 항목 ${(g[i].items||[]).length}개`, {ok:"삭제"})) return;
   g.splice(i,1); render();
-}
-/* 설정 목록 한 줄에 붙는 사용 중지 요약 — 지금 걸린 것만 짧게 */
-function blockSummary(r){
-  const list = roomBlocks(r);
-  if(!list.length) return "";
-  const now = blockedAt(r, todayStr());
-  const txt = now
-    ? `사용 중지 중${now.note?` (${esc(now.note)})`:""}`
-    : `사용 중지 예정 ${list.length}건`;
-  return ` · <b style="color:var(--rust)">${txt}</b>`;
 }
 function openBlocks(id){ const ret = (view.form && ["redit","tedit"].indexOf(view.form.type) >= 0) ? view.form : null; view.form={type:"blocks", id, ret}; view.blkDraft=null; render(); }
 /* 같은 종류(룸끼리·같은 층 테이블끼리) 안에서만 순서를 바꿉니다 — 배열은 룸·테이블이 섞여 있어 절대 index 로 바꾸면 종류를 넘어감 */
@@ -9230,12 +9148,6 @@ async function addSource(){
   render();
 }
 function delSource(x){ const st=draft(); st.sources=(st.sources||[]).filter(s=>s!==x); render(); }
-
-/* 묶음 제목 옆 "9월 22일부터 바뀜" — 예정이 걸려 있으면 */
-function schedChip(group){
-  const l = schedFor(group, store().settings);
-  return l.length ? ` <span class="pill amber" onclick="event.stopPropagation(); openScheduled()">${esc(dateLabel(l[0].from))}${l[0].to?" ~":""}부터 바뀜${l.length>1?` 외 ${l.length-1}`:""}</span>` : "";
-}
 /* ---------- 홈페이지 관리 (설정 → 홈페이지 → 열기. 설정이 관리자 비밀번호라 여기서 또 묻지 않음) ----------
    가게 사이트(../)의 글·사진·팝업·차림·영업시간·연락처와 '홈페이지 예약' 규칙을 여기서 고칩니다. 값은 설정(store().settings)이 아니라 서버 site_draft/site_versions 에 있습니다.
 
@@ -9525,13 +9437,7 @@ function saSwHtml(on, click, label, note){
   return '<div class="sa-line"><span class="sa-line-l"><b>' + esc(label) + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</span>' +
     '<button type="button" class="sa-sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + (on ? "true" : "false") + '" aria-label="' + esc(label) + '" onclick="' + click + '"><i></i></button></div>';
 }
-function saSw(path, label, note){ return saSwHtml(!!saGet(path), "saToggle('" + path + "')", label, note); }
 /* ---------- 날짜·기간 단추(09-24 재아: 기기 달력 대신 우리 팝업 06b) ---------- */
-function saDateBtn(path, label, ph){
-  var v = saGet(path) || "";
-  return '<button type="button" class="sa-pick' + (v ? '' : ' empty') + '" onclick="saPickDate(\'' + path + '\', \'' + esc(label) + '\')">' + (v ? esc(pkShort(v)) : esc(ph || "날짜 고르기")) + '</button>';
-}
-function saPickDate(path, label){ uiDate(label, saGet(path) || "", {clear:true}).then(function(v){ if(v != null){ saSet(path, v); render(); } }); }
 function saRangeBtn(pf, pt, label, opt){
   opt = opt || {};
   var a = saGet(pf) || "", b = saGet(pt) || "", t = pkRangeText(a, b);
@@ -9553,10 +9459,6 @@ function saPast(key, label, items){
   if(!items.length) return "";
   var on = !!(SA.pastOpen && SA.pastOpen[key]);
   return '<div class="sa-past"><button type="button" class="sa-past-h" onclick="SA.pastOpen=SA.pastOpen||{}; SA.pastOpen[\'' + key + '\']=' + (on ? 'false' : 'true') + '; render()">' + (on ? '▲' : '▼') + ' ' + esc(label) + ' ' + items.length + '</button>' + (on ? items.join("") : "") + '</div>';
-}
-function saD(path, label, note){   /* 날짜 — 기기 달력으로 */
-  var v = saGet(path); if(v == null) v = "";
-  return '<label class="f sa-f"><div class="lb">' + esc(label) + '</div><input type="date" class="in-sm" value="' + esc(v) + '" onchange="saSet(\'' + path + '\', this.value); render()">' + (note ? '<div class="f-note">' + note + '</div>' : '') + '</label>';
 }
 /* ---------- 파일 칸 하나 (09-24 재아: 첨부 양식 통일) ----------
    예전엔 주소(https://…)가 입력창에 그대로 보여 고칠 수 있었음 — 사장님이 주소를 볼 일도, 손댈 일도 없음.
@@ -9732,7 +9634,6 @@ function saSysSpecials(){
       (sp.note ? '<div class="sa-ro-s muted">' + esc(sp.note) + '</div>' : '') + '</div>';
   }).join("");
 }
-function saSpAdd(){ var a = saGet("online.special") || []; a.push({title:"", from:"", to:"", courses:[], lunch:[], note:"", open:false, lock:true, openFrom:"", openTo:""}); saSet("online.special", a); SA.open = "sp:" + (a.length - 1); render(); }
 function saSpToggle(i){ var p = "online.special." + i, sp = saGet(p); var v = !saSpOpen(sp); saSet(p + ".open", v); saSet(p + ".lock", !v); render(); }
 function saSpCard(sp, i){
   var p = "online.special." + i;
@@ -10484,9 +10385,6 @@ function sheetStaff(){
            : HR.view === "pay" ? hrPayView() : HR.view === "leave" ? hrLeaveView() : HR.view === "rec" ? hrRecView() : hrWeekView();
   return top + body + (HR.pop ? hrPopHtml() : "") + (HR.edit ? hrEditHtml() : "") + (HR.slip ? hrSlipHtml() : "") + (HR.setup ? hrSetupHtml() : "") + (HR.adj ? hrAdjHtml() : "") + (HR.help ? hrHelpHtml() : "");
 }
-/* 기간 옮기기(재아 09-20): 화살표 말고도 날짜를 바로 골라 뛸 수 있게 — 제목 옆 달력 입력 */
-async function hrJumpWeek(v){ if(!v) return; HR.week = hrWeekStart(v); HR.loading = true; render(); await hrLoadRange(); HR.loading = false; render(); }
-async function hrJumpMonth(v){ if(!/^\d{4}-\d{2}$/.test(v || "")) return; HR.month = v; HR.loading = true; render(); await hrLoadRange(); HR.loading = false; render(); }
 /* 기간 머리(09-20 재아): 가운데 제목·기간, 양옆 화살표. ‹ › 는 주(급여는 달), « » 는 달(급여는 해). 달력 입력은 뺌 */
 function hrPeriodHead(title, sub, onPrev, onToday, onNext, isNow){
   var pay = HR.view === "pay" || HR.view === "rec";
@@ -11603,7 +11501,6 @@ function thTidy(t){
 function thStop(){ TH.stop = true; TH.run = null; Object.keys(TH.busy).forEach(function(k){ TH.busy[k] = false; }); render(); showToast("중단했습니다"); }
 function thRunning(){ return !!(TH && (TH.run || Object.keys(TH.busy).some(function(k){ return TH.busy[k]; }))); }
 function thUseTemplate(resId){ var r = store().reservations.find(function(x){ return x.id === resId; }); if(!r) return; var it = thItem(r); it.text = thTemplate(r, thKw(it)); it.made = "template"; it.err = ""; it.manual = true; render(); }
-function thManual(resId){ var it = TH.items[resId]; if(it){ it.manual = true; if(!it.made) it.made = "manual"; render(); setTimeout(function(){ var el = document.getElementById("th-ta-" + resId); if(el) el.focus(); }, 30); } }
 function thSetText(resId, v, el){ var it = TH.items[resId]; if(!it) return; var max = thCfg().maxLen; if(v.length > max){ v = v.slice(0, max); if(el) el.value = v; } it.text = v; it.made = "manual"; it.manual = true; if(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 360) + "px"; var m = el.parentNode.querySelector(".th-meta > span"); if(m) m.textContent = v.length + "자 / " + max + "자 · 직접 입력"; } }
 /* 키워드 알약 — Enter 나 '등록' 으로 쌓이고 × 로 뺌. 프리셋(설정)은 누르면 바로 들어감 */
 function thAddKw(resId, v){ var it = TH.items[resId]; if(!it) return; v = String(v || "").trim(); if(!v) return; if(it.kws.indexOf(v) < 0) it.kws.push(v); render(); setTimeout(function(){ var el = document.getElementById("th-kw-" + resId); if(el) el.focus(); }, 20); }
@@ -11751,7 +11648,6 @@ function thSettingsBody(st){
 /* 설정 임시본의 ai — 고칠 때만 만듦(그리기만 해선 안 만듦) */
 function thAi(){ var st = draft(); st.ai = Object.assign({}, st.ai || {}); return st.ai; }
 function thAiLines(){ var a = thAi(); if(!Array.isArray(a.extraLines)) a.extraLines = thExtraLines(a); else a.extraLines = a.extraLines.slice(); return a.extraLines; }
-function thEsc(){ return false; }
 /* AI 가 도는 동안은 감사 문자 화면을 못 나감(15-sheets closeSheet 가 부름) */
 function thGuard(){ if(view.form && view.form.type === "thanks" && thRunning()){ showToast("AI 가 글을 짓는 중입니다 — 끝나거나 중단한 뒤에 나가세요"); return true; } return false; }
 /* 확인 필요 목록용: 어제 '방문' 인데 감사 문자를 예약·발송하지 않은 건수. thanksTick 이 1분마다 갱신 */
@@ -11894,10 +11790,6 @@ async function dqDelete(id){
   if(!await uiConfirm("이 글을 지울까요?", "지우면 되돌릴 수 없습니다. 답변도 같이 사라집니다.", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
   try{ await sb("/rest/v1/dev_requests?id=eq." + id, { method:"DELETE", prefer:"return=minimal" }); DQ.open = null; await dqLoad(); render(); }
   catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
-}
-async function dqDone(id){
-  try{ await sb("/rest/v1/dev_requests?id=eq." + id, { method:"PATCH", body:{ status:"끝" }, prefer:"return=minimal" }); DQ.open = null; await dqLoad(); render(); }
-  catch(e){ await uiAlert("바꾸지 못했습니다", e.message || String(e), "warn"); }
 }
 /* ---------- 메뉴판(31차, 09-25 재아) ----------
    사장님이 메뉴판을 여러 개(2026 통합 · 추석 특별 · 외국인용 …) 만들고 고치고 PDF·사진으로 뽑는 도구.
@@ -13699,7 +13591,6 @@ async function clearNoshow(key){
   mirrorDraft("noshowExcluded");
   saveData(); render();
 }
-function restoreNoshow(){ store().settings.noshowExcluded = []; mirrorDraft("noshowExcluded"); logEvent("노쇼 경고 제외 전부 해제", ""); saveData(); render(); }
 async function unclearNoshow(key){
   if(readonlyBlock()) return;
   const st = store().settings; st.noshowExcluded = (st.noshowExcluded||[]).filter(k=>k!==key); mirrorDraft("noshowExcluded");
@@ -14164,12 +14055,6 @@ async function saveOverride(){
   }
   view.holYear = Number(from.slice(0,4)); view.ovrDraft = null; render(); showToast("넣었습니다 — 오른쪽 위 '적용하기' 를 눌러야 반영됩니다");
 }
-async function delOverride(date){
-  if(!await uiConfirm("임시 일정을 삭제할까요?", dateLabel(date), {ok:"삭제"})) return;
-  const st = draft();
-  st.overrides = st.overrides.filter(o=>o.date!==date);
-  render();
-}
 
 /* ---------- 공용 PIN 변경 ----------
    09-25(재아): 현재 PIN 은 안 묻고 2차 PIN · 새 PIN · 새 PIN 확인. 보안 화면이 사장님 것이라 현재 PIN 을 몰라도 바꿀 수 있어야 함.
@@ -14337,7 +14222,6 @@ function logList(tab, q){
       <span class="lg-d">${esc(l.detail)}</span>
     </div>`).join("") || `<div class="empty">기록이 없습니다.</div>` };
 }
-function logNote(tab, r){ return ""; }   /* 설명 글은 뺌(09-25 재아) */
 /* 설정 로그 전부(09-25 재아: 60번 제한 없이) — 서버 logs 의 '설정 로그' 줄을 모두 읽고, 그 전에 기기 설정(_setlog, 최근 60)에만 있던 것도 합침 */
 function setLogServer(items){
   if(!supaOn() || !SESSION || OFFLINE || !items || !items.length) return;
@@ -14429,9 +14313,8 @@ async function sendSmsFree(){
 }
 function setLogQuery(v){
   view.logQuery = v;
-  const tab = view.logTab || "use", r = logList(tab, v), box = document.querySelector(".logbox"), note = document.getElementById("log-note");
+  const tab = view.logTab || "use", r = logList(tab, v), box = document.querySelector(".logbox");
   if(box) box.innerHTML = r.html;   /* 다시 그리지 않고 목록만 — 치는 중에 입력칸이 튀지 않게 */
-  if(note) note.textContent = logNote(tab, r);   /* 설명 칸은 없어짐 — 있으면만 */
 }
 /* 지금 보는 탭 전체를 복사(검색과 무관). 보안 화면 안이라 2차 PIN 을 다시 묻지 않음(09-25 재아) */
 function copyLogs(){
@@ -15008,10 +14891,6 @@ function tableHint(r){
 }
 /* 확인 시트·검색·상세에 쓰는 좌석 꼬리표(8차-AB 재아) — 잠정도 '배정된 것' 이라 붉게 쓰지 않습니다. 붉은색은 자리가 정말 없을 때만.
    확정 룸/테이블 → 'pine', 잠정 → 색 없음 '장비 룸(잠정)' / '1층 테이블 · 21(잠정)', 자리 없음 → 'rust' */
-function seatTag(r){
-  var t = seatTagText(r);
-  return '<span class="tag ' + (r.roomId ? "pine" : (t.ok ? "" : "rust")) + '">' + esc(t.text) + '</span>';
-}
 function seatTagText(r){
   if(r.roomId) return { ok:true, text:resSeatLabel(r) };
   var live = holdsSeat(r);   /* 취소·노쇼는 자리를 안 잡으니 '자리 없음' 이라고 붉게 쓰지 않습니다 */
@@ -15622,14 +15501,6 @@ function wzStepGuest(){
     </div>
     `;
 }
-function wzAllergyNone(v){
-  wzSyncInputs();
-  const next = (v === false) ? false : !WZ.allergyNone;
-  if(next === WZ.allergyNone) return;
-  WZ.allergyNone = next;
-  if(next) WZ.allergy = "";
-  render();
-}
 /* 인자 없이 부르면 토글, false 를 주면 해제만 (입력칸을 누르면 자동 해제) */
 function wzPhoneNone(v){
   const next = (v === false) ? false : !WZ.phoneNone;
@@ -15949,7 +15820,6 @@ async function wzSubmit(){
   }
   if(WZ.reqId && typeof reqClaim === "function" && !await reqClaim(WZ.reqId, rec.id)) return;   /* 다른 기기가 먼저 처리했으면 만들지 않음(09-25) */
   createReservation(rec);
-  reqAfterRegister(rec);   /* 홈페이지 요청을 승인해 온 것이면 요청을 '확정' 으로 (11b) */
   /* 6차 전에는 view.date = rec.date 로 그 날짜로 점프했습니다. 이제 화면 날짜는 그대로 — 완료 화면에 날짜가 있고,
      닫은 뒤 토스트의 '보기' 로 갈 수 있습니다(closeWizardDone) */
   WZ.done = rec;
@@ -16163,37 +16033,8 @@ function pokeExit(ms){
   }, ms||5000);
 }
 
-/* 이름 가운데 글자를 * 로 가림 — 손님 이름이 TV에 그대로 노출되지 않도록 */
-/* 디스플레이 모드에 쓸 좌석 배치 — 3행, 각 행 최대 6칸 */
-const DISP_MAX = 6;
-function displayRows(){
-  const st = store().settings;
-  /* 테이블은 개별이 아니라 층별 한 칸("tables:1층")으로 — TV 는 룸 8칸 + 테이블 층 2칸이면 충분 */
-  const ids = st.rooms.filter(isRoom).map(r=>r.id).concat(tableFloors().map(f=>"tables:"+f));
-  const saved = st.displayRows;
-  if(saved && saved.length===3){
-    /* 없어진 좌석은 빼고, 새로 생긴 좌석은 빈 칸이 있는 행에 넣습니다 */
-    const rows = saved.map(row=>row.filter(id=>ids.includes(id)));
-    const placed = new Set([].concat.apply([], rows));
-    ids.filter(id=>!placed.has(id)).forEach(id=>{
-      const row = rows.find(r=>r.length<DISP_MAX) || rows[2];
-      row.push(id);
-    });
-    return rows;
-  }
-  /* 기본: 1행 테이블(층별), 2·3행 룸을 반씩 */
-  const halls = tableFloors().map(f=>"tables:"+f);
-  const rooms = st.rooms.filter(isRoom).map(r=>r.id);
-  const half = Math.ceil(rooms.length/2);
-  return [halls, rooms.slice(0,half), rooms.slice(half)];
-}
 function tableFloors(){
   const out = []; (store().settings.rooms||[]).filter(isTable).forEach(t=>{ if(out.indexOf(t.floor||"")<0) out.push(t.floor||""); }); return out;
-}
-/* 디스플레이 칸 하나의 정보 — 룸이면 그 룸, "tables:층" 이면 그 층 테이블 묶음 */
-function dispCell(id){
-  if(/^tables:/.test(id)){ const fl = id.slice(7); return {id, name:`${fl||""} 테이블`.trim(), floor:"", floorKey:fl, type:"tables", ids:store().settings.rooms.filter(t=>isTable(t) && (t.floor||"")===fl).map(t=>t.id)}; }
-  const r = seatById(id); return r ? Object.assign({ids:[r.id]}, r) : null;
 }
 /* ---------- 디스플레이 모드 글자 크기 자동 맞춤 ----------
    TV는 3~5m 떨어져서 봅니다. 예약이 적은 날에도 글자가 작으면 그냥 안 보입니다.
@@ -16255,12 +16096,6 @@ function capEach(grid, minKeep){
   }
   return ok;
 }
-/* 칸 안의 목록이 칸 높이를 넘는지 */
-function overflowing(grid){
-  var uls = grid.querySelectorAll(".dsec ul"), i;
-  for(i=0;i<uls.length;i++) if(uls[i].scrollHeight > uls[i].clientHeight + 1) return true;
-  return false;
-}
 /* 크기 단위는 vh 가 아니라 --tvu 입니다. 세로 휴대폰 미리보기처럼
    판 전체를 축소하는 화면에서는 --tvu 가 px 로 바뀌기 때문입니다. */
 function setGridSize(grid, s){
@@ -16270,10 +16105,6 @@ function setGridSize(grid, s){
 /* 칸마다 최대 cap 줄까지만 남기고 접습니다.
    지난 예약부터 접는 이유: 손님이 이 화면에서 알고 싶은 건 '앞으로 언제 자리가 차는지'라
    이미 지나간 시각은 자리를 차지할 값어치가 가장 낮습니다. */
-function capLists(grid, cap){
-  var uls = grid.querySelectorAll(".dsec ul");
-  for(var u=0; u<uls.length; u++) capList(uls[u], cap);
-}
 function capList(ul, cap){
   {
     var items = [], k;
@@ -16340,14 +16171,6 @@ function tvType(){
   var st = view.storeKey && DATA && DATA[view.storeKey] ? DATA[view.storeKey].settings : null;
   var t = st && st.tvType ? st.tvType : (DATA && DATA._ui ? DATA._ui.tvType : null);
   return t === "list" ? "list" : "grid";   /* 09-20(재아): 좌석표가 기본. 목록은 설정에서 고른 경우만 */
-}
-function setTvType(t){
-  if(readonlyBlock()) return;
-  t = (t === "grid" ? "grid" : "list");
-  /* 설정 화면(임시본) 안의 버튼이라 임시본과 실제 설정에 같이 씁니다 — 아니면 '적용하기' 가 옛값으로 되돌립니다 */
-  if(view.draft) view.draft.tvType = t;
-  store().settings.tvType = t;
-  saveData(); render();
 }
 /* TV 에는 마우스가 없을 수 있습니다. 전환 버튼은 보조이고,
    평소 쓸 방식은 설정에서 정해 둡니다. 고른 값은 새로고침해도 남습니다. */
@@ -16484,7 +16307,7 @@ function tvSideHtml(){
    · 기둥 안: 룸 카드 2×2 + 아래에 그 층 테이블 카드(넓게). 룸 이름은 명조 크게, 정원은 작게.
    · 카드 안: 지난 손님은 빼고(30분), '다음 손님' 한 줄만 크게 — 나머지는 작은 줄. 비어 있으면 '예약 없음' 을 조용히.
    · TV(40~43인치, 3~5m)는 대비가 중요 — 유리판 카드 위에 흰 글자, 금색은 다음 손님 표시에만.
-   fitDisplay/capLists 는 그대로 씁니다(.tv-grid · .dsec ul · li.past · li.more · two-col). */
+   fitDisplay/capList 는 그대로 씁니다(.tv-grid · .dsec ul · li.past · li.more · two-col). */
 function renderTvGrid(){
   const s = store() || DATA.hanok;
   const today = todayStr();
@@ -16553,7 +16376,6 @@ document.addEventListener("keydown", function(e){
     if(MODAL){ e.preventDefault(); if(MODAL.mode === "alert") modalAnswer(true); else modalAnswer(MODAL.mode === "confirm" ? false : null); return; }
     if(WZ && !WZ.done){ e.preventDefault(); closeWizard(); return; }
     if((typeof hrEsc === "function" && hrEsc()) || (typeof gsEsc === "function" && gsEsc())){ e.preventDefault(); return; }   /* 워크시프트·손님 화면 안의 작은 창부터 */
-    if(typeof thEsc === "function" && thEsc()){ e.preventDefault(); return; }
     if(typeof cdEsc === "function" && cdEsc()){ e.preventDefault(); return; }   /* 퇴근하기 안의 워크시프트·감사 문자 팝업 */
     if(view.form && view.form.type === "site" && SA && (SA.postZoom != null || SA.postPreview)){ e.preventDefault(); SA.postZoom = null; SA.postPreview = null; render(); return; }
     if(view.form){ e.preventDefault(); closeSheet(); }
