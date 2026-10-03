@@ -177,7 +177,20 @@
     if(step > 1 && step < 8){ ask("예약을 그만두시겠습니까?", "입력하신 내용은 저장되지 않습니다.", "그만두기", close); return; }
     close();
   }
-  function onKey(e){ if(e.key === "Escape"){ if($(".rv-ask", ov)) $(".rv-ask .no", ov).click(); else confirmClose(); } }
+  function onKey(e){
+    if(e.key === "Escape"){ if($(".rv-ask", ov)) $(".rv-ask .no", ov).click(); else confirmClose(); return; }
+    /* Tab 이 창 밖(뒤에 가려진 홈페이지)으로 나가지 않게 창 안에서 돌림(10-03). 확인 상자가 떠 있으면 그 안에서만.
+       단계 제목처럼 Tab 으로는 못 가는 자리(tabindex=-1)에 초점이 있을 때는 브라우저가 알아서 다음 칸으로 감 */
+    if(e.key !== "Tab" || !ov) return;
+    const root = $(".rv-ask", ov) || $(".rv", ov);
+    const els = Array.from(root.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(x => !x.hidden && x.getClientRects().length);
+    if(!els.length){ e.preventDefault(); return; }
+    const first = els[0], last = els[els.length - 1], a = document.activeElement;
+    if(!root.contains(a)){ e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+    else if(e.shiftKey && a === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && a === last){ e.preventDefault(); first.focus(); }
+  }
 
   /* 창 안에서 묻는 작은 확인 상자 */
   function ask(title, body, okLabel, onOk){

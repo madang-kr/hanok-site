@@ -231,7 +231,8 @@ html.shot .band{height:580px}
 body.rv-open{overflow:hidden}
 .rv-ov{position:fixed; inset:0; z-index:110; background:rgba(0,0,0,.66); display:flex; align-items:center; justify-content:center; padding:28px; animation:rv-fade .2s ease}
 @keyframes rv-fade{from{opacity:0} to{opacity:1}}
-.rv{--ink:#191614; --text:#413A35; --sub:#847B71; --line:#E8E3DB; --line-2:#CFC7BB; --gold:#9A7B46; --soft:#F7F4EF;
+.rv{--ink:#191614; --text:#413A35; --sub:#766D63;   /* --sub: 10-03 에 #847B71 → #766D63 — 창·단계 띠·안내 바탕 모두에서 글자 대비 4.5:1 이상(전엔 3.7~4.05) */
+    --line:#E8E3DB; --line-2:#CFC7BB; --gold:#9A7B46; --soft:#F7F4EF;
     background:#FDFCFA; color:var(--text); width:min(720px,100%); height:min(820px, 92vh); display:flex; flex-direction:column;
     letter-spacing:-.01em; box-shadow:0 30px 80px rgba(0,0,0,.45)}
 .rv h2, .rv h3{color:var(--ink)}
