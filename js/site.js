@@ -127,7 +127,8 @@ window.SITE_READY.then(function(){
      data-href="info.naverMap"  링크 주소 */
   document.querySelectorAll("[data-t]").forEach(el => { const v = get(el.dataset.t); if(v != null) el.innerHTML = rich(v); });
   document.querySelectorAll("[data-paras]").forEach(el => { const v = get(el.dataset.paras); if(Array.isArray(v)) el.innerHTML = v.map(x => `<p>${rich(x)}</p>`).join(""); });
-  document.querySelectorAll("[data-list]").forEach(el => { const v = get(el.dataset.list); if(Array.isArray(v)) el.innerHTML = v.map(x => `<li>${rich(x)}</li>`).join(""); });
+  document.querySelectorAll("[data-list]").forEach(el => { const v = get(el.dataset.list); if(!Array.isArray(v)) return; el.innerHTML = v.map(x => `<li>${rich(x)}</li>`).join("");
+    const h = el.previousElementSibling; if(h && h.tagName === "H3") h.hidden = !v.length;   /* 목록이 비면 바로 위 제목도 숨김(10-03) */ });
   document.querySelectorAll("[data-img]").forEach(el => { const v = get(el.dataset.img); if(v) el.src = imgUrl(v); const a = el.dataset.alt ? get(el.dataset.alt) : null; if(a != null) el.alt = a; });
   document.querySelectorAll("[data-href]").forEach(el => { const v = get(el.dataset.href); if(v) el.href = v; });
   document.querySelectorAll("a[href^='tel:'][data-tel]").forEach(el => { el.href = "tel:" + INFO.tel; el.textContent = INFO.tel; });
@@ -173,9 +174,9 @@ window.SITE_READY.then(function(){
         ${s.items.map(x=>`<div class="set"><b>${esc(x.name)}</b><span>${x.dishes.map(esc).join(" · ")}</span></div>`).join("")}</div>`).join("");
     const CN = {"고기류":"肉","해산물류":"海鮮","닭고기류":"鷄","잡품류":"雜","냉채류":"冷菜","탕류":"湯"};
     $("#dishes-body").innerHTML = MENU.dishes.map(g => `<div class="dgroup"><h3>${esc(g.group)}<small>${esc(CN[g.group]||"")}</small></h3>
-        ${g.items.map(x=>`<div class="dish"><span class="n">${esc(x.name)}</span></div>`).join("")}</div>`).join("");
+        ${g.items.map(x=>`<div class="dish"><span class="n">${esc(x.name)}</span>${x.tag?`<span class="opt">${esc(x.tag)}</span>`:""}</div>`).join("")}</div>`).join("");
     $("#dumplings-body").innerHTML = `<div class="dgroup">
-        ${MENU.dumplings.items.map(x=>`<div class="dish"><span class="n">${esc(x.name)}</span></div>`).join("")}</div>`;
+        ${MENU.dumplings.items.map(x=>`<div class="dish"><span class="n">${esc(x.name)}</span>${x.tag?`<span class="opt">${esc(x.tag)}</span>`:""}</div>`).join("")}</div>`;
     $("#drinks-body").innerHTML = MENU.drinks.map(g => `<div class="dgroup"><h3>${esc(g.group)}</h3>
         ${g.items.map(x=>`<div class="drink"><span class="n">${esc(x.name)}</span>${x.tag?`<span class="opt">${esc(x.tag)}</span>`:""}${x.sizes?`<span class="opt">${x.sizes.map(s=>esc(String(s[0]).replace(/^[대중소]\s*/,""))).filter(Boolean).join(" · ")}</span>`:""}</div>`).join("")}</div>`).join("");
   }
@@ -189,26 +190,4 @@ window.SITE_READY.then(function(){
     Object.keys(empty).forEach(k => { const el = document.getElementById(k); if(el && empty[k]) el.style.display = "none"; });
   }
 });
-
-/* ---------- 방문 세기 (09-24 재아: 개발자 페이지 통계) ----------
-   장을 열 때 한 줄: 어느 장 · 이 브라우저의 무작위 번호(하루 방문자 수를 세려고, 이름·IP 같은 건 없음) · 어디서 왔나(도메인만) · 폰/태블릿/PC.
-   예약 창 열림·접수도 같은 표에 'ev:' 로. 미리보기(?preview)·화면 캡처(?shot)·로봇·내 PC(localhost)는 안 셈. 실패해도 조용히 */
-window.hanokHit = (function(){
-  const S = window.SUPA;
-  const skip = !S || !S.url || /localhost|127\.0\.0\.1/.test(location.hostname) || /[?&](preview|shot|only)=/.test(location.search) ||
-               navigator.webdriver || /bot|crawl|spider|slurp|preview|headless/i.test(navigator.userAgent);
-  let vid = "";
-  try{ vid = localStorage.getItem("hanok-vid") || ""; if(!vid){ vid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); localStorage.setItem("hanok-vid", vid); } }
-  catch(e){ vid = "x" + Math.random().toString(36).slice(2, 12); }
-  const dev = innerWidth < 760 ? "mobile" : innerWidth < 1100 ? "tablet" : "pc";
-  let ref = ""; try{ const h = document.referrer ? new URL(document.referrer).hostname : ""; ref = h && h !== location.hostname ? h.replace(/^www\./, "").slice(0, 80) : ""; }catch(e){}
-  return function(page){
-    if(skip) return;
-    try{
-      fetch(S.url + "/rest/v1/site_hits", { method:"POST", keepalive:true,
-        headers:{ apikey:S.anonKey, Authorization:"Bearer " + S.anonKey, "Content-Type":"application/json", Prefer:"return=minimal" },
-        body:JSON.stringify({ store:S.store || "hanok", page:String(page).slice(0, 40), vid:vid, ref:ref, dev:dev }) }).catch(() => {});
-    }catch(e){}
-  };
-})();
-window.hanokHit(document.body.dataset.page || location.pathname.replace(/^\/|\.html$/g, "") || "home");
+/* 방문 세기(hanokHit)는 js/hit.js — 바로 예약 장(reserve.html)도 같이 쓰려고 뗌(10-03) */
