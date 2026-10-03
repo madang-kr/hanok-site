@@ -10,7 +10,6 @@ window.SITE_READY.then(function(){
   /* 글 → HTML: 줄바꿈은 <br>, **굵게** 는 <b>. 그 밖의 태그는 글자로 */
   const rich = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
   const imgUrl = x => !x ? "" : /^(https?:)?\/\//.test(x) || /^data:/.test(x) ? x : "img/" + x;
-  window.SITE_IMG = imgUrl;
   const get = path => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), SITE);
   const S = SITE;
   const page = document.body.dataset.page || "home";
@@ -183,10 +182,6 @@ window.SITE_READY.then(function(){
   if(page === "visit"){
     $("#hours").innerHTML = hoursList();
     $("#lnk-naver").href = INFO.naverMap; $("#lnk-kakao").href = INFO.kakaoMap;
-  }
-  if(page === "reserve"){
-    $("#rv-notes").innerHTML = S.reserve.notes.filter(n => !(S.online && S.online.sameDay && String(n.b).trim() === "당일")).map(n => `<li><b>${esc(n.b)}</b><span>${rich(n.s)}${n.tel ? ` <a href="tel:${esc(INFO.tel)}" class="num">${esc(INFO.tel)}</a>` : ""}</span></li>`).join("");
-    $("#rv-steps").innerHTML = S.reserve.go.steps.map(x => `<li>${esc(x)}</li>`).join("");
   }
   if(page === "menu") document.querySelectorAll("a.pdf").forEach(a => { if(INFO.menuPdf) a.href = INFO.menuPdf; else a.style.display = "none"; });   /* 파일명(menu.pdf) 또는 올린 파일의 전체 주소. 관리에서 지우면 단추 숨김(09-25) */
   if(page === "menu"){   /* 비운 묶음(코스·점심·요리·만두·주류)은 통째로 숨김 — 차림을 자유롭게 줄이고 늘리게(09-25 재아) */

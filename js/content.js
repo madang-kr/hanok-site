@@ -61,7 +61,7 @@
     done = Promise.all([site, sys]).then(draw);
   }
   const timeout = new Promise(r => setTimeout(r, 1500));
-  window.SITE_READY = Promise.race([done, timeout]).then(() => { show(); window.SITE_PREVIEW = preview; return window.SITE; });
+  window.SITE_READY = Promise.race([done, timeout]).then(() => { show(); return window.SITE; });
   /* 미리보기 표시 띠 — 손님이 볼 일은 없지만, 관리 화면 안에서 초안인지 한눈에 */
   if(preview) window.SITE_READY.then(() => { const b = document.createElement("div"); b.className = "preview-bar"; b.textContent = "미리보기 — 아직 적용하지 않은 초안입니다"; document.body.classList.add("has-preview"); document.body.append(b); });
 })();

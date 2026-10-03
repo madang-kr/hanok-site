@@ -222,32 +222,8 @@ html.shot .band{height:580px}
 .plain li{padding:11px 0; border-bottom:1px solid var(--line); font-size:16px}
 .plain li:first-child{border-top:1px solid var(--line)}
 .hours div:nth-child(2){padding-bottom:18px; border-bottom:1px solid var(--line)} .hours div:nth-child(3){padding-top:16px}
-.sketch svg{width:100%; height:auto; border:1px solid var(--line); background:var(--bg-2); border-radius:6px}
 .sketch .map-img{display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:6px}   /* 재아가 그린 약도(09-25) — 옛 SVG 와 같은 테두리 */
-.sketch .road{font-family:var(--sans); font-size:13px; font-weight:600; fill:#9A9186; letter-spacing:.02em}
-.sketch .lbl{font-family:var(--sans); font-size:17px; font-weight:700; fill:#fff; letter-spacing:-.01em}
-.sketch .lbl.light{fill:#0E0D0C}
-.sketch .lbl.mute{fill:#B9AE9C; font-size:13px; font-weight:600}
-.sketch .pk{font-weight:800; fill:#B9AE9C}
-.steps{counter-reset:s; list-style:none; padding:0; margin:0}
-.steps li{counter-increment:s; display:grid; grid-template-columns:28px 1fr; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:16px}
-.steps li:before{content:counter(s); color:var(--sub); letter-spacing:0; font-variant-numeric:tabular-nums}
 .prose-s p{font-size:16px; line-height:1.85; margin-bottom:6px}
-
-/* ---------- 예약 장 ---------- */
-.reserve{display:grid; grid-template-columns:6fr 5fr; gap:100px; align-items:start}
-.notes{list-style:none; padding:0; margin:0; border-top:1px solid var(--line-2)}
-.notes li{padding:18px 0; border-bottom:1px solid var(--line); font-size:16px; display:grid; grid-template-columns:96px 1fr; gap:16px; line-height:1.8}
-.notes li b{font-weight:600; color:var(--ink); font-size:14.5px; letter-spacing:0}
-.res-go{border:1px solid var(--line-2); padding:44px}
-.res-go h3{font-size:24px; margin-bottom:14px}
-.res-go > p{font-size:16px}
-.res-go ol{margin:26px 0 34px; padding:0; list-style:none; counter-reset:s}
-.res-go li{counter-increment:s; display:grid; grid-template-columns:28px 1fr; gap:12px; padding:12px 0; border-top:1px solid var(--line); font-size:15.5px}
-.res-go li:last-child{border-bottom:1px solid var(--line)}
-.res-go li:before{content:counter(s); color:var(--sub); letter-spacing:0}
-.res-go .btn{width:100%; height:58px; font-size:16px}
-.res-go .cap{margin-top:16px; text-align:center}
 
 /* ==================================================================
    예약 창 — 흰 바탕. 달력·인원·시간 모두 직접 그립니다.
@@ -313,9 +289,6 @@ body.rv-open{overflow:hidden}
 .rv-cnt-r button:disabled{opacity:.25; pointer-events:none}
 .rv-cnt-r button svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round}
 .rv-cnt-n{min-width:52px; text-align:center; font-size:22px; font-weight:600; color:var(--ink); letter-spacing:0; font-variant-numeric:tabular-nums}
-.rv-hint{font-size:14px; color:var(--sub); line-height:1.7; letter-spacing:0; margin-top:16px}
-.rv-hint:empty{display:none}
-.rv-hint.warn{padding:14px 16px; background:var(--soft); color:var(--ink)}
 /* 달력 */
 .rv-cal{border:1px solid var(--line); padding:8px 14px 14px}
 .rv-cal-h{display:flex; align-items:center; justify-content:space-between; padding:8px 4px 12px}
@@ -332,9 +305,7 @@ body.rv-open{overflow:hidden}
 .rv-days button:hover{background:var(--soft)}
 .rv-days .sun{color:#B23E28} .rv-days .sat{color:#3F6C9E}
 .rv-days button:disabled{color:#CFC9C1; pointer-events:none}
-.rv-days .today:after{content:""; position:absolute; left:50%; bottom:7px; width:3px; height:3px; margin-left:-1.5px; border-radius:50%; background:currentColor; opacity:.5}
 .rv-days button.on{background:var(--ink); color:#fff; font-weight:600}
-.rv-days button.on:after{background:#fff}
 /* 시간 */
 .rv-tgroup + .rv-tgroup{margin-top:20px}
 .rv-tgroup > span{display:block; font-size:12.5px; color:var(--sub); letter-spacing:0; margin-bottom:10px}
@@ -459,7 +430,6 @@ body.rv-open{overflow:hidden}
 .foot{border-top:1px solid var(--line); padding:76px 0 40px}
 .band + .foot{border-top:0}
 .foot .wrap{display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:40px; padding-bottom:52px; border-bottom:1px solid var(--line)}
-.foot-brand{font-family:var(--serif); font-weight:900; font-size:24px; color:#fff; letter-spacing:.16em}
 .foot .fb{display:flex; align-items:flex-end; gap:32px}
 .foot-logo{height:150px; width:auto; flex:none}
 .foot .fb p{margin:0}
@@ -495,7 +465,7 @@ body.rv-open{overflow:hidden}
   .rooms{grid-template-columns:1fr 1fr} .halls{grid-template-columns:1fr}
   .drink-cols{grid-template-columns:1fr; gap:0}
   .dish-cols{columns:1}
-  .visit, .reserve{grid-template-columns:1fr; gap:52px}
+  .visit{grid-template-columns:1fr; gap:52px}
   .foot .wrap{grid-template-columns:1fr 1fr}
   .s{padding-top:108px} .band{margin-top:108px; height:480px} .sec{padding:92px 0}
 }
@@ -529,9 +499,7 @@ body.rv-open{overflow:hidden}
   .pics{grid-template-columns:1fr}
   .visit address b{font-size:22px}
   .map-links{flex-direction:column}
-  .res-go{padding:28px 22px}
   .hours div{grid-template-columns:96px 1fr}
-  .notice{padding:34px 22px 28px}
   .foot .wrap{grid-template-columns:1fr; gap:28px}
   .foot-copy{flex-direction:column; gap:4px}
   /* 예약 창 — 폰에서는 전체 화면 */
