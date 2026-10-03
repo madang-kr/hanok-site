@@ -4203,10 +4203,10 @@ function tryFullscreen(){
 /* 09-25(재아): 열자마자 묻는 창은 새 탭에 가려 못 봤음 → 이 탭으로 돌아왔을 때 화면 아래에 '다시 전체화면' 단추(네이버 가져오기처럼) */
 async function openSlip(){
   var wasFs = !!document.fullscreenElement;
-  /* 09-25: 가끔 404 — 주소가 '/system'(끝 / 없이)으로 열리면 상대 주소가 사이트 맨 위(/수기예약지.html)를 가리켰음.
-     이제 /system/ 을 기준으로 절대 주소(dev·screen 어디서 열어도 같은 파일) */
-  var sp = location.pathname, si = sp.indexOf('/system');
-  window.open((si >= 0 ? sp.slice(0, si) + '/system/' : '/') + encodeURIComponent('수기예약지') + '.html', '_blank', 'noopener');
+  /* 09-25: 가끔 404 — 주소가 '/manage'(끝 / 없이)으로 열리면 상대 주소가 사이트 맨 위(/수기예약지.html)를 가리켰음.
+     이제 /manage/ 을 기준으로 절대 주소(dev·screen 어디서 열어도 같은 파일) */
+  var sp = location.pathname, si = sp.indexOf('/manage');
+  window.open((si >= 0 ? sp.slice(0, si) + '/manage/' : '/') + encodeURIComponent('수기예약지') + '.html', '_blank', 'noopener');
   if(wasFs) fsBackArm();
 }
 function fsBackArm(){
@@ -8917,7 +8917,7 @@ function adUrl(name){
 function screenUrl(){
   try{
     /* 로컬(127.0.0.1·file:)에서 열어도 TV 에 넣을 주소는 실제 배포 주소여야 합니다(재아) */
-    if(/^(127\.|localhost|file:)/.test(location.host || location.protocol)) return "https://hanokbanjeom.com/system/screen/";   /* 09-24 새 도메인 */
+    if(/^(127\.|localhost|file:)/.test(location.host || location.protocol)) return "https://hanokbanjeom.com/manage/screen/";   /* 09-24 새 도메인 */
     return location.origin + appDir() + "/screen/";
   }catch(e){ return "/screen/"; }
 }
@@ -9252,15 +9252,15 @@ function schedChip(group){
    · 기본값(SITE_DEFAULT)은 사이트의 data/site.js 를 그때그때 읽습니다 — 시스템 빌드에 사이트 글을 넣어 두면 둘이 갈라집니다.
    저장하는 건 '문서 전체' 입니다(기본값 + 고친 것). 그래서 관리 화면에 보이는 그대로가 사이트에 나갑니다.
 
-   구형 TV 금지 문법 규칙(system/CLAUDE.md 2장)은 이 파일에도 그대로 — 한 파일로 합쳐지니까. */
+   구형 TV 금지 문법 규칙(manage/CLAUDE.md 2장)은 이 파일에도 그대로 — 한 파일로 합쳐지니까. */
 var SA = null;   /* {draft, saved(서버에 있는 초안 JSON 문자열), live:{id,apply_at,note,data}, versions:[], defaults, loading, err, tab} */
 var SA_ROOT = null;
 
-/* 사이트 루트 — system/ 또는 system/local/(이 PC 확인용) 에서 한두 칸 위 */
+/* 사이트 루트 — manage/ 또는 manage/local/(이 PC 확인용) 에서 한두 칸 위 */
 function saRoot(){
   if(SA_ROOT) return SA_ROOT;
-  var p = location.pathname.replace(/system\/.*$/, "");
-  if(p === location.pathname) p = location.pathname.replace(/[^\/]*$/, "") + "../";   /* system 이 없는 경로(파일로 열었을 때) */
+  var p = location.pathname.replace(/manage\/.*$/, "");
+  if(p === location.pathname) p = location.pathname.replace(/[^\/]*$/, "") + "../";   /* manage 가 없는 경로(파일로 열었을 때) */
   SA_ROOT = p; return p;
 }
 async function openSiteAdmin(){
@@ -11724,7 +11724,7 @@ function thSettingsBody(st){
   var tab = view.thSetTab || "mine";
   var mine = lines.map(function(l, i){ return '<div class="th-pl"><span class="n">' + (i + 1) + '</span><input type="text" value="' + esc(l) + '" placeholder="예: 이번 주는 창립 기념이니 감사 인사를 한 줄 더" onchange="thAiLines()[' + i + ']=this.value"><button class="btn sm ghost danger" onclick="thAiLines().splice(' + i + ',1); render()">삭제</button></div>'; }).join("");
   var base = '<ol class="th-base">' + TH_DEF_PROMPT.map(function(l){ return '<li>' + esc(l) + '</li>'; }).join("") + '</ol><p class="f-note">기본 문장은 코드에 있어 여기서 못 고칩니다(재아). 말투나 특별한 지시는 \'내가 더한 문장\' 에 넣으면 기본 문장 뒤에 붙어 그 뒤에 만드는 글부터 적용됩니다.</p>';
-  /* Gemini 키는 여기 없음 — 개발자 페이지(system/developer → 긴급 → 감사 문자 AI)에서만 넣고 바꿈(27차, 09-24 재아: 사장님은 건들 일 없음) */
+  /* Gemini 키는 여기 없음 — 개발자 페이지(manage/developer → 긴급 → 감사 문자 AI)에서만 넣고 바꿈(27차, 09-24 재아: 사장님은 건들 일 없음) */
   var keyField = '';
   return keyField + '<div class="subhead">프롬프트</div>' +
     '<div class="seg" style="margin-bottom:12px"><button class="' + (tab === "mine" ? "on" : "") + '" onclick="view.thSetTab=\'mine\'; render()">내가 더한 문장' + (lines.length ? ' ' + lines.length : '') + '</button><button class="' + (tab === "base" ? "on" : "") + '" onclick="view.thSetTab=\'base\'; render()">기본 프롬프트 보기</button></div>' +
@@ -11890,8 +11890,8 @@ async function dqDone(id){
 var MB = null;   /* { list, loading, err, page, saveT, saving, savedAt, demo } */
 var MB_W = 794, MB_H = 1123;
 
-/* system/ 바로 아래가 아니면(system/local/ 확인용 · system/screen/) 한 칸 위의 menu/ */
-function mbAsset(n){ return (/\/system\/[^\/]+\//.test(location.pathname) ? "../" : "") + "menu/" + n; }
+/* manage/ 바로 아래가 아니면(manage/local/ 확인용 · manage/screen/) 한 칸 위의 menu/ */
+function mbAsset(n){ return (/\/manage\/[^\/]+\//.test(location.pathname) ? "../" : "") + "menu/" + n; }
 function mbAbs(u){ try{ return new URL(u, location.href).href; }catch(e){ return u; } }
 var MB_BG_FLOWER = "bg-flower.jpg?v=0925b";   /* 파일을 바꾸면 v 도 바꿈(기기 캐시) */
 /* 배경: "flower"(기본) · "none"(흰 바탕) · 올린 배경 id(설정 menuBgs) */
@@ -12463,11 +12463,11 @@ var MB_SEED = { bg:"", pages:[
     { badge:"", name:"츠루우메 유즈", side:"(유자사케)", desc:"", prices:[{label:"보틀 720ml", price:"110000"}, {label:"하이볼 150ml", price:"12000"}, {label:"잔술 90ml", price:"15000"}] } ] }] }
 ] };
 /* ---------- SOS 비상 페이지 연결 (2026-09-29 재아) ----------
-   비상 페이지(system/sos/)는 서버·인터넷이 끊겼을 때 이 기기에 저장된 예약을 보고, 새 예약을 기기에만 적어 두는 한 장.
-   ① 이 앱을 연 기기는 비상 페이지를 미리 받아 둠(서비스 워커 sos/sw.js — 범위는 /system/sos/ 뿐) → 인터넷이 끊겨도 열림
+   비상 페이지(manage/sos/)는 서버·인터넷이 끊겼을 때 이 기기에 저장된 예약을 보고, 새 예약을 기기에만 적어 두는 한 장.
+   ① 이 앱을 연 기기는 비상 페이지를 미리 받아 둠(서비스 워커 sos/sw.js — 범위는 /manage/sos/ 뿐) → 인터넷이 끊겨도 열림
    ② 서버가 돌아오면 비상 페이지에 적어 둔 예약(localStorage hanok.sos.v1)을 "넣을까요?" 하고 예약으로 옮김 — 한 기기에서 한 번만 */
 var SOS_KEY = "hanok.sos.v1", SOS_ASKED = false, SOS_SW = false;
-function sosUrl(){ var p = location.pathname, i = p.indexOf("/system"); return (i >= 0 ? p.slice(0, i) : "") + "/system/sos/"; }
+function sosUrl(){ var p = location.pathname, i = p.indexOf("/manage"); return (i >= 0 ? p.slice(0, i) : "") + "/manage/sos/"; }
 function sosRegister(){
   if(SOS_SW) return; SOS_SW = true;
   try{ if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register(sosUrl() + "sw.js", { scope: sosUrl() }).catch(function(){}); }catch(e){}

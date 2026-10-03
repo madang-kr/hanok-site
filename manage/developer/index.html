@@ -7,15 +7,15 @@
 <meta name="robots" content="noindex, nofollow">
 <title>마당 · 개발자</title>
 <!--
-  개발자 페이지 (2026-09-24, 재아) — hanokbanjeom.com/system/developer/
+  개발자 페이지 (2026-09-24, 재아) — hanokbanjeom.com/manage/developer/
   재아 계정(madang-dev) 하나만 들어옴. 가게 기기에서 열 일이 없는 페이지라 가게 시스템(HTML 한 파일 빌드)과 따로 둠 —
-  그래서 구형 TV 문법 제한도 없음(재아의 PC·폰에서만 엶). 서버 권한은 system/supabase/patch_23차_개발자페이지.sql.
+  그래서 구형 TV 문법 제한도 없음(재아의 PC·폰에서만 엶). 서버 권한은 manage/supabase/patch_23차_개발자페이지.sql.
     · 요청   : 사장님·직원이 '개발자에게' 로 보낸 글 보기·답하기(답하면 '답변 완료' — 가게 화면에 답이 보임)
     · 점검   : 서버·홈페이지·카운터 동기화·로그인·접수·용량·최근 기록을 한눈에(dev_health)
     · 통계   : 홈페이지 방문·예약 창 → 접수·많이 쓴 기능·예약 경로·감사 문자·화면 오류(dev_stats, 24차)
     · 긴급   : 감사 문자 AI 키 넣기·하루 상한(27차 — 사장님 화면엔 없음) · 모든 기기 새로고침 · 홈페이지 예약 끄기/켜기(dev_action) · 전체 백업 내려받기 · 텔레그램 시험 · 용량 점검
     · 점검 위 게이지: DB·파일 무료 한도 — 매일 10시 서버가 같은 기준으로 70·80·90% 넘으면 텔레그램(24차 hanok_usage_check)
-  접속 정보는 홈페이지와 같은 js/config.js(anon 키 — 공개용). 로그인 세션은 이 브라우저 localStorage 에만.
+  접속 정보는 홈페이지와 같은 js/config.js(anon 키 — 공개용). 로그인 세션은 저장하지 않음(메모리에만 — 열 때마다 로그인).
 -->
 <style>
 @font-face{font-family:Pretendard; src:url(../../fonts/Pretendard-Regular.woff2) format("woff2"); font-weight:400; font-display:swap}
@@ -170,8 +170,10 @@ const mb = b => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + "MB";
 const kstHour = () => Number(new Date().toLocaleString("en-US", {timeZone:"Asia/Seoul", hour:"numeric", hour12:false}));
 
 /* ---------- 세션 ---------- */
-function saveSess(s){ S.sess = s; try{ s ? localStorage.setItem(SKEY, JSON.stringify(s)) : localStorage.removeItem(SKEY); }catch(e){} }
-function loadSess(){ try{ return JSON.parse(localStorage.getItem(SKEY) || "null"); }catch(e){ return null; } }
+/* 10-03 재아: 민감한 페이지라 자동 로그인 없음 — 세션을 어디에도 저장하지 않고 메모리에만 둡니다(새로고침·탭 닫기 = 로그아웃).
+   예전에 저장해 둔 세션(localStorage)은 열 때 지웁니다. */
+function saveSess(s){ S.sess = s; }
+function loadSess(){ try{ localStorage.removeItem(SKEY); sessionStorage.removeItem(SKEY); }catch(e){} return null; }
 async function auth(grant, body){
   const r = await fetch(CFG.url + "/auth/v1/token?grant_type=" + grant, { method:"POST", headers:{ apikey:CFG.anonKey, "Content-Type":"application/json" }, body:JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
@@ -266,7 +268,7 @@ async function loadHealth(){
   try{
     const h = await api("/rest/v1/rpc/dev_health", { method:"POST", body:{} });
     const ms = Math.round(performance.now() - t0);
-    const [home, sys, tv] = await Promise.all([timed("/?nc=" + Date.now()), timed("/system/?nc=" + Date.now()), timed("/system/screen/?nc=" + Date.now())]);
+    const [home, sys, tv] = await Promise.all([timed("/?nc=" + Date.now()), timed("/manage/?nc=" + Date.now()), timed("/manage/screen/?nc=" + Date.now())]);
     S.health = h; S.checks = { ms, home, sys, tv };
   }catch(e){ S.health = { error:e.message }; }
   render();
@@ -445,8 +447,8 @@ function tabEm(){
     ${aiCard()}
     <h2 class="sec">바로가기</h2>
     <div class="links">
-      <a class="btn sm" href="/system/" target="_blank" rel="noopener">가게 시스템</a>
-      <a class="btn sm" href="/system/screen/" target="_blank" rel="noopener">손님 TV</a>
+      <a class="btn sm" href="/manage/" target="_blank" rel="noopener">가게 시스템</a>
+      <a class="btn sm" href="/manage/screen/" target="_blank" rel="noopener">손님 TV</a>
       <a class="btn sm" href="https://supabase.com/dashboard/project/jgjrpzjbvptgvrgreibe" target="_blank" rel="noopener">Supabase</a>
       <a class="btn sm" href="https://github.com/madang-kr/hanok" target="_blank" rel="noopener">GitHub</a>
     </div>`;
@@ -460,8 +462,8 @@ function render(){
   if(!S.sess){
     $app.innerHTML = `<header><h1>마당 <span>· 개발자</span></h1></header>
       <form class="card login" onsubmit="login(event)"><h2>개발자 로그인</h2><p>재아 계정만 들어옵니다.</p>
-        <label class="f"><span>아이디</span><input id="id" type="text" autocomplete="username" value="${DEV_ID}" autocapitalize="off" spellcheck="false"></label>
-        <label class="f"><span>비밀번호</span><input id="pw" type="password" autocomplete="current-password" autofocus></label>
+        <label class="f"><span>아이디</span><input id="id" type="text" autocomplete="off" value="${DEV_ID}" autocapitalize="off" spellcheck="false"></label>
+        <label class="f"><span>비밀번호</span><input id="pw" type="password" autocomplete="new-password" autofocus></label>
         <div class="err">${esc(S.err)}</div>
         <button class="btn primary" ${S.busy ? "disabled" : ""}>${S.busy ? "확인 중…" : "들어가기"}</button></form>`;
     const pw = document.getElementById("pw"); if(pw && !S.busy) pw.focus();
