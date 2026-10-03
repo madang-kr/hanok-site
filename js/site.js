@@ -1,6 +1,6 @@
-/* 한옥반점 사이트 — 여섯 장이 같이 쓰는 스크립트.
+/* 한옥반점 사이트 — 모든 장이 같이 쓰는 스크립트(예약 전용 장 reserve.html 만 빼고).
    상단·폰 하단 바·바닥·알림 팝업을 여기서 넣고, <body data-page="..."> 값으로 그 장의 내용을 그립니다.
-   가격은 화면에 안 씁니다(메뉴판 PDF 에서만) — data/menu.js 의 price 는 그대로 두고 여기서 안 읽을 뿐입니다.
+   가격은 화면에 안 씁니다(메뉴판 PDF 에서만) — data/site.js 의 price 는 그대로 두고 여기서 안 읽을 뿐입니다.
    예약 창은 js/reserve.js 가 맡습니다(어느 장에서든 [data-reserve] 를 누르면 뜹니다).
    내용은 window.SITE(data/site.js 기본값 + 서버 값, js/content.js) 에서 읽습니다 — HTML 에 적힌 글은 JS 가 꺼져 있을 때의 대비용이고
    SITE_READY 뒤에 전부 SITE 값으로 다시 채웁니다(data-t / data-paras / data-img / data-list 표시). */
