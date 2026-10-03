@@ -69,7 +69,12 @@
      · 접수는 requests 표에 한 줄. 서버가 규칙(내일부터·성인 2·룸 성인 5·12명 이하·번호당 하루 5건)을 한 번 더 확인합니다. */
   if(window.SUPA && SUPA.url && SUPA.anonKey){
     const H = { "apikey": SUPA.anonKey, "Authorization": "Bearer " + SUPA.anonKey, "Content-Type": "application/json" };
-    const get = async path => { const r = await fetch(SUPA.url + path, {headers:H}); if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+    /* 10초 안에 답이 없으면 실패로 — 전엔 응답이 안 오면 달력·시간이 영영 '불러오는 중' 이었음(10-03) */
+    const get = async path => {
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+      try{ const r = await fetch(SUPA.url + path, {headers:H, signal:ctl.signal}); if(!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
+      finally{ clearTimeout(t); }
+    };
     const okAt = (e, people, seat) => {
       if(!e) return false;
       const room = (e.rooms||[]).some(([mn, mx]) => people >= mn && people <= mx), table = people <= (e.tableMax||0);
@@ -104,8 +109,11 @@
         date:p.date, time:p.time, adults:p.adults, kids:p.kids, people:p.people, seat:p.seat, course:p.course, course_label:p.courseLabel,
         name:p.name, phone:String(p.phone).replace(/\D/g,""), request:p.request||"", allergy:p.allergy||"", status:"대기" };
       let r;
-      try{ r = await fetch(SUPA.url + "/rest/v1/requests", { method:"POST", headers:Object.assign({"Prefer":"return=minimal"}, H), body:JSON.stringify(body) }); }
+      /* 15초 안에 답이 없으면 끊고 다시 누르게 — 서버에 이미 들어갔어도 같은 번호(rid)라 두 번 들어가지 않음(위 409) */
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 15000);
+      try{ r = await fetch(SUPA.url + "/rest/v1/requests", { method:"POST", headers:Object.assign({"Prefer":"return=minimal"}, H), body:JSON.stringify(body), signal:ctl.signal }); }
       catch(e){ return {ok:false, id:body.id, msg:"인터넷 연결이 끊겼습니다. 연결을 확인하고 '접수하기' 를 다시 눌러 주세요."}; }
+      finally{ clearTimeout(tm); }
       if(r.status === 409){ return {ok:true, id:body.id}; }
       if(r.ok){ if(window.hanokHit) window.hanokHit("ev:예약 접수"); return {ok:true, id:body.id}; }
       let msg = ""; try{ msg = (await r.json()).message || ""; }catch(e){}
@@ -130,8 +138,10 @@
   }
 
   /* ---------- 창 ---------- */
+  let opener = null, focusedStep = 0;   /* opener: 창을 연 단추(닫으면 초점을 돌려줌) · focusedStep: 마지막으로 초점을 옮긴 단계 */
   function open(){
     if(ov) return;
+    opener = document.activeElement && document.activeElement !== document.body ? document.activeElement : null; focusedStep = 0;
     if(window.hanokHit) window.hanokHit("ev:예약창 열림");   /* 통계(개발자 페이지) — 창을 연 사람 대비 접수한 사람 */
     reset();
     ov = document.createElement("div"); ov.className = "rv-ov";
@@ -160,6 +170,8 @@
     ov.remove(); ov = null;
     document.body.classList.remove("rv-open");
     document.removeEventListener("keydown", onKey);
+    if(opener && document.contains(opener) && opener.focus) opener.focus({preventScroll:true});   /* 10-03: 닫으면 눌렀던 단추로 초점 복귀 */
+    opener = null;
   }
   function confirmClose(){
     if(step > 1 && step < 8){ ask("예약을 그만두시겠습니까?", "입력하신 내용은 저장되지 않습니다.", "그만두기", close); return; }
@@ -210,6 +222,10 @@
     return "";
   }
   const telBox = msg => `<div class="rv-note">${esc(msg)}<a class="rv-tel-lnk" href="tel:${INFO.tel}">${esc(INFO.tel)}</a></div>`;
+  /* 남은 자리를 못 불러왔을 때(10-03) — 다시 시도 + 전화. 낭독기에는 role=alert 로 바로 읽힘 */
+  const failBox = (retryId, what) => `<div class="rv-note rv-fail" role="alert">${what} 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.<br>
+      <button type="button" class="btn" id="${retryId}">다시 시도</button>
+      <span class="rv-fail-tel">또는 전화로 예약 <a class="rv-tel-lnk" href="tel:${INFO.tel}">${esc(INFO.tel)}</a></span></div>`;
 
   /* ---------- 틀 ---------- */
   const STEPS = ["인원", "날짜", "시간", "좌석", "메뉴", "예약자 정보", "예약 확인"];
@@ -224,12 +240,17 @@
       return;
     }
     steps.hidden = step > STEPS.length;
-    steps.innerHTML = STEPS.map((t,i) => `<li class="${i+1===step?'on':(i+1<step?'done':'')}"><i>${i+1}</i>${t}</li>`).join("");
+    steps.innerHTML = STEPS.map((t,i) => `<li class="${i+1===step?'on':(i+1<step?'done':'')}"${i+1===step?' aria-current="step"':''}><i>${i+1}</i>${t}</li>`).join("");
     const b = $(".rv-b", ov), f = $(".rv-f", ov);
     b.scrollTop = 0;
-    b.innerHTML = msg ? `<div class="rv-msg">${esc(msg)}</div>` : "";
+    b.innerHTML = msg ? `<div class="rv-msg" role="alert" tabindex="-1">${esc(msg)}</div>` : "";
     [null, sPeople, sDate, sTime, sSeat, sMenu, sGuest, sConfirm, done][step](b, f);
     const on = steps.querySelector(".on"); if(on && on.scrollIntoView) on.scrollIntoView({block:"nearest", inline:"center"});
+    /* 10-03: 단계가 바뀌면 눌렀던 '다음' 단추가 사라져 초점이 문서 처음으로 돌아갔음 → 새 단계 제목(오류면 안내 문구)으로 옮김.
+       같은 단계를 다시 그릴 때(입력 중)는 건드리지 않음. 처음 열 때도 여기서 창 안으로 초점이 들어옴 */
+    const focusEl = b.querySelector(".rv-msg") || b.querySelector("h3");
+    if(focusEl && (msg || step !== focusedStep)){ focusEl.setAttribute("tabindex", "-1"); focusEl.focus({preventScroll:true}); }
+    focusedStep = step;
   }
   /* warn 을 주면 다음 버튼 왼쪽에 경고 문구가 뜹니다(이전 버튼 자리).
      '전화로 예약' 안내는 다음 버튼이 막혔을 때(온라인으로 못 받는 경우)만 — 늘 보이면 전화하라는 뜻으로 읽힘(재아 2026-09-17) */
@@ -320,7 +341,7 @@
       for(let d = 1; d <= lastDay; d++){
         const key = ym+"-"+pad(d), wd = new Date(key+"T00:00:00").getDay();
         const out = key < min || key > max || !!lockedOf(key);
-        cells.push(`<button type="button" data-day="${key}" aria-label="${view.getFullYear()}년 ${view.getMonth()+1}월 ${d}일${out?' 예약 불가':''}" class="${wd===0||isHoliday(key)?'sun':(wd===6?'sat':'')}${key===S.date?' on':''}"${out?" disabled":""}>${d}</button>`);
+        cells.push(`<button type="button" data-day="${key}" aria-label="${view.getFullYear()}년 ${view.getMonth()+1}월 ${d}일${out?' 예약 불가':''}" class="${wd===0||isHoliday(key)?'sun':(wd===6?'sat':'')}${key===S.date?' on':''}" aria-pressed="${key===S.date}"${out?" disabled":""}>${d}</button>`);
       }
       days.innerHTML = cells.join("");
       /* 이 달에 잠근 특별 기간이 있으면 달력 아래 한 줄 */
@@ -329,12 +350,22 @@
       ln.innerHTML = locks.length ? locks.map(sp => `${esc(sp.title || "특별 기간")} (${esc(sp.from.slice(5).replace("-", "/"))} ~ ${esc(sp.to.slice(5).replace("-", "/"))}) 예약은 준비 중입니다. 전화로 문의해 주세요. <a href="tel:${esc(INFO.tel)}" class="num">${esc(INFO.tel)}</a>`).join("<br>") : "";
       days.querySelectorAll("[data-day]").forEach(el => el.addEventListener("click", () => {
         S.date = el.dataset.day; S.time = "";
-        days.querySelectorAll("[data-day]").forEach(x => x.classList.toggle("on", x === el));
+        days.querySelectorAll("[data-day]").forEach(x => { x.classList.toggle("on", x === el); x.setAttribute("aria-pressed", x === el); });
         foot(f, true, next, "다음", false);
       }));
+      let fl = b.querySelector(".rv-fail"); if(fl) fl.remove();
       if(!monthCache[ym]){
         days.classList.add("loading");
-        monthCache[ym] = await RES_API.month(ym, total(), S.seat || "any");
+        try{ monthCache[ym] = await RES_API.month(ym, total(), S.seat || "any"); }
+        catch(e){
+          /* 10-03: 전엔 여기서 멈춰 날짜가 흐린 채 아무 말이 없었음. 자리를 모르는 채로 고르게 두면 안 되니 날짜를 막고 안내 */
+          days.classList.remove("loading");
+          if(!ov || ym !== view.getFullYear()+"-"+pad(view.getMonth()+1)) return;
+          days.querySelectorAll("[data-day]").forEach(el => { el.disabled = true; });
+          $(".rv-cal", b).insertAdjacentHTML("afterend", failBox("rv-retry-cal", "남은 자리를"));
+          $("#rv-retry-cal", b).addEventListener("click", draw);
+          return;
+        }
         days.classList.remove("loading");
       }
       const m = monthCache[ym];
@@ -353,26 +384,36 @@
 
   /* ---------- ③ 시간 ---------- */
   function sTime(b, f){
-    b.insertAdjacentHTML("beforeend", sumLine() + `<section class="rv-sec"><h3>시간</h3><div id="rv-times"><p class="rv-quiet">불러오는 중…</p></div></section>`);
+    b.insertAdjacentHTML("beforeend", sumLine() + `<section class="rv-sec"><h3>시간</h3><div id="rv-times" aria-live="polite"><p class="rv-quiet">불러오는 중…</p></div></section>`);
     const times = $("#rv-times", b);
     foot(f, true, next, "다음", true);
-    (async () => {
+    async function load(){
       const want = S.date;
-      const list = await RES_API.slots(S.date, total(), S.seat || "any");
+      times.innerHTML = `<p class="rv-quiet">불러오는 중…</p>`;
+      let list;
+      try{ list = await RES_API.slots(S.date, total(), S.seat || "any"); }
+      catch(e){
+        /* 10-03: 전엔 조회가 실패하면 '불러오는 중…' 에서 영영 멈췄음 → 안내 + 다시 시도 + 전화 */
+        if(!ov || want !== S.date) return;
+        times.innerHTML = failBox("rv-retry-time", "예약 가능한 시간을");
+        $("#rv-retry-time", times).addEventListener("click", load);
+        return;
+      }
       if(!ov || want !== S.date) return;
       if(!list.length){ times.innerHTML = `<p class="rv-quiet">이 날은 예약 가능한 시간이 없습니다. 다른 날짜를 고르시거나 유선으로 문의해 주세요. <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a></p>`; return; }
       const le = lunchEnd(S.date), lunch = list.filter(t => mins(t) < le), dinner = list.filter(t => mins(t) >= le);
       const grid = (label, arr) => arr.length ? `<div class="rv-tgroup"><span>${label}</span><div class="rv-times">${
-        arr.map(t => `<button type="button" data-t="${t}" class="${t===S.time?'on':''}">${hm(t)}</button>`).join("")}</div></div>` : "";
+        arr.map(t => `<button type="button" data-t="${t}" class="${t===S.time?'on':''}" aria-pressed="${t===S.time}">${hm(t)}</button>`).join("")}</div></div>` : "";
       times.innerHTML = grid("점심", lunch) + grid("저녁", dinner);
       times.querySelectorAll("[data-t]").forEach(el => el.addEventListener("click", () => {
         if(S.time !== el.dataset.t){ S.course = ""; S.courseLabel = ""; }
         S.time = el.dataset.t;
-        times.querySelectorAll("[data-t]").forEach(x => x.classList.toggle("on", x === el));
+        times.querySelectorAll("[data-t]").forEach(x => { x.classList.toggle("on", x === el); x.setAttribute("aria-pressed", x === el); });
         foot(f, true, next, "다음", false);
       }));
       foot(f, true, next, "다음", !S.time);
-    })();
+    }
+    load();
     function next(){ if(S.time){ startTimer(); step = 4; render(); } }
   }
 
@@ -381,8 +422,8 @@
     b.insertAdjacentHTML("beforeend", sumLine() + `<section class="rv-sec">
         <h3>좌석</h3>
         <div class="rv-pick two" id="rv-seat">
-          <button type="button" data-s="table" class="${S.seat==='table'?'on':''}"><b>테이블</b></button>
-          <button type="button" data-s="room" class="${S.seat==='room'?'on':''}"><b>룸</b></button>
+          <button type="button" data-s="table" class="${S.seat==='table'?'on':''}" aria-pressed="${S.seat==='table'}"><b>테이블</b></button>
+          <button type="button" data-s="room" class="${S.seat==='room'?'on':''}" aria-pressed="${S.seat==='room'}"><b>룸</b></button>
         </div>
         <div id="rv-seat-hint"></div>
       </section>`);
@@ -391,13 +432,15 @@
        접수된 뒤에야 "테이블 없음" 이 뜨면 매장도 손님도 곤란함(재아 2026-09-17) */
     const okBy = {};
     async function load(){
-      for(const k of ["table", "room"]) okBy[k] = await RES_API.seatOk(S.date, S.time, total(), k);
+      /* 10-03: 조회가 실패해도 오류가 새지 않게 — 자리 확인을 못 한 채로 두면 접수할 때 서버가 다시 확인합니다 */
+      try{ for(const k of ["table", "room"]) okBy[k] = await RES_API.seatOk(S.date, S.time, total(), k); }
+      catch(e){ return; }
       if(!ov || step !== 4) return;
       seg.querySelectorAll("[data-s]").forEach(x => { x.disabled = !okBy[x.dataset.s]; x.classList.toggle("off", !okBy[x.dataset.s]); });
       draw();
     }
     function draw(){
-      seg.querySelectorAll("[data-s]").forEach(x => x.classList.toggle("on", x.dataset.s === S.seat));
+      seg.querySelectorAll("[data-s]").forEach(x => { x.classList.toggle("on", x.dataset.s === S.seat); x.setAttribute("aria-pressed", x.dataset.s === S.seat); });
       const label = S.seat === "room" ? "룸" : "테이블";
       const po = !S.seat ? "" : (okBy[S.seat] === false ? `이 시각에는 ${label} 자리가 없습니다. 유선으로 예약 도와드리겠습니다.` : phoneOnly());
       const off = ["table", "room"].filter(k => okBy[k] === false).map(k => k === "room" ? "룸" : "테이블");
@@ -590,11 +633,11 @@
     /* body 가 없으면(만 14세) 펼치기 없이 제목만 — 펼쳐 봐야 할 말이 없음(재아) */
     const box = (key, title, body) => `<div class="rv-agree${S.agree[key]?" on":""}${body?"":" plain"}">
         <div class="rv-agree-h">
-          <label class="rv-chk"><input type="checkbox" id="rv-a-${key}" data-a="${key}"${S.agree[key]?" checked":""}><i></i></label>
-          ${body ? `<button type="button" class="rv-agree-t"><b>[필수] ${title}</b><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>`
-                 : `<label class="rv-agree-t" for="rv-a-${key}"><b>[필수] ${title}</b></label>`}
+          <label class="rv-chk"><input type="checkbox" id="rv-a-${key}" data-a="${key}" aria-labelledby="rv-at-${key}"${S.agree[key]?" checked":""}><i></i></label>
+          ${body ? `<button type="button" class="rv-agree-t" aria-expanded="false" aria-controls="rv-ab-${key}"><b id="rv-at-${key}">[필수] ${title}</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`
+                 : `<label class="rv-agree-t" for="rv-a-${key}"><b id="rv-at-${key}">[필수] ${title}</b></label>`}
         </div>
-        ${body ? `<div class="body">${body}</div>` : ""}</div>`;
+        ${body ? `<div class="body" id="rv-ab-${key}">${body}</div>` : ""}</div>`;
     b.insertAdjacentHTML("beforeend", `<section class="rv-sec">
         <h3>예약 확인</h3>
         <dl class="rv-check">${rows.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
@@ -617,7 +660,7 @@
     b.querySelectorAll("[data-a]").forEach(c => c.addEventListener("change", () => {
       S.agree[c.dataset.a] = c.checked; c.closest(".rv-agree").classList.toggle("on", c.checked); refoot();
     }));
-    b.querySelectorAll(".rv-agree-t").forEach(t => t.addEventListener("click", () => t.closest(".rv-agree").classList.toggle("open")));
+    b.querySelectorAll("button.rv-agree-t").forEach(t => t.addEventListener("click", () => t.setAttribute("aria-expanded", t.closest(".rv-agree").classList.toggle("open"))));
     const all = () => S.agree.rule && S.agree.priv && S.agree.age;
     const refoot = () => foot(f, true, submit, "접수하기", !all());
     async function submit(){
