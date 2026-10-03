@@ -115,7 +115,7 @@ window.SITE_DEFAULT = {
       sign: "김지아 드림"
     },
     chef: {
-      img: "chef.png", who: "총주방장 · 중식 경력 35년", name: "박수일",
+      img: "chef.webp", who: "총주방장 · 중식 경력 35년", name: "박수일",
       quote: "\"정성을 담습니다.\n최고만을 대접하기 위해.\"",
       para: "서른다섯 해 동안 중식 화구 앞에 섰습니다. 재료는 그날 들어온 것으로, 튀김은 주문을 받은 뒤에, 만두는 아침에 빚습니다. 손이 많이 가는 방법이 맛에서 티가 난다고 믿습니다."
     },
@@ -139,7 +139,7 @@ window.SITE_DEFAULT = {
   menuPage: {
     head: { img: "bg1.jpg", title: "차림", sub: "고객님의 소중한 시간을 위해 정성을 담아 조리합니다. 만두는 매일 아침 빚고, 튀김은 주문을 받은 뒤에 합니다." },
     pdfLabel: "메뉴판 PDF",
-    chefBand: { who: "총주방장 박수일 · 중식 경력 35년", quote: "\"정성을 담습니다. 최고만을 대접하기 위해.\"", img: "chef.png" },
+    chefBand: { who: "총주방장 박수일 · 중식 경력 35년", quote: "\"정성을 담습니다. 최고만을 대접하기 위해.\"", img: "chef.webp" },
     courses: { title: "저녁 코스", sub: "종일 주문 가능" },
     lunch: { title: "점심 세트", sub: "오전 11:00 – 오후 3:30" },
     dishes: { title: "요리" }, dumplings: { title: "만두" }, drinks: { title: "주류" }
