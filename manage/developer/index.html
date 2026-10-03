@@ -137,7 +137,12 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 .hbar .l{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2)}
 .hbar .n{font-weight:700; font-variant-numeric:tabular-nums}
 .card h4{margin:0 0 8px; font-size:14px}
+/* 설정 탭 — 예약 시스템의 설정 화면을 창 안에 그대로 띄움(10-03). #app 은 매번 다시 그리므로 창은 그 밖에 두고 보였다 숨겼다만 */
+.setwrap{max-width:1280px; margin:-36px auto 0; padding:0 20px 24px}
+.setwrap p{margin:0 0 10px; font-size:13px; color:var(--text-2)}
+.setwrap iframe{display:block; width:100%; height:calc(100vh - 190px); min-height:560px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface)}
 @media (max-width:640px){
+  .setwrap{padding:0 8px 16px} .setwrap iframe{height:calc(100vh - 170px)}
   .wrap{padding:0 16px 48px}
   .em{flex-direction:column; align-items:stretch}
   .em .btn{justify-content:center}
@@ -148,6 +153,7 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 </head>
 <body>
 <div class="wrap" id="app"><p class="spin">불러오는 중…</p></div>
+<div class="setwrap" id="setwrap" hidden></div>
 <script src="../../js/config.js"></script>
 <script>
 "use strict";
@@ -181,9 +187,9 @@ async function auth(grant, body){
   if((j.user && j.user.email) !== DEV_EMAIL) throw new Error("개발자 계정만 들어올 수 있습니다");
   return { access_token:j.access_token, refresh_token:j.refresh_token, expires_at:Date.now() + (j.expires_in || 3600) * 1000 };
 }
-async function ensureSess(){
+async function ensureSess(minLeft){
   if(!S.sess) return false;
-  if(S.sess.expires_at - Date.now() > 60000) return true;
+  if(S.sess.expires_at - Date.now() > (minLeft || 60000)) return true;
   try{ saveSess(await auth("refresh_token", { refresh_token:S.sess.refresh_token })); return true; }
   catch(e){ saveSess(null); return false; }
 }
@@ -209,8 +215,31 @@ async function login(ev){
 }
 function logout(){
   if(S.sess) fetch(CFG.url + "/auth/v1/logout", { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token } }).catch(() => {});
-  saveSess(null); S.reqs = null; S.health = null; S.stats = null; S.ai = null; render();
+  saveSess(null); S.reqs = null; S.health = null; S.stats = null; S.ai = null; setFrameClose(); render();
 }
+/* ---------- 설정 탭(10-03 재아: 설정은 사장님 화면이 아니라 여기서) ----------
+   예약 시스템(../?devset=1)을 창 안에 띄우고, 이 페이지가 로그인한 개발자 토큰을 건네줍니다 — 창 안에서는 PIN 을 묻지 않음(src/js/18b-devembed.js).
+   토큰은 같은 주소의 그 창에만 보냅니다. 갱신도 여기서만 하고(같은 갱신 토큰을 두 곳이 쓰면 서버가 세션을 무효로 만듦) 창은 요청만 합니다.
+   저장이 되려면 서버가 개발자 계정의 쓰기를 받아 줘야 합니다(supabase/history/patch_40차_개발자설정.sql). */
+const $set = document.getElementById("setwrap");
+function setFrame(){ return document.getElementById("setframe"); }
+function setFrameOpen(){
+  if(setFrame()) return;
+  $set.innerHTML = '<p>예약 시스템의 설정 화면입니다. 고친 뒤 오른쪽 위 <b>적용하기</b>를 눌러야 반영됩니다. 저장이 거절되면 서버 40차(개발자 설정) 적용 여부를 확인하세요.</p>' +
+    '<iframe id="setframe" title="설정" src="../?devset=1"></iframe>';
+}
+function setFrameClose(){ $set.innerHTML = ""; $set.hidden = true; }
+function setSendToken(){
+  const fr = setFrame(); if(!fr || !fr.contentWindow || !S.sess) return;
+  fr.contentWindow.postMessage({ type:"madang-dev-session", access_token:S.sess.access_token, refresh_token:S.sess.refresh_token, expires_at:S.sess.expires_at, email:DEV_EMAIL }, location.origin);
+}
+window.addEventListener("message", async e => {
+  const fr = setFrame();
+  if(e.origin !== location.origin || !fr || e.source !== fr.contentWindow) return;   /* 우리가 띄운 그 창만 */
+  const t = e.data && e.data.type;
+  if(t === "madang-dev-ready"){ if(await ensureSess()) setSendToken(); }
+  else if(t === "madang-dev-need-token"){ if(await ensureSess(360000)) setSendToken(); else render(); }   /* 6분 안에 끝나면 미리 갱신 */
+});
 function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
 
 /* ---------- 요청(개발자에게) ---------- */
@@ -457,9 +486,11 @@ function tabEm(){
 /* ---------- 틀 ---------- */
 function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); }
 function go(t){ S.tab = t; loadTab(); render(); }
+function tabSet(){ return ""; }   /* 내용은 #setwrap 의 창 */
 function render(){
   if(!CFG.url){ $app.innerHTML = '<p class="spin">접속 설정(js/config.js)을 못 읽었습니다</p>'; return; }
   if(!S.sess){
+    setFrameClose();
     $app.innerHTML = `<header><h1>마당 <span>· 개발자</span></h1></header>
       <form class="card login" onsubmit="login(event)"><h2>개발자 로그인</h2><p>재아 계정만 들어옵니다.</p>
         <label class="f"><span>아이디</span><input id="id" type="text" autocomplete="off" value="${DEV_ID}" autocapitalize="off" spellcheck="false"></label>
@@ -475,9 +506,12 @@ function render(){
       <button class="${S.tab === "req" ? "on" : ""}" onclick="go('req')">개발자에게${open.length ? `<span class="badge${urg ? " red" : ""}">${open.length}</span>` : ""}</button>
       <button class="${S.tab === "health" ? "on" : ""}" onclick="go('health')">점검</button>
       <button class="${S.tab === "stats" ? "on" : ""}" onclick="go('stats')">통계</button>
+      <button class="${S.tab === "set" ? "on" : ""}" onclick="go('set')">설정</button>
       <button class="${S.tab === "em" ? "on" : ""}" onclick="go('em')">긴급</button>
     </nav>
-    ${S.tab === "req" ? tabReq() : S.tab === "health" ? tabHealth() : S.tab === "stats" ? tabStats() : tabEm()}`;
+    ${S.tab === "req" ? tabReq() : S.tab === "health" ? tabHealth() : S.tab === "stats" ? tabStats() : S.tab === "set" ? tabSet() : tabEm()}`;
+  /* 설정 창: 그 탭일 때만 보임. 한 번 띄우면 다른 탭에 갔다 와도 그대로(고치던 내용 유지) */
+  if(S.tab === "set"){ setFrameOpen(); $set.hidden = false; } else $set.hidden = true;
 }
 S.sess = loadSess();
 render();
