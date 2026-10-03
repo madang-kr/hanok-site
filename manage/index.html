@@ -4625,7 +4625,7 @@ function logEvent(action, detail){
   });
   if(DATA._logs.length > LOG_MAX) DATA._logs = DATA._logs.slice(-LOG_MAX);
   /* 서버에도 한 줄. 실패해도 무시 — 로그 때문에 화면이 죽으면 안 됩니다.
-     who(계정) 는 보내지 않습니다 — 서버가 토큰의 이메일로 채웁니다(supabase/patch_8차.sql, 위조 방지) */
+     who(계정) 는 보내지 않습니다 — 서버가 토큰의 이메일로 채웁니다(supabase/history/patch_8차.sql, 위조 방지) */
   if(supaOn() && SESSION && !OFFLINE){
     sb("/rest/v1/logs", { method:"POST", body:{ store:view.storeKey || "-", action:action, detail:detail || "", ua:(navigator.userAgent||"").slice(0,120) }, prefer:"return=minimal" })
       .catch(function(e){ console.warn("로그 저장 실패", e.message); });
@@ -5043,12 +5043,17 @@ function effSeat(r){ return r.roomId || r.tentativeRoomId || null; }
       새 판정을 넣을 때는 반드시 이 함수를 쓰세요. */
 function holdsSeat(r){ return r.status==="확정" || r.status==="방문"; }
 
+/* 남은 자리 91일치를 셀 때(11c availOfDayRaw)만 쓰는 '그 날짜의 예약 묶음'.
+   roomStatus 는 부를 때마다 전체 예약을 훑는데, 91일치 계산은 그것을 8만 번 부릅니다(10-03 실측: 예약 1,110건에서 PC 0.4초 — 태블릿은 몇 배).
+   계산하는 동안만 그 날 것만 뽑아 두고, 끝나면 반드시 비웁니다(try/finally). 예약 배열이 바뀌지 않는 한 번의 계산 안에서만 유효 */
+var DAY_RES = null;
 /* 좌석(룸이든 테이블이든 하나)을 그 시각에 쓸 수 있는지 — 합쳐 쓰는 예약도 그 좌석을 점유합니다 */
 function roomStatus(date, time, roomId, excludeId, hitsOnly){
   const s = store();
   if(!time || !roomId) return {state:"free", hits:[], tentative:[], movable:[]};
   const t = toMin(time);
-  const all = s.reservations.filter(r =>
+  const src = (DAY_RES && DAY_RES.date === date && DAY_RES.src === s.reservations) ? DAY_RES.list : s.reservations;
+  const all = src.filter(r =>
     r.date===date && holdsSeat(r) && r.id!==excludeId && usesSeat(r, roomId));
   let state="free"; const near=[], tent=[], movable=[];
   for(const r of all){
@@ -8128,6 +8133,13 @@ function availOfDay(date){
   return availOfDayRaw(date);
 }
 function availOfDayRaw(date){
+  /* 이 계산 동안만 roomStatus 가 그 날 예약만 보게(03-util DAY_RES). 대기 요청(withPendingReqs)이 끼워진 뒤의 배열에서 뽑음 */
+  const res0 = store().reservations, prevDay = DAY_RES;
+  DAY_RES = { date: date, src: res0, list: res0.filter(function(r){ return r.date === date; }) };
+  try{ return availOfDayCalc(date); }
+  finally{ DAY_RES = prevDay; }
+}
+function availOfDayCalc(date){
   const out = {}, ss = sessionsFor(date);
   /* 공휴일 표시 — 홈페이지 예약 창이 이걸 보고 주말 규칙·빨간 날을 정함. 시각 칸이 아니라서 okAt 에 안 걸림(09-24: 공휴일 원본을 시스템 하나로) */
   /* le = 점심 끝(분) — 홈페이지 예약 창의 점심/저녁 구분·점심 세트가 이걸 봄(전엔 15:30 고정). 하루 한 세션이면 0(09-25) */
