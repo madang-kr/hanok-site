@@ -204,6 +204,18 @@
     $(".yes", box).addEventListener("click", () => { box.remove(); onOk(); });
     $(".yes", box).focus();
   }
+  /* 단추 하나짜리 알림 — 확인만. Esc 도 이 단추를 누른 것과 같게(onKey 가 .rv-ask .no 를 누름) */
+  function notice(title, body){
+    ov.querySelectorAll(".rv-ask").forEach(x => x.remove());   /* 그만두기 확인 상자가 떠 있었으면 치움 */
+    const box = document.createElement("div"); box.className = "rv-ask";
+    box.innerHTML = `<div class="rv-ask-in" role="alertdialog" aria-modal="true">
+        <h4>${esc(title)}</h4><p>${body}</p>
+        <div class="rv-ask-f"><button type="button" class="btn fill no">확인</button></div>
+      </div>`;
+    $(".rv", ov).append(box);
+    $(".no", box).addEventListener("click", () => box.remove());
+    $(".no", box).focus();
+  }
 
   function startTimer(){
     if(timer) return;
@@ -218,12 +230,14 @@
     c.textContent = Math.floor(left/60)+":"+pad(left%60);
     c.classList.toggle("warn", left <= 60);
     const ext = $("#rv-ext", ov); if(ext) ext.hidden = !(left <= 60 && !extended);
+    /* 시간이 다 되면 입력을 전부 지우고 맨 처음(인원)으로 — 10-06 재아: 전엔 인원·날짜를 남기고 한 줄 안내만 해서
+       손님이 무엇이 지워졌는지 몰랐음. 창으로 알리고 처음부터 다시(연장했으면 10분, 아니면 5분 뒤) */
     if(left <= 0){
       clearInterval(timer); timer = null;
-      const keep = {adults:S.adults, kids:S.kids, date:S.date};
-      reset(); Object.assign(S, keep);
+      reset();
       $(".rv-timer", ov).hidden = true;
-      render("시간이 만료되었습니다.");
+      render();
+      notice("시간이 초과되었습니다", "입력하신 내용은 지워졌습니다.<br>처음부터 다시 진행해 주세요.");
       return;
     }
     left--;

@@ -3657,8 +3657,9 @@ function sessionBy(){ return SESSION ? (SESSION.name || SESSION.who || "") : "";
 /* 로그에 남는 계정(이메일) → 사람이 읽는 이름 */
 function whoLabel(w){
   if(!w) return "";
-  if(w === "admin" || w === SUPA_CFG.adminEmail) return "사장님";
-  if(w === "staff" || w === SUPA_CFG.staffEmail) return "공용 PIN";
+  var cfg = SUPA_CFG || {};   /* 예시 데이터 모드(서버 설정 없음)에서 로그 화면이 죽던 것(10-06) */
+  if(w === "admin" || w === cfg.adminEmail) return "사장님";
+  if(w === "staff" || w === cfg.staffEmail) return "공용 PIN";
   var u = PIN_USERS.find(function(x){ return x.email === w; });
   if(u) return u.name;
   if(/-[0-9a-f]{12}@/.test(w)) return "지운 PIN";
@@ -10924,7 +10925,7 @@ function sheetOwner(){
     item("openGuestsPage()", ICON.users, "손님 관리", "단골·메모 · 노쇼 관리") +
     item("openMessagesPage()", ICON.sms, "문자 관리", "감사 문자 · 직접 보내기 · 기록") +
     item("openCloseDay()", ICON.home, "퇴근하기", st._closedDay === bizToday() ? "오늘 퇴근 완료" : "노쇼 처리 · 근무 · 감사 문자 차례로") +
-    item("openWalkIn()", ICON.users, "현장 손님 등록", "예약 없이 오신 손님") +
+    /* '현장 손님 등록'(openWalkIn)은 10-06 재아 결정으로 메뉴에서 뺌 — 누님_질문 28 답을 들은 뒤 이 줄을 되살리면 다시 보임(아래 코드는 그대로 둠) */
     '</div></div><div class="own-section"><h2>관리</h2><div class="own-grid">' +
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
     item("openSlip()", ICON.print, "수기 예약지", "전화 예약을 손으로 적는 종이") +
@@ -11406,7 +11407,7 @@ function dqFormHtml(){
       '<button class="' + (d.kind === "ask" ? "on" : "") + '" onclick="dqKind(\'ask\')">요청·문의</button>' +
       '<button class="' + (d.kind === "setting" ? "on" : "") + '" onclick="dqKind(\'setting\')">설정 변경</button>' +
       '<button class="' + (d.kind === "urgent" ? "on rust" : "") + '" onclick="dqKind(\'urgent\')">오류·긴급</button></div>' +
-      '<span class="f-note' + (d.urgent ? ' rust' : '') + '">' + (d.kind === "urgent" ? '기능 결함, 시스템 오류 등' : d.kind === "setting" ? '운영시간·좌석·코스 등을 바꿔 달라는 요청' : '개선 요청, 시스템 문의 등') + '</span></div>' +
+      '<span class="f-note' + (d.urgent ? ' rust' : '') + '">' + (d.kind === "urgent" ? '기능 결함, 시스템 오류, 오늘·내일 급한 휴무·영업시간 변경 등' : d.kind === "setting" ? '운영시간·좌석·코스 등을 바꿔 달라는 요청 — 오늘·내일 일이면 오류·긴급으로' : '개선 요청, 시스템 문의 등') + '</span></div>' +
     (d.kind === "setting" ?
       '<div class="f"><div class="lb">무엇을 바꿀까요</div><div class="seg" style="flex-wrap:wrap">' + DQ_AREAS.map(function(a){ return '<button class="' + (d.area === a ? "on" : "") + '" onclick="DQ.draft.area=\'' + a + '\'; render()">' + a + '</button>'; }).join("") + '</div></div>' +
       '<label class="f big"><div class="lb">바꿀 내용</div><textarea rows="5" placeholder="예) 다음 주 월요일부터 일요일 영업시간을 11시~21시로" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' :
