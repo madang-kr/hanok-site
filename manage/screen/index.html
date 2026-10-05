@@ -7553,7 +7553,7 @@ function renderTimeline(date, compact){
     const bands = floorBands
       + (over ? `<div class="offband overlane" style="left:0; right:0; top:0; height:${over*LANE}px" title="테이블 수를 넘은 팀이 놓이는 칸"></div>` : "");
     return `<div class="tl-row tbl floor">
-      <div class="tl-name ${foldable?'foldable':''}" ${foldable?`onclick="tlToggleFloor('${esc(key)}')" role="button"`:`title="${fl==null?"":`테이블 ${tbls.length} · ${seats}석`}"`}><b>${fl==null?"층 미정":esc(floorLabel(fl))}</b>${
+      <div class="tl-name ${foldable?'foldable':''}" ${foldable?`onclick="tlToggleFloor('${jsq(key)}')" role="button"`:`title="${fl==null?"":`테이블 ${tbls.length} · ${seats}석`}"`}><b>${fl==null?"층 미정":esc(floorLabel(fl))}</b>${
         foldable ? `<small class="fold-hint">${folded ? `${FOLD}칸만 ▾${hidden?`<i>숨은 ${hidden}팀</i>`:""}` : "접기 ▴"}</small>` : ""}</div>
       <div class="tl-track" data-lane="${LANE}" style="height:${totalLanes*LANE+2}px; background-image:repeating-linear-gradient(to top, transparent 0, transparent ${LANE-1}px, var(--border-strong) ${LANE-1}px, var(--border-strong) ${LANE}px)">${layers}${bands}${blocks}</div>
     </div>`;
@@ -12641,7 +12641,7 @@ function sheetMark(){
         <div class="seatconfirm">
           <span><b>${esc(seatLabelIds(pickedIds))}</b> 으로 배정합니다</span>
           <button class="btn ghost sm" onclick="pickSeatCand('${r.id}','')">취소</button>
-          <button class="btn primary" onclick="assignSeat('${r.id}','${esc(view.pickSeat)}')">좌석 확정하기</button>
+          <button class="btn primary" onclick="assignSeat('${r.id}','${jsq(view.pickSeat)}')">좌석 확정하기</button>
         </div>`:`<p class="f-note" style="margin-top:8px">자리를 고른 뒤 '좌석 확정하기'를 눌러야 배정됩니다.</p>`}`;
   }
 
@@ -13731,7 +13731,7 @@ function pinRoleSeg(cur){ return '<div class="seg">' + ["staff", "manager", "own
 function sheetPinList(){
   /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차) */
   const rows = PIN_USERS.map(u=>`<div class="rowitem${u.active === false ? " off" : ""}"><span class="grow"><span class="t">${esc(u.name)} <span class="tag sm">${PIN_ROLE[u.role || "staff"] || "일반"}</span>${u.staff_id ? ` <span class="tag sm">워크시프트에서 생성</span>` : ""}${u.active === false ? ` <span class="tag rust sm">퇴사 · 막힘</span>` : ""}</span><span class="s">${u.created_at ? esc(u.created_at.slice(0,10)) + " 추가" : ""}</span></span>
-      <span class="btn-row"><button class="btn sm" onclick="openPin('${esc(u.id)}')">수정</button>${u.staff_id ? "" : `<button class="btn sm danger" onclick="pinDel('${esc(u.id)}')">삭제</button>`}</span></div>`).join("");
+      <span class="btn-row"><button class="btn sm" onclick="openPin('${jsq(u.id)}')">수정</button>${u.staff_id ? "" : `<button class="btn sm danger" onclick="pinDel('${jsq(u.id)}')">삭제</button>`}</span></div>`).join("");
   return `
     ${sheetHead("PIN 관리")}
     <div class="rowitem"><span class="grow"><span class="t">공용 PIN <span class="tag pine sm">사용 중</span></span></span>
@@ -14907,7 +14907,7 @@ function wzStepSeat(){
     const key = ids.length > 1 ? x.id : ids[0];
     const sub = isTable(x) ? `${roomMin(x)?roomMin(x)+"~":""}${seatMax(x)}인${x.note?` · ${esc(x.note)}`:""}` : `${seatsMin(ids, WZ.date)}~${seatsMax(ids)}인${ids.length===1 && roomOpt(x) ? ` · 최적 ${roomOpt(x)}` : ""}`;
     const on = ids.length > 1 ? WZ.seatJoin === key : (WZ.seat === key && !WZ.seatJoin);   /* 합친 칸은 seatJoin 으로 — 대표 좌석 칸이 같이 켜지지 않게 */
-    return `<button class="scell ${on?'on':''} ${bad?'warned busy':''} ${extraCls||''}" onclick="wzSeat('${key}')" ${x.note&&ids.length>1?`title="${esc(x.note)}"`:""}>
+    return `<button class="scell ${on?'on':''} ${bad?'warned busy':''} ${extraCls||''}" onclick="wzSeat('${jsq(key)}')" ${x.note&&ids.length>1?`title="${esc(x.note)}"`:""}>
       <span class="sn">${label}</span>
       <span class="sc">${sub}</span>
       ${txt?`<span class="avail ${cls}">${txt}</span>`:""}
@@ -14940,7 +14940,7 @@ function wzStepSeat(){
       const txt = !fit ? "시간을 먼저" : fit.state === "ok" ? (twoOnly ? "2인석만 남음 (좁음)" : "")
                 : fit.state === "split" ? `붙일 테이블 없음 · 나눠 앉기 (한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명)`
                 : `자리 없음 (한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명)`;
-      return `<button class="scell ${WZ.seat===key?'on':''} ${bad?'warned busy':''}" onclick="wzSeat('${key}')">
+      return `<button class="scell ${WZ.seat===key?'on':''} ${bad?'warned busy':''}" onclick="wzSeat('${jsq(key)}')">
         <span class="sn">${esc(floorLabel(fl))}</span>
         ${txt?`<span class="avail ${bad?'warn':'free'}">${txt}</span>`:""}
       </button>`; }).join("")}</div>
