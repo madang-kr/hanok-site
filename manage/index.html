@@ -7806,7 +7806,9 @@ function moveMonthDate(n){
 function noshowRule(st){ const r = (st || store().settings).noshowCancelRule || "sameday"; return (r === "hours" || r === "after") ? "sameday" : r; }
 /* 취소하려는 시점이 기준 안이면 노쇼로 처리 — 09-25 재아: 되묻지 않고 '노쇼로 처리됩니다' 알림.
    직원이 취소를 늦게 입력했을 수도 있으니 '노쇼 제외'(= 취소로) 단추를 같이. 답: "노쇼" | "취소" | null(그만) */
-function noshowNotice(title, msg){ return uiChoice(title, msg, [["확인","노쇼"],["노쇼 제외","취소"]]); }
+/* NS_ASKED — 이 알림을 띄웠는지. markRes 가 보고 '예약을 취소할까요?' 를 또 묻지 않습니다(10-05 재아: 확인 두 번은 하나로) */
+var NS_ASKED = false;
+function noshowNotice(title, msg){ NS_ASKED = true; return uiChoice(title, msg, [["확인","노쇼"],["노쇼 제외","취소"]]); }
 async function askNoshowOnCancel(rec){
   const rule = noshowRule();
   if(!rec || rec.status === "취소") return "취소";
@@ -12698,14 +12700,15 @@ async function markRes(id, status){
   const s = store();
   const rec = s.reservations.find(r=>r.id===id);
   /* 취소→노쇼 기준(설정)은 setStatus·saveRes 만 물었습니다 — 이 길로 와도 같게(11월 점검) */
-  if(status==="취소" && rec && rec.status!=="취소"){ const ans = await askNoshowOnCancel(rec); if(ans == null) return; status = ans; }
-  if(status==="취소" && rec && rec.status!=="취소"){
+  let asked = false;   /* 노쇼 알림에서 이미 골랐으면(확인=노쇼 · 노쇼 제외=취소) 아래 확인을 또 띄우지 않습니다 */
+  if(status==="취소" && rec && rec.status!=="취소"){ NS_ASKED = false; const ans = await askNoshowOnCancel(rec); if(ans == null) return; status = ans; asked = NS_ASKED; }
+  if(status==="취소" && rec && rec.status!=="취소" && !asked){
     const ok = await uiConfirm("예약을 취소할까요?",
       `${rec.time} ${rec.name} 손님 · ${pplText(rec)}\n좌석이 비고, 기록에는 ‘취소’로 남습니다.`,
       {ok:"예약 취소", cancel:"그대로 두기"});
     if(!ok) return;
   }
-  if(status==="노쇼" && rec && rec.status!=="노쇼"){
+  if(status==="노쇼" && rec && rec.status!=="노쇼" && !asked){
     const leftN = (new Date(rec.date + "T" + rec.time + ":00") - new Date()) / 60000;
     const ok = await uiConfirm(leftN > 0 ? "아직 예약 시각 전입니다 — 노쇼로 처리할까요?" : "노쇼로 처리할까요?",
       `${rec.time} ${rec.name} 손님 · ${pplText(rec)}\n` +
