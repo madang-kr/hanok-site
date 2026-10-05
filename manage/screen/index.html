@@ -191,7 +191,7 @@ input:focus, select:focus{outline:2px solid var(--pine); outline-offset:-1px; bo
    높이는 위 '누르는 것 공통' 의 min-height 44px 이 정하고, .sm 은 글자만 작습니다 */
 a.btn{text-decoration:none; display:inline-flex; align-items:center}   /* 링크로 만든 버튼(비상 예약지 인쇄)도 버튼처럼 */
 .btn{border:1px solid var(--border-strong); background:var(--surface); color:var(--text); font-size:var(--fs-body); font-weight:600; padding:var(--s12) var(--s16); border-radius:var(--r-sm); line-height:20px}
-.btn.primary{color:#fff; background:var(--text); border-color:var(--text); box-shadow:none}
+.btn.primary{color:#fff; background:var(--text); border-color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .btn.ghost{border-color:transparent; background:var(--surface-2); color:var(--text-2)}
 .btn.danger{border-color:var(--rust); color:var(--rust); background:var(--surface)}
 .btn.danger-fill{background:var(--rust); border-color:var(--rust); color:#fff}
@@ -203,7 +203,7 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}   /* 링크
    앞에 두면 경고 버튼에 마우스를 올렸을 때 먹색으로 돌아갑니다 */
 .btn.primary:hover{background:#2B2926}
 .btn.sm{padding:var(--s8) var(--s12); font-size:var(--fs-sub); border-radius:var(--r-sm)}
-.btn.lg{padding:var(--s16) var(--s24); font-size:var(--fs-title); border-radius:var(--r-sm)}
+.btn.lg{font-size:var(--fs-title); border-radius:var(--r-sm); padding:var(--s16) var(--s32)}
 .btn.block{width:100%}
 .btn.grow{flex:1}
 .btn.off{opacity:.4}
@@ -285,8 +285,8 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}   /* 링크
 .empty{text-align:center; color:var(--text-2); padding:var(--s32) var(--s16); font-size:var(--fs-body); background:var(--surface-2); border-radius:var(--r-md)}
 
 /* ---------- 카드 · 접기 · 구역 제목 ---------- */
-/* 카드 경계는 테두리 한 겹 + 얇은 그림자로 충분합니다 */
-.card{background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); border-radius:var(--r-md)}
+/* 카드: 테두리·그림자 없이 흰 면 하나(v3 디자인 개편 — 회색 바탕 + 흰 카드 두 단계) */
+.card{background:var(--surface); border:none; box-shadow:none; border-radius:var(--r-lg)}
 .card + .card{margin-top:var(--s16)}
 .card-b{padding:var(--s16) var(--s16) var(--s16)}
 /* 구역 제목 — 앞에 3px 짜리 먹색 표식. 처음엔 금색 둥근 막대였는데 '각진 모서리' 개편 때 먹색·각짐으로 바꿨습니다 */
@@ -301,7 +301,7 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}   /* 링크
 .fold{overflow:hidden}
 .fold + .fold{margin-top:var(--s16)}
 .fold-h{width:100%; display:flex; align-items:center; gap:var(--s12); background:none; border:none; text-align:left; padding:var(--s16) var(--s16)}
-.fold-h:hover{background:var(--surface-2)}
+.fold-h:hover{background:transparent}
 .fh-t{font-weight:700; font-size:var(--fs-body); letter-spacing:.01em; line-height:24px}
 .fh-x{margin-left:auto; font-size:var(--fs-sub); color:var(--text-2)}
 .fh-i{font-size:var(--fs-label); color:var(--text-3)}
@@ -347,7 +347,7 @@ button.rowitem:hover{background:var(--surface-2)}
 .f .lb{font-size:var(--fs-sub); color:var(--text-3); font-weight:600; margin-bottom:var(--s4)}
 /* 마법사 4·5단계 입력 — 태블릿에서 손가락으로 치므로 크게 */
 .f.big .lb{font-size:var(--fs-body); color:var(--text-2); margin-bottom:var(--s8)}
-.f.big input{padding:var(--s16) var(--s16); font-size:var(--fs-title); border-radius:var(--r-sm)}
+.f.big input{padding:var(--s16) var(--s16); font-size:var(--fs-title); border-radius:var(--r-md)}
 .f-note{font-size:var(--fs-sub); color:var(--text-3); margin-top:var(--s4)}
 .grid2{display:grid; grid-template-columns:1fr 1fr; gap:var(--s12)}
 /* 입력창 + '해당 없음' 버튼을 한 줄에 */
@@ -459,7 +459,7 @@ button.rowitem:hover{background:var(--surface-2)}
    .topbar 는 화면 폭 전체, .topbar-in 이 본문(.content 의 max-width 1720px)과 폭을 맞춥니다.
    색은 테마 변수(--topbar-*)로 받습니다. 한옥 테마에서는 먹색 바탕 + 아이보리 글자입니다. */
 .topbar{position:sticky; top:0; z-index:30; background:var(--topbar-bg); border-bottom:1px solid var(--topbar-line); display:flex; align-items:center; gap:var(--s12); color:var(--topbar-fg); padding:0}
-.topbar-in{display:flex; width:100%; max-width:1720px; margin:0 auto; padding:var(--s12) var(--s24); gap:var(--s8); align-items:center}
+.topbar-in{display:flex; width:100%; max-width:1720px; margin:0 auto; padding:var(--s8) var(--s24); gap:var(--s8); align-items:center}   /* 위아래 8px — 44px 내비처럼 얇게(v3), 버튼은 36px 그대로 */
 /* 넓은 화면: 날짜를 '페이지' 기준 가운데에 — 양옆(로고 / 버튼 묶음)이 폭이 달라도 가운데 칸이 정중앙에 옵니다.
    좁은 화면(900px 이하)은 날짜가 둘째 줄로 내려가므로 flex 그대로 */
 @media (min-width:901px){
@@ -514,7 +514,8 @@ body.notoday .card{box-shadow:none}
 
 .topbar .bdate:hover{border-color:var(--topbar-btn-line)}
 /* 오른쪽 버튼 묶음: 차트 · 설정 · 디스플레이 · 예약 검색 · 예약 등록 */
-.bar-right{display:flex; align-items:center; gap:var(--s8); flex:none}
+/* 설정 화면에는 가운데 날짜 칸이 없습니다 — 폰에서 빈 줄이 생기지 않게 아예 안 그리고, PC 에서는 오른쪽 묶음을 auto 여백으로 밉니다 */
+.bar-right{display:flex; align-items:center; gap:var(--s8); flex:none; margin-left:auto}
 .topbar .tvbtn{flex:none; border:1px solid var(--topbar-btn-line); background:transparent; color:var(--topbar-fg); padding:var(--s8) var(--s12); font-size:var(--fs-sub); font-weight:600; white-space:nowrap; opacity:.9; display:inline-flex; align-items:center; height:36px; line-height:1; border-radius:var(--r-sm)}
 .topbar .tvbtn:hover{background:var(--topbar-hover); opacity:1}
 .topbar .tvbtn.icon{padding:var(--s8) var(--s12); display:inline-flex; align-items:center}
@@ -556,6 +557,28 @@ body.notoday .card{box-shadow:none}
 /* 종료하기 뒤 화면 — 창이 안 닫히는 브라우저(홈 화면 앱·직접 연 탭)용 */
 .bye{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s12); background:var(--bg); color:var(--text)}
 .bye b{font-size:var(--fs-head)} .bye span{color:var(--text-3)}
+
+/* ---- 10-05 에 12-overrides.css 에서 옮겨 옴: 상단바 날짜 화살표·더보기 메뉴 ---- */
+/* ---- 상단바: 맨 왼쪽 버튼을 없애고 매장 이름이 그 일을 합니다 (6차-K 부터 아이콘 없이 HANOK 글자만) ---- */
+/* 날짜 화살표는 마우스가 그 줄에 갔을 때만 — 손가락 기기(hover 없음)에서는 늘 보입니다. 안 보이면 못 누르니까 */
+@media (hover:hover) and (pointer:fine){
+  .bnav, .bnav.mo{opacity:0; transition:opacity .15s}   /* .bnav.mo 가 더 세므로 같이 적어야 월 화살표도 숨습니다 */
+  .bar-mid:hover .bnav, .bnav:focus-visible{opacity:.7}
+  .bar-mid:hover .bnav.mo{opacity:.55}
+  .bar-mid:hover .bnav:hover{opacity:1}
+}
+/* 더보기(⋮) 메뉴 — 예약률 추이 · 설정 · 디스플레이 모드 */
+.more-wrap{position:relative; flex:none}
+.more-menu{position:absolute; right:0; top:calc(100% + 6px); z-index:40; min-width:190px;
+  background:var(--surface); display:flex; flex-direction:column; animation:modal-in .15s ease-out;
+  border:none; box-shadow:0 12px 40px rgba(0,0,0,.16); border-radius:var(--r-md); padding:var(--s8)}   /* 테두리 없이 큰 그림자(v3 디자인 개편) */
+.more-menu button{display:flex; align-items:center; gap:var(--s12); width:100%; min-height:44px; border:none; background:none;
+  text-align:left; padding:var(--s8) var(--s12); font-size:var(--fs-body); font-weight:600; color:var(--text); border-radius:var(--r-sm); white-space:nowrap}
+.more-menu button:hover{background:var(--surface-2)}
+.more-menu button:active{filter:brightness(.9)}
+.more-menu svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7; flex:none; color:var(--text-2)}
+/* 메뉴 바깥을 누르면 닫히게 하는 투명 막. 상단바(z30) 안에 있으므로 본문 전체를 덮습니다 */
+.more-veil{position:fixed; top:0; left:0; right:0; bottom:0; z-index:29}
 /* ============================================================
    5. 대시보드
    ============================================================ */
@@ -565,9 +588,8 @@ body.notoday .card{box-shadow:none}
 .tl-kpis{display:flex; align-items:baseline; flex-wrap:wrap; row-gap:var(--s8); gap:var(--s16)}
 /* 영업시간 세 칸 (hoursLineHtml). 라벨은 옅게, 값은 본문색.
    칸 사이 세로선은 --border 가 surface-2 위에서 거의 안 보여 --border-strong 을 씁니다 */
-.hours-line{font-size:var(--fs-sub); color:var(--text); background:var(--surface-2);
-  border:none; border-radius:var(--r-md); padding:var(--s8) var(--s12); margin-bottom:var(--s12);
-  display:grid; grid-template-columns:repeat(3,1fr)}
+/* 영업시간 한 줄도 요일에 따라(브레이크 유무) 길이가 달라 줄바꿈이 생기지 않게 */
+.hours-line{font-size:var(--fs-sub); color:var(--text); background:var(--surface-2); border:none; border-radius:var(--r-md); padding:var(--s8) var(--s12); margin-bottom:var(--s12); display:grid; grid-template-columns:repeat(3,1fr); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; height:36px; line-height:20px; box-sizing:border-box}
 .hours-line .hl-c{min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 var(--s8); font-weight:600; text-align:center}
 .hours-line .hl-c + .hl-c{border-left:1px solid var(--border-strong)}
 .hours-line .hl-c i{font-style:normal; color:var(--text-3); font-weight:600; margin-right:6px}
@@ -635,7 +657,7 @@ body.notoday .card{box-shadow:none}
 .tl-row.off-seat .tl-name{color:var(--text-3)}
 .tl-row.off-seat .tl-name b{color:var(--text-3)}
 /* 그래프 — 시각 눈금(.tk), 테이블 줄(.lane), 예약 블록(.blk), 현재 시각 선(.nowline), 음영 띠 */
-.tl-track{position:relative; flex:1; min-width:0; height:34px; border:1px solid var(--border); overflow:hidden; background:#FAF8F3; border-radius:var(--r-sm)}
+.tl-track{position:relative; flex:1; min-width:0; height:34px; border:1px solid var(--border); overflow:hidden; border-radius:var(--r-sm); background:#FAFAFC}
 .tk{position:absolute; top:0; bottom:0; width:0}
 .tk i{position:absolute; top:0; bottom:0; width:1px; background:var(--border)}
 .tk b{display:none; position:absolute; top:2px; left:3px; font-size:var(--fs-sub); color:var(--text-3); font-weight:700}   /* 눈금 숫자 11 → 13px (09-20) */
@@ -646,8 +668,8 @@ body.notoday .card{box-shadow:none}
 .blk{position:absolute; box-sizing:border-box; color:#fff; font-size:18px; padding:0 var(--s8);   /* 09-20: 칸(lane)을 딱 채움 — 테두리 1px 안쪽, 위아래 띄움 없음 */ display:flex; align-items:center; gap:var(--s4); overflow:hidden; white-space:nowrap; border:1px solid rgba(255,255,255,.3); line-height:1; border-radius:var(--r-sm); background:#3A3833}
 .blk b{font-weight:700}
 .blk.tent{background-image:repeating-linear-gradient(-45deg, rgba(255,255,255,.34) 0 4px, transparent 4px 10px); border:1px dashed rgba(255,255,255,.75)}
-.blk.past{background-color:#B9B5AC}
-.blk.past.tent{background-color:#B9B5AC; background-image:repeating-linear-gradient(-45deg, rgba(0,0,0,.13) 0 4px, transparent 4px 10px)}
+.blk.past{background-color:#C7C7CC; color:#3A3833}
+.blk.past.tent{background-color:#F3F1EC; color:#3A3833; border-color:#B9B5AC; background-image:repeating-linear-gradient(-45deg, rgba(0,0,0,.13) 0 4px, transparent 4px 10px)}
 /* 층 머리글 줄('룸', '1층 테이블') — 얇고 회색. 좌석 줄이 20개라 묶음이 없으면 눈이 길을 잃습니다 (8차) */
 .tl-row.floor .blk.multi{align-items:flex-start; padding-top:3px}
 .tl-row.group{min-height:18px; margin-top:var(--s4)}
@@ -876,14 +898,19 @@ button.blk.tent .tier{background:#FFF8E1}
 .breakband{background:repeating-linear-gradient(45deg, rgba(156,59,39,.24) 0 6px, rgba(255,255,255,.30) 6px 12px)}
 /* 타임라인 위 칸 알약(31)과 점심/저녁 단추(34) 높이를 맞춤 — audit_rows */
 .tl-part .pt{height:31px}
+
+/* ---- 10-05 에 12-overrides.css 에서 옮겨 옴 ---- */
+/* 영업시간 시트 */
+.hs-date{font-size:var(--fs-sub); color:var(--text-3); font-weight:600; margin:0 0 var(--s12)}
+.hs-row{display:flex; justify-content:space-between; align-items:center; padding:var(--s12) 0; border-top:1px solid var(--border); font-size:var(--fs-body)}
+.hs-row span{color:var(--text-2)} .hs-row b{font-weight:700}
 /* ============================================================
    6. 예약 — 시트 / 달력 / 마법사 / 모달
    ============================================================ */
 /* ---------- 시트(팝업) 공통 ----------
    .overlay 가 화면을 덮고, 그 안에 .sheet(아래에서 올라오는 판) 또는 .modal(가운데 확인창)이 놓입니다.
    폰에서는 시트가 화면 아래에 붙고(align-items:flex-end), 768px 이상에서는 가운데로 옵니다(11구역). */
-.overlay{position:fixed; top:0; right:0; bottom:0; left:0; z-index:50; background:rgba(20,20,18,.45);
-  display:flex; align-items:flex-end; justify-content:center}
+.overlay{position:fixed; top:0; right:0; bottom:0; left:0; z-index:50; display:flex; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.4)}
 /* 확인창은 .shell 밖(app 바로 아래)에 그려지므로 배율(zoom)을 따로 걸어 줍니다.
    시트·마법사·달력은 .shell 안에 있어 여기서 또 걸면 배율이 두 번 곱해집니다.
    ※ .overlay 와 같은 요소에 같이 붙으므로(class="overlay modal-ov") 반드시 .overlay 뒤에 있어야 합니다 */
@@ -899,7 +926,7 @@ button.blk.tent .tier{background:#FFF8E1}
 .toast.on{visibility:visible; opacity:1}
 .toast-a{background:none; border:none; color:#9FD8FF; font:inherit; font-weight:700; padding:0 var(--s4); cursor:pointer}
 .toast-a:hover{text-decoration:underline}
-.sheet{width:100%; max-width:560px; max-height:calc(90vh / var(--ui-zoom, 1)); overflow-y:auto; background:var(--bg); padding:var(--s16) var(--s16) calc(var(--s24) + env(safe-area-inset-bottom)); border-radius:var(--r-lg) var(--r-lg) 0 0}
+.sheet{width:100%; max-width:560px; max-height:calc(90vh / var(--ui-zoom, 1)); overflow-y:auto; background:var(--bg); padding:var(--s16) var(--s16) calc(var(--s24) + env(safe-area-inset-bottom)); border-radius:var(--r-lg) var(--r-lg) 0 0; box-shadow:0 24px 64px rgba(0,0,0,.22)}
 .sheet-h{display:flex; align-items:center; margin-bottom:var(--s24)}
 .sheet-h h2{margin:0; font-size:var(--fs-head); font-weight:700; letter-spacing:-.01em}
 .sheet-h .x{margin-left:auto; background:none; border:none; font-size:var(--fs-head); color:var(--text-3); line-height:1; padding:0 var(--s4)}
@@ -910,7 +937,7 @@ button.blk.tent .tier{background:#FFF8E1}
 .sheet-wide{max-width:1040px}
 .sheet-wide .chart{max-height:none}
 /* ---------- 달력 팝업 ---------- */
-.calbox{width:100%; max-width:520px; max-height:92vh; overflow-y:auto; background:var(--bg); padding:var(--s16) var(--s16) calc(var(--s24) + env(safe-area-inset-bottom)); border-radius:var(--r-md)}
+.calbox{width:100%; max-width:520px; max-height:92vh; overflow-y:auto; background:var(--bg); padding:var(--s16) var(--s16) calc(var(--s24) + env(safe-area-inset-bottom)); border-radius:var(--r-lg); box-shadow:0 24px 64px rgba(0,0,0,.22)}
 .cal-nav{display:flex; align-items:center; gap:var(--s12); margin-bottom:var(--s12)}
 .cal-nav .nav{width:40px; height:40px; border:1px solid var(--border-strong); background:var(--surface);
   border-radius:var(--r-sm); color:var(--text-2)}
@@ -959,15 +986,13 @@ button.blk.tent .tier{background:#FFF8E1}
 .wz-steps{display:flex; gap:var(--s4); flex:1; min-width:0; overflow-x:auto}
 .wz-dot{display:flex; align-items:center; gap:var(--s8); border:none; background:none; padding:var(--s8) var(--s8);
   border-radius:var(--r-sm); color:var(--text-3); font-size:var(--fs-sub); font-weight:600; white-space:nowrap}
-.wz-dot .n{width:21px; height:21px; border-radius:50%; background:var(--border);
-  color:var(--surface); font-size:var(--fs-sub); display:grid; place-items:center; flex:none}
+.wz-dot .n{width:21px; height:21px; border-radius:50%; font-size:var(--fs-sub); display:grid; place-items:center; flex:none; background:var(--border-strong); color:#fff}
 .wz-dot.past .n{background:var(--pine); color:#fff}
 .wz-dot.on{color:var(--text)}
 .wz-dot.on .n{background:var(--text); color:#fff}
 .wz-dot .l{display:none}
 .wz-sum{display:flex; gap:var(--s8); margin-left:auto}
-.wz-sum span{font-size:var(--fs-sub); font-weight:600; color:var(--pine); background:var(--pine-soft);
-  border:1px solid var(--pine-line); border-radius:var(--r-sm); padding:var(--s4) var(--s8)}
+.wz-sum span{font-size:var(--fs-sub); font-weight:600; border:1px solid transparent; border-radius:var(--r-sm); padding:var(--s4) var(--s8); background:var(--surface-2); color:var(--text-2)}
 /* 질문과 본문을 세로 가운데에 — 태블릿에서 눈높이에 오게. 세로가 760px 이하이면 위부터 채웁니다(11구역) */
 .wz-mid{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; justify-content:center}
 .wz-q{text-align:center; padding:var(--s8) var(--s16) var(--s4); display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:var(--s12); max-width:940px; width:100%; margin:0 auto}   /* 폭은 .wz-body 와 같게 — 이전/다음이 입력부 끝선에 옵니다(재아) */
@@ -978,8 +1003,9 @@ button.blk.tent .tier{background:#FFF8E1}
 .wz-side.prev{justify-self:start} .wz-side.next{justify-self:end}
 .wz-side.off{opacity:.3; cursor:default}
 @media (max-width:767px){ .wz-side{display:none} }
-.wz-q h2{margin:0; font-size:var(--fs-head); font-weight:700; letter-spacing:-.01em; line-height:1.4}
-.wz-warn{margin-top:var(--s12); font-size:var(--fs-sub); font-weight:700; color:var(--rust)}
+.wz-q h2{margin:0; font-size:var(--fs-head); font-weight:700; letter-spacing:-.02em; line-height:1.3}
+/* 경고 자리: 항상 3줄(60px)만큼 비워 둡니다. 경고가 1줄이든 3줄이든 아래 본문이 움직이지 않습니다 */
+.wz-warn{font-size:var(--fs-sub); font-weight:700; color:var(--rust); min-height:60px; line-height:20px; margin-top:var(--s8); height:60px; overflow:hidden}
 /* 아래 버튼 줄의 경고 — 본문을 내려 봤을 때도 보이게. 비어 있으면 자리 안 차지 */
 .wz-foot-warn{flex:1 1 auto; min-width:0; font-size:var(--fs-sub); font-weight:700; color:var(--rust); line-height:1.35; align-self:center}
 .wz-foot-warn:empty{display:none}
@@ -989,7 +1015,8 @@ button.blk.tent .tier{background:#FFF8E1}
   padding:var(--s12) var(--s16) calc(var(--s16) + env(safe-area-inset-bottom))}
 /* 1단계 날짜·시간 — 900px 이상에서는 달력과 시간을 좌우로 나눠 스크롤 없이 한 화면에 담습니다(11구역) */
 .wz-step1{display:block}
-.wz-cal{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s12) var(--s12) var(--s16)}
+/* 달력이 시간 칸과 키를 맞춥니다 — 900px 이상에서 좌우로 놓일 때 날짜 칸이 남는 높이를 나눠 가집니다 */
+.wz-cal{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s12) var(--s12) var(--s16); display:flex; flex-direction:column}
 .mo-h{display:flex; align-items:center; gap:var(--s12); margin-bottom:var(--s12)}
 .mo-h .mo{flex:1; text-align:center; font-size:var(--fs-title); font-weight:700}
 .mo-h .nav{width:42px; height:42px; border:1px solid var(--border-strong); background:var(--surface);
@@ -1012,15 +1039,16 @@ button.bday.sel .d{color:#fff}
 button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 /* 시간 칸 — 고른 칸은 초록, 라스트오더·마감이 걸리면 벽돌색(.warned) */
 .wz-time{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s16); margin-top:var(--s16)}
-.hgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:var(--s8)}
-.hcell{border:1px solid var(--border-strong); background:var(--surface); padding:var(--s12) var(--s4) var(--s8); display:flex; flex-direction:column; align-items:center; gap:1px; border-radius:var(--r-md)}
-.hcell .ap{font-size:var(--fs-label); color:var(--text-3); font-weight:600}
-.hcell .hh{font-size:var(--fs-head); font-weight:700; letter-spacing:-.02em}
-.hcell .hn{font-size:var(--fs-label); color:var(--amber); font-weight:700}
+.hgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:var(--s8)}
+.hcell{border:1px solid var(--border-strong); background:var(--surface); display:flex; flex-direction:column; align-items:center; border-radius:var(--r-md); padding:var(--s8) var(--s4) var(--s8); gap:0; height:64px; min-height:64px}
+.hcell .ap{font-size:var(--fs-label); color:var(--text-3); font-weight:600; line-height:16px}
+.hcell .hh{font-weight:700; letter-spacing:-.02em; font-size:var(--fs-title); line-height:24px; font-variant-numeric:tabular-nums}
+/* 시각 칸 아래 안내(N건 · 브레이크 · 경고)는 한 줄로 고정 — 길면 잘라냅니다. 칸 높이가 변하면 안 됩니다 */
+.hcell .hn{font-size:var(--fs-label); color:var(--amber); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; line-height:16px; min-height:16px}
 .hcell.on{background:var(--pine); border-color:var(--pine)}
 .hcell.on .ap,.hcell.on .hh,.hcell.on .hn{color:#fff}
 /* 지난 시간 / 지난 날짜 */
-.hcell.gone{opacity:.45; background:var(--surface-2)}
+.hcell.gone{background:var(--surface-2); opacity:.4}
 .hcell.gone .hn.muted2{color:var(--text-3)}
 .hcell.gone.on{opacity:1}
 .hcell.on.warned{background:var(--rust); border-color:var(--rust)}
@@ -1092,7 +1120,7 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .scell .sc{font-size:var(--fs-sub); color:var(--text-3)}
 .scell .sb{position:absolute; top:6px; right:6px; font-size:var(--fs-label); font-weight:700;
   color:var(--amber); background:var(--amber-soft); border-radius:var(--r-sm); padding:var(--s4) var(--s4)}
-.scell.busy{background:var(--surface-2); border-style:dashed}
+.scell.busy{border-style:solid; background:var(--surface-2); opacity:.75}
 .scell.on{background:var(--pine); border-color:var(--pine)}
 .scell.on .sn,.scell.on .sc{color:#fff}
 .scell.on .sb{background:rgba(255,255,255,.25); color:#fff}
@@ -1111,11 +1139,12 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 /* 0단계 예약 경로 · 4단계 메뉴 — 같은 큰 카드(.srccell)를 씁니다. 메뉴는 .menu4/.menu2 로 칸 수만 다름 */
 .srcgrid{display:grid; grid-template-columns:1fr 1fr; gap:var(--s12); width:100%; min-width:0}
 .srcgrid > .srccell{min-width:0; width:100%; box-sizing:border-box}   /* 글자가 길어도 칸이 폭을 밀어내지 않게 */
-.srccell .s-l{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-head); font-weight:700}
+.srccell .s-l{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-head); font-weight:700; margin:0}
 .sgrid.any.two{grid-template-columns:1fr 1fr}
 .srcgrid.menu4{grid-template-columns:1fr 1fr}
 .srcgrid.menu2{grid-template-columns:1fr 1fr}
-.srccell{border:1px solid var(--border-strong); background:var(--surface); padding:var(--s24) var(--s16); display:flex; flex-direction:column; gap:var(--s4); text-align:left; position:relative; border-radius:var(--r-md)}
+/* 타일 설명을 뺀 뒤로 글자만 위에 붙어 아래가 비어 보입니다 — 세로 가운데로 */
+.srccell{border:1px solid var(--border-strong); background:var(--surface); padding:var(--s24) var(--s16); display:flex; flex-direction:column; gap:var(--s4); text-align:left; position:relative; border-radius:var(--r-md); justify-content:center}
 .srccell .s-d{font-size:var(--fs-sub); color:var(--text-3)}
 .srccell.on{background:var(--pine); border-color:var(--pine)}
 .srccell.on .s-l,.srccell.on .s-d{color:#fff}
@@ -1137,7 +1166,8 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .cnum{position:absolute; top:-8px; right:-6px; min-width:22px; height:22px; border-radius:var(--r-md);
   background:var(--rust); color:#fff; font-size:var(--fs-sub); font-weight:700; font-style:normal;
   display:grid; place-items:center; padding:0 var(--s4); border:2px solid var(--bg)}
-.course-total{text-align:center; font-size:var(--fs-body); color:var(--text-2); padding:var(--s12) 0 var(--s4)}
+/* 합계 칸은 경고 한 줄만큼 자리를 미리 — 경고가 생길 때 시트가 커지지 않게 */
+.course-total{text-align:center; font-size:var(--fs-body); color:var(--text-2); padding:var(--s12) 0 var(--s4); min-height:64px}
 .course-total b{font-size:var(--fs-title); color:var(--text)}
 /* 코스 인원 경고 */
 .course-total.bad{color:var(--rust)}
@@ -1154,8 +1184,7 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .rv span{color:var(--text-3); width:56px; flex:none; font-weight:600}
 .rv b{font-weight:700}
 .rv b .tier{vertical-align:1px; margin-left:var(--s8)}
-.done-box{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
-  padding:var(--s32) var(--s24) var(--s24); max-width:520px; width:100%; text-align:center; box-shadow:0 8px 30px rgba(20,20,18,.1)}
+.done-box{background:var(--surface); border-radius:var(--r-lg); padding:var(--s32) var(--s24) var(--s24); max-width:520px; width:100%; text-align:center; border:none; box-shadow:0 12px 40px rgba(0,0,0,.08)}
 .done-box .check{width:60px; height:60px; margin:0 auto var(--s16); border-radius:50%;
   background:var(--pine-soft); color:var(--pine); font-size:var(--fs-num); display:grid; place-items:center}
 .done-msg{font-size:var(--fs-head); line-height:1.7; margin:0 0 var(--s12); font-weight:500}
@@ -1275,7 +1304,7 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .res .rm{margin-left:auto}
 .warn-txt{color:var(--rust); font-weight:700}
 /* ---------- 확인창 (renderModal) — 경고는 제목이 벽돌색, 안내는 초록 ---------- */
-.modal{width:100%; max-width:420px; background:var(--bg); overflow:hidden; box-shadow:0 12px 40px rgba(20,20,18,.28); margin:0 var(--s16); border-radius:var(--r-lg)}
+.modal{width:100%; max-width:420px; background:var(--bg); overflow:hidden; margin:0 var(--s16); box-shadow:0 24px 64px rgba(0,0,0,.24); border-radius:var(--r-lg)}
 .modal.warn .md-h{color:var(--rust); font-size:var(--fs-head)}
 .modal.ok .md-h{color:var(--pine)}
 .md-h{padding:var(--s24) var(--s24) 0; font-size:var(--fs-head); font-weight:700; line-height:1.4}
@@ -1301,6 +1330,35 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .guest-hint.bad{background:#FBEFEC}
 .guest-hint .gh-memo{font-weight:500; color:var(--text-2)}
 .guest-hint .tier{margin-left:0}
+
+/* ---- 10-05 에 12-overrides.css 에서 옮겨 옴: 마법사 자리 잡기(v3 1차 — 누르는 선택에 따라 화면 높이가 바뀌지 않게, 나타났다 사라지는 것은 자리를 미리 잡고 보이기만) ---- */
+/* 자리만 지키고 보이지 않는 요소 — 경로 입력창 · 직접 입력 스테퍼 · 코스 요약 줄 */
+.hold{visibility:hidden; pointer-events:none}   /* ※ .ghost 는 버튼 스타일(.btn.ghost)이 이미 쓰는 이름이라 .hold 로 */
+.src-detail{margin-top:18px}
+/* 노쇼 안내 자리 (전화번호 아래) */
+.ns-slot{min-height:40px; margin-top:var(--s8)}
+/* 분 조절: 시각을 고르기 전에는 흐리게, 손잡이·채움만 숨김 (레일 높이는 그대로) */
+.mwrap.idle{opacity:.5; pointer-events:none}
+.mwrap.idle .mknob, .mwrap.idle .mfill{visibility:hidden}
+.mwrap.idle .mhead .mnow{color:var(--text-3); font-size:var(--fs-sub); font-weight:600}
+.wz-cal .bgrid:last-child{flex:1; grid-auto-rows:minmax(58px,96px)}   /* 시각 칸이 30분 단위로 길어져도 날짜 칸은 96px 까지만 */
+/* 시각 글자까지 벽돌색 — 경고 걸리는 시각은 칸 아래 작은 글씨만으로는 멀리서 안 보입니다 */
+.hcell .ap.rust, .hcell .hh.rust{color:var(--rust)}
+.hcell.on .ap.rust, .hcell.on .hh.rust{color:#fff}
+/* 같은 팝업을 고쳐 그린 것이면 등장 움직임 생략 — 코스를 누를 때마다 시트가 다시 열리는 것처럼 보이던 문제 */
+body.same-pop .sheet, body.same-pop .calbox, body.same-pop .overlay:not(.modal-ov){animation:none}
+body.same-modal .modal, body.same-modal .overlay.modal-ov{animation:none}
+
+/* 코스 칸 + 모서리 − (처음 누르면 성인 수만큼 채워지므로 줄이는 길이 필요합니다) */
+.citem-w{position:relative; display:block}
+.citem-w .citem{width:100%}
+.cminus{position:absolute; left:-6px; top:-8px; width:26px; height:26px; border-radius:50%; border:2px solid var(--bg);
+  background:var(--text-2); color:#fff; font-size:var(--fs-body); line-height:1; display:grid; place-items:center; padding:0; z-index:1}
+/* 고른 날 영업시간 밖 — 자리만 지키는 칸 */
+.hcell.outside{opacity:.38; cursor:default; background:var(--surface-2)}
+.hcell.outside:hover{background:var(--surface-2)}
+.hcell.brk{opacity:.45; background:var(--surface-2)}
+.hcell.brk.on{opacity:1}
 /* ============================================================
    7. 설정
    ============================================================ */
@@ -2035,7 +2093,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 .th-card.queued.sent{opacity:.55}
 
 /* 기간 머리: 이번 주·달이 아니면 검은 바탕. 화살표는 늘 보임(09-24 재아 '자꾸 생겼다 사라짐').
-   사라지던 까닭: 화살표가 상단바와 같은 .bnav 라 상단바의 '마우스 올릴 때만 보이기'(12-overrides)에 같이 걸렸고,
+   사라지던 까닭: 화살표가 상단바와 같은 .bnav 라 상단바의 '마우스 올릴 때만 보이기'(04-layout 끝, 예전 12-overrides)에 같이 걸렸고,
    여기서도 마우스 올릴 때만 보이게 해 둠 → 이제 전용 .hr-nb 로 따로(상단바 규칙에 안 걸림) */
 .hr-period.center{padding:var(--s8) var(--s12); border-radius:var(--r-md); transition:background .15s}
 .hr-nb{min-width:36px; height:36px; padding:0 8px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); color:var(--text); font-size:18px; font-weight:700; line-height:1; display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
@@ -2728,6 +2786,8 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 .tv-one .tv-halls{display:grid; gap:calc(var(--tvu)*1.4)}
 .tv-one .dsec.hall{height:calc(var(--tvu)*17)}
 .tv-mode-grid .tv-h .tv-date{position:absolute; left:0; top:calc(var(--tvu)*.9)}
+/* 오늘 예약이 없을 때 목록 자리 안내 — 10-05 에 13-fallback.css 에서 옮겨 옴 */
+.tvl-empty{list-style:none; text-align:center; opacity:.7; font-size:calc(var(--tvu)*2.4); padding:calc(var(--tvu)*6) 0}
 /* ============================================================
    11. 반응형 — 정리한 구역의 @media 규칙
    원본에서의 앞뒤 순서를 그대로 지키고, 붙어 있는 같은 조건끼리만 한 블록으로 묶었습니다.
@@ -2788,14 +2848,13 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 /* ---- 예약 등록 마법사: 태블릿부터 단계 이름을 글자로, 인원 타일 6칸, 달력 칸을 키움 ---- */
 @media (min-width:768px){
   .wz-dot .l{display:inline}
-  .wz-q h2{font-size:var(--fs-num)}
+  .wz-q h2{font-size:32px; letter-spacing:-.025em}   /* 큰 글자는 자간을 음수로(v3 디자인 개편) */
   .pgrid{grid-template-columns:repeat(6,1fr)}
   .ptile{padding:var(--s24) 0 var(--s24)}
   .ptile .pn{font-size:var(--fs-big)}
   .bday{min-height:68px}
   button.bday{min-height:68px}
   button.bday .d{font-size:var(--fs-head)}
-  .hgrid{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}
   .wz-body{padding:var(--s16) var(--s24) var(--s24)}
   .wz-q{padding-left:var(--s24); padding-right:var(--s24)}
   .wz-foot{padding:var(--s16) var(--s24) calc(var(--s16) + env(safe-area-inset-bottom))}
@@ -2815,24 +2874,22 @@ body.theme-hanok .pdot.on{color:var(--pine)}
   .bday{min-height:58px}
   button.bday{min-height:58px}
   button.bday .d{font-size:var(--fs-title)}
-  .hgrid{grid-template-columns:repeat(3,1fr)}
-  .hcell{padding:var(--s12) var(--s4) var(--s8)}
-  .hcell .hh{font-size:var(--fs-title)}
+  .hgrid{grid-template-columns:repeat(4,1fr)}
+  .hcell{padding:var(--s8) var(--s4)}
 }
 
 @media (min-width:1280px){
-  .hgrid{grid-template-columns:repeat(4,1fr)}
+  .hgrid{grid-template-columns:repeat(5,1fr)}   /* 30분 칸 22개 → 5줄 */
   .bday{min-height:64px}
   button.bday{min-height:64px}
 }
 
 /* 세로 공간이 좁은 태블릿 가로 모드 — 질문·달력·시간 칸을 낮춰 한 화면에 들어가게 */
 @media (max-height:820px) and (min-width:900px){
-  .wz-q h2{font-size:var(--fs-head)}
   .bday{min-height:48px}
   button.bday{min-height:48px}
   button.bday .d{font-size:var(--fs-body)}
-  .hcell{padding:var(--s8) var(--s4) var(--s8)}
+  .hcell{min-height:56px}
   .mrail{height:60px}
 }
 
@@ -2893,13 +2950,8 @@ body.theme-hanok .pdot.on{color:var(--pine)}
   button.blk b{font-size:var(--fs-label)}
 }
 
-@media (max-width:1023px){
-  .topbar-in{padding:var(--s12) var(--s24)}
-}
-
 /* ---- 폰(767 이하) 정리: 글자·여백을 한 단계씩 줄임 ---- */
 @media (max-width:767px){
-  .topbar-in{padding:var(--s12) var(--s16)}
   body{font-size:var(--fs-body)}
   .content{padding:var(--s16) var(--s12) 80px}
   .card-b{padding:var(--s12) var(--s12) var(--s16)}
@@ -2951,13 +3003,14 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 
 
 
-/* ---- 모바일 상단바 — 3줄로 나눕니다 (900 이하) ----
-   1줄: 매장명 (가운데)  2줄: 최초화면 · 차트 · 설정 · 디스플레이 · 예약검색 · 예약등록  3줄: 날짜 이동
-   order 로 줄을 바꾸고 .b-* 로 2줄 버튼 순서를 정합니다 */
+/* ---- 모바일 상단바 (900 이하) — 2줄: 매장명 + 버튼 / 날짜 이동 ----
+   처음엔 3줄(매장명 / 버튼 / 날짜)이었는데 태블릿에서 상단바가 190px 이나 돼 타임라인이 밀려 내려가서, 매장명을 버튼 줄 왼쪽에 붙였습니다.
+   order 로 줄을 바꾸고 .b-* 로 버튼 순서를 정합니다. 640px 이하 폰은 12b-mobile 에서 한 줄로 */
 @media (max-width:900px){
-  .topbar-in{flex-wrap:wrap; row-gap:var(--s8); padding:var(--s12) var(--s12) var(--s12)}
-  .storename{order:1; flex:1 1 100%; justify-content:center; text-align:center; font-size:var(--fs-title); height:auto; padding:var(--s4) 0}
-  .bar-right{display:flex; order:3; flex:1 1 auto; justify-content:flex-end; gap:var(--s4); margin-left:0}
+  .topbar-in{flex-wrap:wrap; row-gap:var(--s8)}
+  .storename{order:1; flex:0 1 auto; justify-content:flex-start; text-align:left; font-size:var(--fs-title); height:36px; padding:var(--s4) var(--s8)}
+  .bar-right{display:flex; order:3; flex:1 1 auto; justify-content:flex-end; gap:var(--s4)}
+  .more-wrap{order:6}
   .bar-mid{order:4; flex:1 1 100%; justify-content:space-between; gap:var(--s4)}
   .b-today{order:0; flex:0 1 auto}
   .b-search{order:5; flex:0 1 auto}
@@ -3041,144 +3094,58 @@ body.theme-hanok .pdot.on{color:var(--pine)}
    위의 hover 미디어(.panel:not(.locked):hover .bg → 1.08)와 우선순위가 같아, 원본처럼 이 규칙이 뒤에 와야 이깁니다 */
 .panel.soon:hover .bg{transform:scale(1.03)}
 /* ============================================================
-   v3 1차 — 재아 요청 반영 (2026-09-07)
-   원칙: "누르는 선택에 따라 화면 높이가 바뀌지 않게". 나타났다 사라지는 요소는 자리를 미리 잡아 두고(.hold / 슬롯)
-   보이기만 바꿉니다. visibility:hidden 은 display:none 과 달리 자리를 그대로 차지합니다.
-   ============================================================ */
-/* 자리만 지키고 보이지 않는 요소 — 경로 입력창 · 직접 입력 스테퍼 · 코스 요약 줄 */
-.hold{visibility:hidden; pointer-events:none}   /* ※ .ghost 는 버튼 스타일(.btn.ghost)이 이미 쓰는 이름이라 .hold 로 */
-.src-detail{margin-top:18px}
-/* 경고 자리: 항상 두 줄(40px)만큼 비워 둡니다. 경고가 생겨도 아래 본문이 밀리지 않습니다.
-   세 줄 이상 걸리는 경우(지난 날짜 + 라스트오더 + 마감)는 드물어 그때만 조금 밀립니다 */
-.wz-warn{min-height:60px; line-height:20px; margin-top:var(--s8); height:60px; overflow:hidden}   /* 경고 자리는 항상 3줄 높이. 경고가 1줄이든 3줄이든 아래가 움직이지 않습니다 */
-/* 영업시간 한 줄도 요일에 따라(브레이크 유무) 길이가 달라 줄바꿈이 생기지 않게 */
-.hours-line{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; height:36px; line-height:20px; box-sizing:border-box}
-/* 노쇼 안내 자리 (전화번호 아래) */
-.ns-slot{min-height:40px; margin-top:var(--s8)}
-/* 분 조절: 시각을 고르기 전에는 흐리게, 손잡이·채움만 숨김 (레일 높이는 그대로) */
-.mwrap.idle{opacity:.5; pointer-events:none}
-.mwrap.idle .mknob, .mwrap.idle .mfill{visibility:hidden}
-.mwrap.idle .mhead .mnow{color:var(--text-3); font-size:var(--fs-sub); font-weight:600}
-/* 달력이 시간 칸과 키를 맞춥니다 — 900px 이상에서 좌우로 놓일 때 날짜 칸이 남는 높이를 나눠 가집니다 */
-.wz-cal{display:flex; flex-direction:column}
-.wz-cal .bgrid:last-child{flex:1; grid-auto-rows:minmax(58px,96px)}   /* 시각 칸이 30분 단위로 길어져도 날짜 칸은 96px 까지만 */
-/* 시각 글자까지 벽돌색 — 경고 걸리는 시각은 칸 아래 작은 글씨만으로는 멀리서 안 보입니다 */
-.hcell .ap.rust, .hcell .hh.rust{color:var(--rust)}
-.hcell.on .ap.rust, .hcell.on .hh.rust{color:#fff}
-/* 같은 팝업을 고쳐 그린 것이면 등장 움직임 생략 — 코스를 누를 때마다 시트가 다시 열리는 것처럼 보이던 문제 */
-body.same-pop .sheet, body.same-pop .calbox, body.same-pop .overlay:not(.modal-ov){animation:none}
-body.same-modal .modal, body.same-modal .overlay.modal-ov{animation:none}
-
-/* 코스 칸 + 모서리 − (처음 누르면 성인 수만큼 채워지므로 줄이는 길이 필요합니다) */
-.citem-w{position:relative; display:block}
-.citem-w .citem{width:100%}
-.cminus{position:absolute; left:-6px; top:-8px; width:26px; height:26px; border-radius:50%; border:2px solid var(--bg);
-  background:var(--text-2); color:#fff; font-size:var(--fs-body); line-height:1; display:grid; place-items:center; padding:0; z-index:1}
-/* 합계 칸은 경고 한 줄만큼 자리를 미리 — 경고가 생길 때 시트가 커지지 않게 */
-.course-total{min-height:64px}
-
-/* ---- 상단바: 맨 왼쪽 버튼을 없애고 매장 이름이 그 일을 합니다 (6차-K 부터 아이콘 없이 HANOK 글자만) ---- */
-/* 날짜 화살표는 마우스가 그 줄에 갔을 때만 — 손가락 기기(hover 없음)에서는 늘 보입니다. 안 보이면 못 누르니까 */
-@media (hover:hover) and (pointer:fine){
-  .bnav, .bnav.mo{opacity:0; transition:opacity .15s}   /* .bnav.mo 가 더 세므로 같이 적어야 월 화살표도 숨습니다 */
-  .bar-mid:hover .bnav, .bnav:focus-visible{opacity:.7}
-  .bar-mid:hover .bnav.mo{opacity:.55}
-  .bar-mid:hover .bnav:hover{opacity:1}
-}
-/* 더보기(⋮) 메뉴 — 예약률 추이 · 설정 · 디스플레이 모드 */
-/* 설정 화면에는 가운데 날짜 칸이 없습니다 — 폰에서 빈 줄이 생기지 않게 아예 안 그리고, PC 에서는 오른쪽 묶음을 auto 여백으로 밉니다 */
-.bar-right{margin-left:auto}
-.more-wrap{position:relative; flex:none}
-.more-menu{position:absolute; right:0; top:calc(100% + 6px); z-index:40; min-width:190px; padding:var(--s4);
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md);
-  box-shadow:0 8px 24px rgba(20,20,18,.18); display:flex; flex-direction:column; animation:modal-in .15s ease-out}
-.more-menu button{display:flex; align-items:center; gap:var(--s12); width:100%; min-height:44px; border:none; background:none;
-  text-align:left; padding:var(--s8) var(--s12); font-size:var(--fs-body); font-weight:600; color:var(--text); border-radius:var(--r-sm); white-space:nowrap}
-.more-menu button:hover{background:var(--surface-2)}
-.more-menu button:active{filter:brightness(.9)}
-.more-menu svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7; flex:none; color:var(--text-2)}
-/* 메뉴 바깥을 누르면 닫히게 하는 투명 막. 상단바(z30) 안에 있으므로 본문 전체를 덮습니다 */
-.more-veil{position:fixed; top:0; left:0; right:0; bottom:0; z-index:29}
-@media (max-width:900px){
-  .more-wrap{order:6}
-  /* 상단바를 3줄(매장명 / 버튼 / 날짜)에서 2줄로 — 매장명이 혼자 한 줄을 차지하던 것을 버튼 줄 왼쪽에 붙입니다.
-     태블릿에서 상단바가 190px 이나 됐는데, 그만큼 타임라인이 밀려 내려갔습니다 */
-  .storename{flex:0 1 auto; justify-content:flex-start; text-align:left; padding:var(--s4) var(--s8); height:36px}
-  .bar-right{flex:1 1 auto}
-}
-
-
-/* ============================================================
-   v3 디자인 개편 — apple.com/kr 을 기준으로 (2026-09-07)
+   12. v3 디자인 층 — apple.com/kr 을 기준으로 (2026-09-07)
+   여러 부품을 한꺼번에 바꾸는 규칙만 여기 둡니다(알약 모서리·타일 선·고른 칸 그림자·자간·입력칸 선).
+   부품 하나만 바꾸던 규칙은 10-05 에 그 부품의 원래 규칙으로 합쳤습니다(.card·.sheet·.hcell … 은 03-parts·06-res 등에서 보세요).
+   ※ 예전 이름 12-overrides.css. 이름 순서가 같아(12- 가 12b- 앞) 이어 붙는 자리는 그대로입니다.
    색은 9구역 팔레트에서, 모서리 계단은 1구역 토큰에서 바꿨고 여기에는 '구성' 규칙만 둡니다.
    원칙: 면은 회색 바탕 + 흰 카드 두 단계뿐, 선은 거의 안 보이게, 누르는 것은 알약, 고른 것은 살짝 떠 보이게.
    ============================================================ */
 /* ---- 알약 — 누르는 것 전부. 타일(면이 넓은 것)은 12px 그대로 ---- */
 .btn, .btn.sm, .btn.lg, .tvbtn, .topbar .tvbtn, .bdate, .wz-back, .seg button, .filters button, .nonebtn, .nonebtn.sm, .mfine button, .pmore, .undecided, .wbtn, .tag, .pill, .wz-sum span, .avail, .scell .avail{border-radius:980px}
-.btn.lg{padding:var(--s16) var(--s32)}
-.btn.primary{box-shadow:0 1px 2px rgba(0,0,0,.12)}
-/* ---- 상단바: 44px 내비 느낌으로 얇게. 버튼은 36px 그대로(손가락) ---- */
-.topbar-in{padding:var(--s8) var(--s24)}
-.more-menu{border:none; box-shadow:0 12px 40px rgba(0,0,0,.16); border-radius:var(--r-md); padding:var(--s8)}
-/* ---- 카드: 테두리·그림자 없이 흰 면 하나 ---- */
-.card{border:none; box-shadow:none; border-radius:var(--r-lg)}
-.card + .card{margin-top:var(--s16)}
-.fold-h:hover{background:transparent}
 /* ---- 타일: 선은 실선 한 겹, 고르면 검정 + 살짝 떠 보이게 ---- */
 .srccell, .ptile, .scell, .hcell, .citem, button.bday, .pmore, .bigstep button, .mfine button, .mo-h .nav, .wbtn, .pdot, .wz-back, .btn, .seg button, .filters button, .nonebtn{border-color:var(--border)}
-.scell.busy{border-style:solid; background:var(--surface-2); opacity:.75}
-.hcell.gone{opacity:.4}
 .srccell.on, .ptile.on, .scell.on, .hcell.on, .citem.on, button.bday.sel{box-shadow:0 6px 16px rgba(0,0,0,.16)}
 .ptile .pn, .bigstep .v, .hcell .hh{letter-spacing:-.03em}
 .lbl, .subhead, .hcell .ap{letter-spacing:.04em}
-/* ---- 마법사: 질문은 더 크게·더 조여서 (큰 글자는 자간을 음수로 — 크기별 자간) ---- */
-.wz-q h2{letter-spacing:-.02em; line-height:1.3}
-@media (min-width:768px){ .wz-q h2{font-size:32px; letter-spacing:-.025em} }
 .wz-top, .wz-foot{border-color:var(--border)}
-.wz-sum span{background:var(--surface-2); border-color:transparent; color:var(--text-2)}
-.wz-dot .n{background:var(--border-strong); color:#fff}
 .hours-line, .course-sum, .infant{background:var(--surface-2); border:none}
 /* ---- 입력 ---- */
 input, select, textarea{border-color:var(--border-strong); border-radius:var(--r-sm)}
-.f.big input{border-radius:var(--r-md)}
-/* ---- 시트·확인창: 크고 부드러운 그림자로 '떠 있는 재질'을 (blur 는 구형 TV 금지) ---- */
-.sheet{box-shadow:0 24px 64px rgba(0,0,0,.22)}
-.modal{box-shadow:0 24px 64px rgba(0,0,0,.24); border-radius:var(--r-lg)}
-.calbox{border-radius:var(--r-lg); box-shadow:0 24px 64px rgba(0,0,0,.22)}
-.overlay{background:rgba(0,0,0,.4)}
-.done-box{border:none; box-shadow:0 12px 40px rgba(0,0,0,.08)}
-/* ---- 30분 단위 시각 칸: 칸이 두 배라 낮고 촘촘하게. 브레이크 칸은 지난 시간처럼 흐리게 (누를 수는 있음) ---- */
-.hgrid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:var(--s8)}
-.hcell{padding:var(--s8) var(--s4) var(--s8); gap:0; height:64px; min-height:64px}
-/* 시각 칸 아래 안내(N건 · 브레이크 · 경고)는 한 줄로 고정 — 길면 잘라냅니다. 칸 높이가 변하면 안 됩니다 */
-.hcell .hn{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
-/* 고른 날 영업시간 밖 — 자리만 지키는 칸 */
-.hcell.outside{opacity:.38; cursor:default; background:var(--surface-2)}
-.hcell.outside:hover{background:var(--surface-2)}
-/* 타일 설명을 뺀 뒤로 글자만 위에 붙어 아래가 비어 보입니다 — 세로 가운데로 */
-.srccell{justify-content:center}
-.srccell .s-l{margin:0}
-.hcell .ap{line-height:16px}
-.hcell .hh{font-size:var(--fs-title); line-height:24px; font-variant-numeric:tabular-nums}
-.hcell .hn{line-height:16px; min-height:16px}
-.hcell.brk{opacity:.45; background:var(--surface-2)}
-.hcell.brk.on{opacity:1}
-@media (min-width:900px){ .hgrid{grid-template-columns:repeat(4,1fr)} .hcell{padding:var(--s8) var(--s4)} .hcell .hh{font-size:var(--fs-title)} }
-@media (min-width:1280px){ .hgrid{grid-template-columns:repeat(5,1fr)} }   /* 22칸 → 5줄 */
-@media (max-height:820px) and (min-width:900px){ .hcell{min-height:56px} }
 /* ---- 타임라인: 블록은 애플 진회색, 지난 것은 밝은 회색 ---- */
-.tl-track{background:#FAFAFC; border-color:var(--border)}
 .blk, .lgsw.ok{background-color:#2C2C2E}
-.blk.past{background-color:#C7C7CC; color:#3A3833}
 .blk.past b,.blk.past .chg-chip,.blk.past .chg-chip b{color:#3A3833}
-.blk.past.tent{background-color:#F3F1EC; color:#3A3833; border-color:#B9B5AC; background-image:repeating-linear-gradient(-45deg, rgba(0,0,0,.13) 0 4px, transparent 4px 10px)}
 .blk.past.tent b{color:#3A3833}
 
-/* ---- 폰(640px 이하) 개편 (7차-M). PC 는 위 규칙 그대로 ---- */
-/* 영업시간 시트 */
-.hs-date{font-size:var(--fs-sub); color:var(--text-3); font-weight:600; margin:0 0 var(--s12)}
-.hs-row{display:flex; justify-content:space-between; align-items:center; padding:var(--s12) 0; border-top:1px solid var(--border); font-size:var(--fs-body)}
-.hs-row span{color:var(--text-2)} .hs-row b{font-weight:700}
+/* ---- 작은 알약 크기 — 10-05 에 13-fallback.css 에서 옮겨 옴(구형 TV 대비와 상관없는 규칙이라). !important 라 자리를 옮겨도 결과는 같음 ---- */
+/* 설정 안의 선택·단추를 운영 판단의 작은 알약(.seg)과 같은 크기로(09-25 재아: 제각각이고 너무 컸음).
+   숫자 단추(8 명 · 60 분 안)와 단추 줄(고치기 · PIN 관리 …)만 — 입력칸과 한 줄에 있는 단추는 칸 높이를 따라야 해서 그대로 */
+.set-one .fold-b .numbtn{height:auto!important; min-height:0!important; padding:4px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
+.set-one .fold-b .numbtn small{font-size:12px; margin-left:3px}
+.set-one .fold-b .btn-row > .btn, .set-one .fold-b .sch-h .btn{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
+/* 좌석 줄은 ▲▼ · 층 칸과 한 줄이라 원래 높이(38px) 그대로 — audit_rows */
+.set-one .fold-b .rowitem.seat .numbtn{height:38px!important; min-height:38px!important; padding:0 10px!important; border-radius:var(--r-sm)!important; font-size:14px!important}
+
+/* 사장님·관리 화면(화면형 .page-wrap — 홈페이지 관리·워크시프트·손님 관리·문자·메뉴판 …)의 알약과 작은 단추도
+   설정의 작은 알약(운영 판단 '룸 정원 기준')과 같은 크기로(09-25 재아: 화면마다 제각각, 알약이 너무 컸음).
+   큰 단추(저장·적용 같은 .btn, .btn.primary)는 그대로 — 누르기 쉬워야 해서 */
+.page-wrap .seg button{height:auto!important; min-height:0!important; padding:4px 12px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
+.page-wrap .btn.sm{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
+/* 위 규칙과 한 줄에 입력칸이 있는 곳은 높이 맞춤(audit_rows 09-25) */
+.page-wrap .gs-top input{height:30px!important; min-height:30px!important; padding:0 14px!important; font-size:14px!important; border-radius:980px!important}
+.page-wrap .th-ctl .btn{height:44px!important; min-height:44px!important; padding-top:0!important; padding-bottom:0!important}
+.page-wrap .mb-top .btn, .page-wrap .mb-top .mb-name{height:34px!important; min-height:34px!important; padding-top:0!important; padding-bottom:0!important}
+.page-wrap .mb-sw input[type=color]{height:28px!important; min-height:28px!important; width:34px!important; padding:0!important}
+
+/* 코스·세트 '적용 시간대' · '행 삭제' · '＋ 행 추가' 도 작은 알약(09-25 재아) */
+.set-one .fold-b .whenrow .wbtn, .set-one .fold-b .whenrow .btn, .set-one .fold-b .btn-row > .btn{height:auto!important; min-height:0!important; padding:4px 12px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
+.set-one .fold-b .wbtn.on{background:var(--text); border-color:var(--text); color:#fff}
+/* ============================================================
+   12b. 폰(767 이하) 전용 — 2026-09-17 모바일 작업
+   11-media.css 의 폰 규칙 뒤에, 13-fallback 앞에 옵니다. 폰에서만 달라야 하는 것은 전부 여기에 모읍니다.
+   (11-media 는 원본 순서를 지키느라 같은 조건이 흩어져 있어, 새 규칙은 여기 한 곳에 둡니다)
+   ============================================================ */
+/* ---- 폰(640px 이하) 개편 (7차-M) — 10-05 에 12-overrides.css 에서 옮겨 옴(바로 앞 파일이라 순서는 그대로). PC 는 앞 규칙 그대로 ---- */
 @media (max-width:640px){
   /* 상단 한 줄 — 900px 규칙(3줄로 접기)을 되돌립니다 */
   .topbar.mobile .topbar-in{flex-wrap:nowrap; padding:var(--s8) var(--s12); gap:2px}
@@ -3230,11 +3197,6 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
 
   .toast{bottom:92px}
 }
-/* ============================================================
-   12b. 폰(767 이하) 전용 — 2026-09-17 모바일 작업
-   11-media.css 의 폰 규칙 뒤에, 13-fallback 앞에 옵니다. 폰에서만 달라야 하는 것은 전부 여기에 모읍니다.
-   (11-media 는 원본 순서를 지키느라 같은 조건이 흩어져 있어, 새 규칙은 여기 한 곳에 둡니다)
-   ============================================================ */
 @media (max-width:767px){
   /* ---- 예약 등록 마법사 상단: 단계 점 7개가 390px 에 안 들어가 7번째가 잘렸음 → 점을 촘촘히, 닫기는 글자 없이 ✕ ---- */
   .wz-top{padding:var(--s8) var(--s12); gap:var(--s8); min-height:56px}
@@ -3262,7 +3224,7 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
   .wz-foot-warn{flex:1 1 100%; order:-1; font-size:var(--fs-label)}
 
   /* ---- 마법사 날짜 단계 영업시간 줄: "라스트오더 20:40" 이 오른쪽에서 잘림 → 줄바꿈 허용 ---- */
-  .wz-time .hours-line{flex-wrap:wrap; row-gap:0; height:auto; line-height:18px}   /* 12-overrides 가 높이 36px 로 못 박아 둘째 줄이 잘렸음 */
+  .wz-time .hours-line{flex-wrap:wrap; row-gap:0; height:auto; line-height:18px}   /* .hours-line(05-dash)이 높이 36px 로 못 박아 둘째 줄이 잘렸음 */
 
   /* ---- 목록 행의 좌석 알약(검색·확인 목록): 오른쪽에 두면 본문이 세 글자만 남음 → 셋째 줄로 내려 글자만 ---- */
   .rowitem{flex-wrap:wrap}
@@ -3320,7 +3282,7 @@ body.scrolled .topbar{box-shadow:0 1px 0 var(--topbar-line), 0 6px 20px rgba(0,0
 .mk:not(.flat):active, .cd-v:active, .cd-n:active, .hr-grid td.hc:active, .kwtag .x:active, .dq-img .x:active, .tl-name.foldable:active{filter:brightness(.9)}
 @media (max-width:640px){ .mk{height:36px} }   /* 폰 지표 칩 34 → 36 (44 는 칩 줄이 두꺼워져 대신 위아래 여백으로 손가락 자리를 확보) */
 
-/* ---- 움직임 줄이기 (§14) — 12-overrides 가 더한 더보기 메뉴·토스트·끌기 스프링까지 ---- */
+/* ---- 움직임 줄이기 (§14) — v3 개편이 더한 더보기 메뉴·토스트·끌기 스프링까지 ---- */
 @media (prefers-reduced-motion:reduce){
   .more-menu, .fold-b{animation:none}
   .toast{transition:none}
@@ -3419,29 +3381,6 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
   .tvx-legacy{padding:0}   /* 자리만 남겨 둡니다 — 앱 화면 쪽 clamp 폴백이 필요하면 여기에 */
 }
 
-/* 설정 안의 선택·단추를 운영 판단의 작은 알약(.seg)과 같은 크기로(09-25 재아: 제각각이고 너무 컸음).
-   숫자 단추(8 명 · 60 분 안)와 단추 줄(고치기 · PIN 관리 …)만 — 입력칸과 한 줄에 있는 단추는 칸 높이를 따라야 해서 그대로 */
-.set-one .fold-b .numbtn{height:auto!important; min-height:0!important; padding:4px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
-.set-one .fold-b .numbtn small{font-size:12px; margin-left:3px}
-.set-one .fold-b .btn-row > .btn, .set-one .fold-b .sch-h .btn{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.3}
-/* 좌석 줄은 ▲▼ · 층 칸과 한 줄이라 원래 높이(38px) 그대로 — audit_rows */
-.set-one .fold-b .rowitem.seat .numbtn{height:38px!important; min-height:38px!important; padding:0 10px!important; border-radius:var(--r-sm)!important; font-size:14px!important}
-
-/* 사장님·관리 화면(화면형 .page-wrap — 홈페이지 관리·워크시프트·손님 관리·문자·메뉴판 …)의 알약과 작은 단추도
-   설정의 작은 알약(운영 판단 '룸 정원 기준')과 같은 크기로(09-25 재아: 화면마다 제각각, 알약이 너무 컸음).
-   큰 단추(저장·적용 같은 .btn, .btn.primary)는 그대로 — 누르기 쉬워야 해서 */
-.page-wrap .seg button{height:auto!important; min-height:0!important; padding:4px 12px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
-.page-wrap .btn.sm{height:auto!important; min-height:0!important; padding:5px 14px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
-/* 위 규칙과 한 줄에 입력칸이 있는 곳은 높이 맞춤(audit_rows 09-25) */
-.page-wrap .gs-top input{height:30px!important; min-height:30px!important; padding:0 14px!important; font-size:14px!important; border-radius:980px!important}
-.page-wrap .th-ctl .btn{height:44px!important; min-height:44px!important; padding-top:0!important; padding-bottom:0!important}
-.page-wrap .mb-top .btn, .page-wrap .mb-top .mb-name{height:34px!important; min-height:34px!important; padding-top:0!important; padding-bottom:0!important}
-.page-wrap .mb-sw input[type=color]{height:28px!important; min-height:28px!important; width:34px!important; padding:0!important}
-
-/* 코스·세트 '적용 시간대' · '행 삭제' · '＋ 행 추가' 도 작은 알약(09-25 재아) */
-.set-one .fold-b .whenrow .wbtn, .set-one .fold-b .whenrow .btn, .set-one .fold-b .btn-row > .btn{height:auto!important; min-height:0!important; padding:4px 12px!important; font-size:13px!important; font-weight:600; border-radius:980px!important; line-height:1.4}
-.set-one .fold-b .wbtn.on{background:var(--text); border-color:var(--text); color:#fff}
-
 /* 09-25 전수검토: 크롬 66~83 은 grid 의 gap 은 알아서 위 @supports(gap) 가 참이 되지만, flex 의 gap 은 84부터라
    TV 목록에서 "17:30홍길동 님4명" 처럼 붙어 보였음. aspect-ratio(크롬 88)를 모르는 브라우저에 여백을 따로 줌
    (84~87 은 여백이 조금 넓어질 뿐) */
@@ -3453,7 +3392,6 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
   .dsec h3 > * + *{margin-left:calc(var(--tvu)*1)}
   .dsec li > * + *{margin-left:calc(var(--tvu)*1)}
 }
-.tvl-empty{list-style:none; text-align:center; opacity:.7; font-size:calc(var(--tvu)*2.4); padding:calc(var(--tvu)*6) 0}
 </style>
 </head>
 <body>
