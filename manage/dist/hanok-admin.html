@@ -10782,7 +10782,7 @@ async function cdMark(id, st){
   var old = r.status; r.status = to;
   view.cdNs = view.cdNs || {}; if(to === "노쇼") view.cdNs[r.id] = 1;   /* 전 날짜 예약도 노쇼로 바꾼 뒤 목록에 남게 */
   if(to === "노쇼") addChange(r, "노쇼", []);
-  else if(to === "확정" && (old === "취소" || old === "노쇼")) addChange(r, "변경", [{n:"상태", a:old, b:"확정"}]);
+  else if((to === "확정" || to === "방문") && (old === "취소" || old === "노쇼")) addChange(r, "변경", [{n:"상태", a:old, b:to}]);   /* 방문으로 되돌려도 '오늘 취소' 가 풀리게(10-05) */
   else touch(r);
   logEvent("상태 변경", r.date + " " + r.time + " " + r.name + " " + old + " → " + to + " (퇴근하기)");
   reflowTentatives(r.date); saveData(); render();
@@ -12726,7 +12726,7 @@ async function markRes(id, status){
     if(r.id!==id) return r;
     const n = touch(Object.assign({}, r, {status}));
     if(status==="취소" || status==="노쇼") addChange(n, status, []);
-    else if(status==="확정" && (r.status==="취소" || r.status==="노쇼")) addChange(n, "변경", [{n:"상태", a:r.status, b:"확정"}]);   /* 되돌림도 남겨야 '오늘 취소' 태그가 풀립니다(점검 R3) */
+    else if((status==="확정" || status==="방문") && (r.status==="취소" || r.status==="노쇼")) addChange(n, "변경", [{n:"상태", a:r.status, b:status}]);   /* 되돌림도 남겨야 '오늘 취소' 태그가 풀립니다(점검 R3). 지난 시각 예약은 '방문' 으로 되돌리니 그것도(10-05 시험) */
     return n;
   });
   if(rec) reflowTentatives(rec.date);
