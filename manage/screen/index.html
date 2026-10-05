@@ -6008,7 +6008,7 @@ function renderModal(){
           ${m.keepLabel?`<label class="chk pin-keep"><input type="checkbox" ${m.keep?"checked":""} onchange="MODAL.keep=this.checked"> ${esc(m.keepLabel)}</label>`:""}`:""}${m.mode==="prompt"?`<input id="md-input" type="${m.password?"password":"text"}" value="${esc(m.value||"")}" autofocus style="margin-top:8px; width:100%${m.numeric?"; font-size:24px; letter-spacing:.3em; text-align:center":""}"${m.numeric?' inputmode="numeric" pattern="[0-9]*"':""}${m.maxlen?` maxlength="${m.maxlen}"`:""} onkeydown="if(event.key==='Enter') modalPromptAnswer()">`:""}</div>
         <div class="md-f">
           ${m.mode==="confirm"||m.mode==="prompt"||m.mode==="choice"||m.mode==="pin"?`<button class="btn" onclick="modalAnswer(${m.mode==="confirm"?"false":"null"})">${esc(m.cancel)}</button>`:""}
-          ${m.mode==="pin" ? "" : m.mode==="choice" ? (m.choices||[]).map(([lb,v],i)=>`<button class="btn ${m.tone==="warn"&&i===0?"danger-fill":"primary"}" onclick="modalAnswer(${JSON.stringify(v)})">${esc(lb)}</button>`).join("") :
+          ${m.mode==="pin" ? "" : m.mode==="choice" ? (m.choices||[]).map(([lb,v],i)=>`<button class="btn ${m.tone==="warn"&&i===0?"danger-fill":"primary"}" onclick="modalAnswer(${esc(JSON.stringify(v))})">${esc(lb)}</button>`).join("") :
           `<button class="btn ${m.tone==="warn"?"danger-fill":"primary"}" onclick="${m.mode==="prompt"?"modalPromptAnswer()":"modalAnswer(true)"}">
             ${m.mode==="confirm"||m.mode==="prompt"?esc(m.ok):"확인"}</button>`}
         </div>
@@ -10305,7 +10305,7 @@ async function hrSlipImage(){
 }
 function hrPopHtml(){
   var p = HR.pop, s = HR.staff.find(function(x){ return x.id === p.staff_id; }) || {};
-  var seg = function(k, v, label){ return '<button class="' + (p[k] == v ? "on" : "") + '" onclick="hrPopSet(\'' + k + '\',' + JSON.stringify(v) + ')">' + label + '</button>'; };
+  var seg = function(k, v, label){ return '<button class="' + (p[k] == v ? "on" : "") + '" onclick="hrPopSet(\'' + k + '\',' + esc(JSON.stringify(v)) + ')">' + label + '</button>'; };
   var spans = (p.spans || []).map(function(sp, i){ return '<div class="grid3 hr-spanrow"><label class="f"><div class="lb">시작</div><input type="time" value="' + esc(sp.start || "") + '" onchange="hrPopSpan(' + i + ',\'start\', this.value)"></label>' +
       '<label class="f"><div class="lb">종료</div><input type="time" value="' + esc(sp.end || "") + '" onchange="hrPopSpan(' + i + ',\'end\', this.value)"></label>' +
       '<label class="f"><div class="lb">휴게(분)' + (p.spans.length > 1 ? ' <button class="btn sm ghost" style="float:right; padding:0 6px; min-height:0" onclick="hrPopSpanDel(' + i + ')">×</button>' : '') + '</div><input type="number" min="0" step="10" value="' + Number(sp.break || 0) + '" oninput="hrPopSpan(' + i + ',\'break\', this.value)"></label></div>'; }).join("");
@@ -10320,7 +10320,7 @@ function hrPopHtml(){
 }
 function hrEditHtml(){
   var e = HR.edit;
-  var segv = function(k, v, label){ return '<button class="' + (e[k] === v ? "on" : "") + '" onclick="hrEditSet(\'' + k + '\',' + JSON.stringify(v) + '); render()">' + label + '</button>'; };
+  var segv = function(k, v, label){ return '<button class="' + (e[k] === v ? "on" : "") + '" onclick="hrEditSet(\'' + k + '\',' + esc(JSON.stringify(v)) + '); render()">' + label + '</button>'; };
   var tab = function(k, label){ return '<button class="' + (e.tab === k ? "on" : "") + '" onclick="HR.edit.tab=\'' + k + '\'; render()">' + label + '</button>'; };
   var body = "";
   if(e.tab === "sched"){
