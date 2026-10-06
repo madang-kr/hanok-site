@@ -10,8 +10,9 @@
      SOS 비상 페이지 (2026-09-29 재아, 10-06 다시 짬)
      서버(Supabase)나 인터넷이 끊겨 예약 시스템이 안 열릴 때 임시로 버티는 한 장.
      · 예약은 **백업 JSON 파일로만** 엽니다(10-06 재아: '이 기기 저장본' 과 '백업 파일' 두 길이 있어 헷갈렸음 — 기기마다 저장 시점이
-       달라 같은 날 예약이 기기마다 다르게 보였음). 매일 백업(GitHub hanok-backup 의 data/reservations.json · stores.json · backup-at.txt)을
-       한꺼번에 고르거나, 이 페이지에서 받은 비상 백업 파일 하나. 파일을 가진 사람만 열 수 있으니 PIN 은 안 물음
+       달라 같은 날 예약이 기기마다 다르게 보였음). 파일은 **backup-날짜.json 하나**(10-06 재아: 세 개 고르기는 번거로움) — 매일 백업이
+       hanok-backup 저장소 sos/ 에 만들고, 개발자 페이지 '백업 내려받기' 도 같은 모양({at, stores, reservations}). 옛 세 파일
+       (reservations.json·stores.json·backup-at.txt)도 계속 받아 줌. 파일을 가진 사람만 열 수 있으니 PIN 은 안 물음
      · 비상 접수: 새 예약을 이 기기에만 적어 둠(localStorage hanok.sos.v1) → 서버가 돌아오면 예약 시스템이 "넣을까요?" 하고 옮김(14j-sos.js).
        저장 이름·모양을 바꾸면 그쪽이 못 읽으니 그대로 둘 것. 백업 파일 없이도 접수만은 할 수 있음
      · 내보내기: 연 백업 + 비상 접수를 파일 하나로(다른 기기로 옮길 때), 오늘부터 목록 CSV
@@ -147,7 +148,7 @@
       '<details><summary>파일 대신 내용을 붙여 넣기</summary><textarea id="l-paste" rows="4" placeholder="reservations.json 내용을 여기에 붙여 넣으세요"></textarea>' +
         '<button class="btn primary" id="l-paste-go" style="margin-top:8px">붙여 넣은 내용으로 열기</button></details>' +
       '<div class="err" id="l-err">' + esc(S.err) + '</div>' +
-      '<div class="help"><b>어떤 파일?</b> 매일 백업의 <b>reservations.json · stores.json · backup-at.txt</b> 세 개를 한꺼번에 고르세요(stores.json 이 있어야 좌석 이름이 나옵니다). 이 페이지의 \'내보내기\' 로 받은 비상 백업 파일이면 그 하나만.<br>' +
+      '<div class="help"><b>어떤 파일?</b> <b>backup-날짜.json</b> 파일 하나(예: backup-2026-10-06.json) — 매일 백업(GitHub hanok-backup 의 sos 폴더)이나 개발자 페이지의 \'백업 내려받기\' 로 받은 것. 이 페이지의 \'내보내기\' 로 받은 파일도 됩니다.<br>' +
         '파일에는 손님 이름·전화번호가 들어 있습니다. 쓰고 나면 기기에서 지워 주세요.</div>' +
       '<div class="row" style="margin-top:18px"><button class="btn" id="only-sos">백업 없이 비상 접수만' + (n ? ' (' + n + ')' : '') + '</button><a class="btn" href="../">예약 시스템으로</a></div></div>';
   }
@@ -192,12 +193,18 @@
       var m = s0.match(/^(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)(\s|$)/); if(m && s0.charAt(0) !== "[" && s0.charAt(0) !== "{"){ at = m[1]; return; }
       var o; try{ o = JSON.parse(s0); }catch(e){ bad.push(t.name); return; }
       if(o && o.kind === "hanok-sos-backup" && o.data){ cache = o.data; at = at || o.cacheAt || o.at || ""; sos = o.sos || null; return; }   /* 이 페이지의 내보내기 */
+      /* 한 파일 백업(10-06): 매일 백업의 sos/backup-날짜.json · 개발자 페이지 '백업 내려받기' — {at, stores:[…], reservations:[…]} */
+      if(o && !Array.isArray(o) && Array.isArray(o.reservations)){
+        res = (res || []).concat(o.reservations.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean));
+        if(Array.isArray(o.stores) && o.stores.length){ var hs = o.stores.filter(function(x){ return x.key === "hanok"; })[0] || o.stores[0]; settings = hs.settings || {}; name = hs.name || ""; }
+        at = at || o.at || ""; return;
+      }
       if(Array.isArray(o) && o.length && o[0].settings && o[0].key){ var h = o.filter(function(x){ return x.key === "hanok"; })[0] || o[0]; settings = h.settings || {}; name = h.name || ""; return; }   /* stores.json */
       if(Array.isArray(o) && (!o.length || (o[0].date && o[0].time))){ res = (res || []).concat(o.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean)); return; }   /* reservations.json */
       bad.push(t.name);
     });
     if(!cache && !res){
-      S.err = bad.length ? "읽을 수 없는 파일입니다: " + bad.join(", ") + " — reservations.json 이 있어야 합니다." : "reservations.json 이 없습니다. 세 파일을 한꺼번에 고르세요.";
+      S.err = bad.length ? "읽을 수 없는 파일입니다: " + bad.join(", ") + " — backup-날짜.json 을 고르세요." : "예약이 든 파일이 아닙니다 — backup-날짜.json 을 고르세요.";
       return render();
     }
     if(!cache){
@@ -232,7 +239,7 @@
     return '<div class="card"><div class="dnav noprint"><button class="btn" data-d="-1" aria-label="전날">‹</button><b>' + esc(dlabel(S.date)) + '</b><button class="btn" data-d="1" aria-label="다음 날">›</button></div>' +
       '<div class="dtools noprint"><button class="btn sm" data-today>오늘</button><input type="date" id="dpick" value="' + S.date + '"><button class="btn sm" id="print">인쇄</button></div>' +
       '<div class="search noprint"><input type="text" id="q" value="' + esc(S.q) + '" placeholder="이름 또는 전화번호 뒷자리로 찾기"></div>' +
-      (S.noSeats ? '<p class="muted noprint" style="margin:10px 0 0">stores.json 을 같이 고르지 않아 좌석 이름이 안 나옵니다.</p>' : '') +
+      (S.noSeats ? '<p class="muted noprint" style="margin:10px 0 0">파일에 매장 설정이 없어 좌석 이름이 안 나옵니다.</p>' : '') +
       '<h2 class="print-h">한옥반점 예약 · ' + esc(dlabel(S.date)) + '</h2>' +
       '<div class="sum">' + (rows.length ? teams + "팀 · " + ppl + "명" : "") + '</div>' + body + '</div>';
   }

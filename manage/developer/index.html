@@ -448,7 +448,7 @@ async function act(name, ask){
 async function backup(){
   const btn = document.getElementById("bk"); if(btn){ btn.disabled = true; btn.textContent = "모으는 중…"; }
   try{
-    const out = { at:new Date().toISOString(), project:CFG.url };
+    const out = { kind:"hanok-backup", at:new Date().toISOString(), project:CFG.url };   /* kind·stores·reservations — 비상 페이지가 이 파일 하나로 엶(10-06) */
     const all = async (t, q) => { let rows = [], from = 0; for(;;){ const r = await api("/rest/v1/" + t + "?select=*" + (q || ""), { range:from + "-" + (from + 999) }); rows = rows.concat(r || []); if(!r || r.length < 1000) return rows; from += 1000; } };
     for(const [t, q] of [["stores"], ["reservations", "&order=date,time,id"], ["requests", "&order=created_at"], ["customers"], ["staff"], ["attendance"], ["hr_settings"], ["site_posts"], ["site_draft"], ["dev_requests"], ["thanks_sms"]]) {
       try{ out[t] = await all(t, q); }catch(e){ out[t] = { error:e.message }; }
@@ -456,7 +456,7 @@ async function backup(){
     try{ out.site_versions = await api("/rest/v1/site_versions?select=*&order=apply_at.desc&limit=20"); }catch(e){ out.site_versions = { error:e.message }; }
     const blob = new Blob([JSON.stringify(out, null, 1)], { type:"application/json" }), a = document.createElement("a");
     const d = new Date(), p = n => String(n).padStart(2, "0");
-    a.href = URL.createObjectURL(blob); a.download = `hanok-backup-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
+    a.href = URL.createObjectURL(blob); a.download = `backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;   /* 10-06 재아: backup-날짜.json — 매일 백업의 한 파일과 같은 이름 꼴 */
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     toast("백업을 내려받았습니다 · 예약 " + (Array.isArray(out.reservations) ? out.reservations.length : "?") + "건 · " + mb(blob.size));
   }catch(e){ toast("백업하지 못했습니다 — " + e.message); }
@@ -468,7 +468,7 @@ function tabEm(){
       <button class="btn primary" onclick="act('reload', '켜져 있는 가게 기기를 모두 새로고침할까요?')">새로고침 보내기</button></div>
     <div class="card em"><div class="tx"><h3>홈페이지 예약 ${on === false ? "다시 켜기" : "긴급 끄기"}</h3><p>${on === false ? "지금 꺼져 있습니다. 켜면 손님이 다시 홈페이지에서 예약을 넣을 수 있습니다." : "접수가 잘못 들어오거나 남은 자리가 틀릴 때. 끄면 예약 창이 전화 안내만 보여 줍니다. 사장님 초안에도 꺼짐으로 남습니다."}${on == null ? ' <span class="muted">(지금 상태는 점검 탭에서 확인)</span>' : ""}</p></div>
       ${on === false ? `<button class="btn primary" onclick="act('booking_on', '홈페이지 예약을 다시 켤까요?')">다시 켜기</button>` : `<button class="btn danger fill" onclick="act('booking_off', '홈페이지 예약을 지금 끌까요? 손님에게 바로 전화 안내만 보입니다.')">예약 끄기</button>`}</div>
-    <div class="card em"><div class="tx"><h3>전체 백업</h3><p>예약·설정·손님·직원·근무·홈페이지·요청을 JSON 한 파일로 이 기기에 내려받습니다. 큰 작업 전에, 또는 서버가 이상할 때.</p></div>
+    <div class="card em"><div class="tx"><h3>전체 백업</h3><p>예약·설정·손님·직원·근무·홈페이지·요청을 JSON 한 파일(backup-날짜.json)로 이 기기에 내려받습니다. 큰 작업 전에, 또는 서버가 이상할 때. 서버가 죽으면 이 파일 하나로 비상 페이지를 엽니다.</p></div>
       <button class="btn" id="bk" onclick="backup()">백업 내려받기</button></div>
     <div class="card em"><div class="tx"><h3>알림 시험 · 용량 점검</h3><p>텔레그램이 오는지 시험하거나, 매일 10시 용량 점검을 지금 한 번 돌립니다(70% 넘으면 그때 알림).</p></div>
       <button class="btn" onclick="act('telegram_test')">텔레그램 시험</button><button class="btn" onclick="act('usage_check')">용량 점검 지금</button></div>
