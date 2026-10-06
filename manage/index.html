@@ -53,7 +53,7 @@
      7. 설정                          폴드 안의 표·편집 부품
      8. 잠금 · 매장 선택
      9. 테마 (body.theme-hanok)       기본 테마 — 설정에서 basic 으로 바꿀 수 있음
-    10. 손님용 화면                    .tv / .dsec / .intro — 관리 화면과 다른 언어(명조·한지색)를 일부러 씁니다
+    10. 손님용 화면                    .tv / .dsec — 관리 화면과 다른 언어(명조·한지색)를 일부러 씁니다
     11. 반응형                        @media 규칙. 원본의 앞뒤 순서를 지킵니다 (겹치는 조건은 뒤가 이기므로 폭 순으로 재배열하면 화면이 바뀝니다)
     12. 구형 브라우저 폴백              반드시 @supports 안에. 밖에 두면 모든 브라우저에서 앞의 값을 덮어씁니다
 
@@ -2475,7 +2475,7 @@ body.theme-hanok .scell.on.warned,body.theme-hanok .hcell.on.warned,
 body.theme-hanok .srccell.warned,body.theme-hanok .citem.warned{background:var(--rust); border-color:var(--rust)}
 body.theme-hanok .pdot.on{color:var(--pine)}
 /* ============================================================
-   10. 손님용 화면 (.tv / .dsec / .intro)
+   10. 손님용 화면 (.tv / .dsec)
    ============================================================ */
 /* ============================================================
    손님용 디스플레이 모드 (TV 전체화면) — 관리 화면과 다른 언어를 일부러 씁니다 (명조·한지색·창살)
@@ -2651,90 +2651,6 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 /* 화면이 작으면(900px 이하 또는 높이 480 이하) 디스플레이 대신 '화면이 작습니다' 안내(.tv-small)를 띄웁니다 — 11구역 @media */
 .tv-small{display:none}
 
-/* ------------------------------------------------------------
-   들어갈 때 인사 — 중식당에서 한옥으로
-
-   歡迎光臨(붉은 칠·금박) → 어서오세요(한지·먹·창살).
-   · 배경은 세 겹(붉은 칠 / 어두운 나무색 .intro-mid / 한지 .intro-ko)을 겹쳐 두고 글자 진행에 따라 위 두 겹의 불투명도를 올립니다.
-     6차 전에는 빨강 → 한지 두 단계였는데 글자 5개가 1.3초에 걸쳐 바뀌므로 바탕도 중간 단계가 있어야 '단계'가 느껴집니다.
-   · 글자는 먹이 종이에 스미듯 흐림(blur)에서 선명하게 나타납니다.
-   · 양옆 띠살 창호와 한지 결(SVG 잡음)은 전부 CSS/데이터 URI — 이미지 파일 0개.
-   · 6차에서 마지막 낙관(韓屋)·소제(한옥반점)는 조잡해서 뺐습니다. 마지막 장면은 어서오세요 + 창호만.
-   ※ 한 번 그린 뒤 클래스만 바꿉니다. innerHTML 을 다시 쓰면 전환이 전혀 재생되지 않습니다.
-   ------------------------------------------------------------ */
-/* ---------- 인트로 (8차-W 개편) ----------
-   전통 중국(붉은 칠 · 금박 · 회문 격자) → 전통 한국(한지 · 먹 · 창호살). 재아 요청: 부드럽게 녹아드는 게 아니라 '딱딱 끊기는' 미래 느낌.
-   · 모든 전환은 steps() — 바탕은 한 번에 바뀌고, 글자는 네 칸으로 잘려 나타나며(활자 조판처럼), 창호는 다섯 단계로 끊겨 들어옵니다
-   · 흐림(blur) 없음. 그림자는 인쇄물처럼 딱 떨어지는 오프셋
-   · 화면 네 귀퉁이에 사진기 프레임 같은 괄호, 가운데를 가로지르는 얇은 선이 끊기며 지나갑니다
-   · 클래스·마크업은 그대로(startIntro/introStep 이 클래스만 바꿈) */
-.intro{position:fixed; top:0; right:0; bottom:0; left:0; z-index:200;
-  display:flex; align-items:center; justify-content:center; overflow:hidden;
-  background:#7A1D12; color:#F6E7C8; cursor:pointer}
-.intro-bg{position:absolute; top:0; right:0; bottom:0; left:0; transition:opacity .01s steps(1,end)}
-/* 1. 붉은 칠 + 금 회문(回紋) 격자 + 가는 금 테 */
-.intro-cn{
-  background:
-    linear-gradient(90deg, rgba(232,191,110,.0) 0, rgba(232,191,110,.0) calc(50% - 1px), rgba(232,191,110,.35) calc(50% - 1px), rgba(232,191,110,.35) calc(50% + 1px), rgba(232,191,110,0) calc(50% + 1px)),
-    repeating-linear-gradient(0deg,  rgba(232,191,110,.13) 0 2px, transparent 2px 36px),
-    repeating-linear-gradient(90deg, rgba(232,191,110,.13) 0 2px, transparent 2px 36px),
-    linear-gradient(180deg, #8E2314 0%, #6E1A10 60%, #4E1109 100%)}
-.intro-cn:after{content:""; position:absolute; top:5vh; right:5vw; bottom:5vh; left:5vw; border:2px solid rgba(232,191,110,.55); box-shadow:inset 0 0 0 6px rgba(232,191,110,.12)}
-/* 2. 검은 옻칠 — 붉은색에서 한지로 가기 전 한 장면. 금선만 남음 */
-.intro-mid{opacity:0; background:
-    repeating-linear-gradient(90deg, rgba(232,191,110,.10) 0 2px, transparent 2px 72px),
-    linear-gradient(180deg, #17120F 0%, #0E0B09 100%)}
-/* 3. 한지 — 미색 + 먹선 창호살 격자(전면, 아주 옅게) */
-.intro-ko{opacity:0; background:
-    repeating-linear-gradient(0deg,  rgba(36,30,26,.08) 0 2px, transparent 2px 44px),
-    repeating-linear-gradient(90deg, rgba(36,30,26,.08) 0 2px, transparent 2px 44px),
-    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0 0.12 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E"),
-    linear-gradient(170deg, #F5EEE0 0%, #EFE5D2 60%, #E9DEC8 100%)}
-/* 귀퉁이 괄호 — 사진기 프레임. 장면이 바뀔 때 색만 바뀜 */
-.intro:before{content:""; position:absolute; top:4vh; right:4vw; bottom:4vh; left:4vw; pointer-events:none;
-  background:
-    linear-gradient(currentColor,currentColor) top left/28px 2px no-repeat, linear-gradient(currentColor,currentColor) top left/2px 28px no-repeat,
-    linear-gradient(currentColor,currentColor) top right/28px 2px no-repeat, linear-gradient(currentColor,currentColor) top right/2px 28px no-repeat,
-    linear-gradient(currentColor,currentColor) bottom left/28px 2px no-repeat, linear-gradient(currentColor,currentColor) bottom left/2px 28px no-repeat,
-    linear-gradient(currentColor,currentColor) bottom right/28px 2px no-repeat, linear-gradient(currentColor,currentColor) bottom right/2px 28px no-repeat;
-  color:rgba(232,191,110,.8); z-index:2; transition:color .01s steps(1,end)}
-.intro.turning:before{color:rgba(36,30,26,.7)}
-/* 가로지르는 선 — 8단계로 끊겨 지나감 */
-.intro:after{content:""; position:absolute; left:0; right:0; top:50%; height:2px; margin-top:.9em; z-index:1; pointer-events:none;
-  background:linear-gradient(90deg, transparent 0 20%, rgba(232,191,110,.7) 20% 80%, transparent 80%);
-  transform:translateX(-100%); animation:intro-scan .9s steps(6,end) .15s 1 forwards}
-.intro.turning:after{background:linear-gradient(90deg, transparent 0 20%, rgba(36,30,26,.7) 20% 80%, transparent 80%)}
-@keyframes intro-scan{ from{transform:translateX(-100%)} to{transform:translateX(100%)} }
-/* 창호 두 짝 — 다섯 단계로 끊겨 들어옴 */
-.intro-sash{position:absolute; top:6vh; bottom:6vh; width:17vw; opacity:0; pointer-events:none;
-  border:3px solid rgba(96,66,38,.85); box-shadow:0 0 0 1px rgba(96,66,38,.3);
-  background:
-    repeating-linear-gradient(90deg, rgba(96,66,38,.75) 0 3px, transparent 3px 44px),
-    linear-gradient(to bottom, transparent 0, transparent 21%, #F0E6D3 21%, #F0E6D3 44%, transparent 44%, transparent 56%, #F0E6D3 56%, #F0E6D3 79%, transparent 79%),
-    repeating-linear-gradient(0deg, rgba(96,66,38,.75) 0 3px, transparent 3px 44px),
-    #F0E6D3;
-  transition:opacity .01s steps(1,end), transform .45s steps(3,end)}
-.intro-sash.l{left:3vw;  transform:translateX(-10vw)}
-.intro-sash.r{right:3vw; transform:translateX(10vw)}
-.intro.turning .intro-sash{transform:translateX(0)}
-/* 글자 — 두 낱말을 한 자리에 겹쳐 놓고 글자 단위로 바꿉니다 */
-.intro-w{position:relative; font-family:var(--serif-tv); font-weight:900; line-height:1.1;
-  font-size:clamp(38px,6.8vw,80px); letter-spacing:.22em; text-indent:.22em; width:100%; text-align:center; z-index:3}
-.intro-word{display:block}
-.intro-word.ko{position:absolute; top:0; left:0; width:100%}
-.intro .ic{display:inline-block; transition:none}   /* 8차-Y(재아): 글자는 한 번에 바뀝니다 — 왼쪽부터 드러나는 것도 '부드러움' */
-/* 한자: 금박. 인쇄물처럼 딱 떨어지는 검은 오프셋 그림자. 사라질 때는 오른쪽에서 네 칸으로 잘려 나감 */
-.intro-word.cn .ic{color:#F1C77C; text-shadow:3px 3px 0 rgba(0,0,0,.55); clip-path:inset(0 0 0 0)}
-.intro.turning .intro-word.cn .ic{color:#B9915A}
-.intro-word.cn .ic.off{clip-path:inset(0 0 0 100%)}
-/* 한글: 먹. 왼쪽에서 네 칸으로 찍혀 나옴(활자 조판). 붉은 낙관 색 오프셋 한 줄 */
-.intro-word.ko .ic{color:#241E1A; clip-path:inset(0 100% 0 0); text-shadow:2px 2px 0 rgba(150,40,30,.35)}
-.intro-word.ko .ic.on{clip-path:inset(0 0 0 0)}
-/* 글자 아래 먹선 — 한지 장면에서 다섯 단계로 그어짐 */
-.intro-w:after{content:""; display:block; width:0; height:3px; margin:.3em auto 0; background:#241E1A; transition:width .45s steps(3,end) .15s}
-.intro.turning .intro-w:after{width:60%}
-/* 좁은 화면(폰): 창호는 접어 둡니다 */
-@media (max-width:640px){ .intro-sash{display:none} }
 /* 단골 등급(16차): TV 는 3~5m 에서 보니 알약을 크게. VIP 금색 테두리, VVIP 금색 채움 */
 .tv .tier{display:inline-block; vertical-align:middle; margin-left:calc(var(--tvu)*0.9); padding:calc(var(--tvu)*0.15) calc(var(--tvu)*0.7); border-radius:999px; font-size:calc(var(--tvu)*1.3); font-weight:800; letter-spacing:.05em; line-height:1.5; border:1px solid #D6BE8A; color:#D6BE8A; background:rgba(214,190,138,.12)}
 .tv .tier.vvip{background:#D6BE8A; color:#1B1A18; border-color:#D6BE8A}
@@ -5583,7 +5499,6 @@ function renderApp(){
   if(DEV_EMBED && !AUTHED){ app.innerHTML = devEmbedWaitHtml(); return; }   /* 개발자 화면 안 — PIN 화면 대신 기다림(18b) */
   /* 매장을 고른 뒤에 PIN 을 입력합니다 */
   if(view.storeKey && !AUTHED){ app.innerHTML = renderLock() + renderModal(); syncHash(); afterRender(); return; }
-  if(INTRO){ app.innerHTML = renderIntro(); return; }
   app.innerHTML = (view.display ? renderDisplay()
                   : (view.storeKey ? renderStore() : renderSelect())) + renderModal() + renderLoadError();
   syncHash();      /* 주소를 지금 화면에 맞춥니다 — 새로고침해도 그 자리로 */
@@ -5595,74 +5510,10 @@ function renderApp(){
   if(typeof aiWaveStart === "function") aiWaveStart();   /* 감사 문자 AI 물결(14g) — 캔버스가 있을 때만 돎 */   /* 타임라인 라벨(사용 중지·자리 없음) 자리 — 실제 픽셀로 겹침을 보고 정함 */
 }
 
-/* ---------- 들어갈 때 인사 ----------
-   PIN 을 맞히고 바로 화면이 튀어나오면 눌린 건지 아닌지 알기 어렵습니다.
-   짧게(2초 안쪽) 인사를 띄워 '들어가는 중'이라는 감각을 줍니다.
-   중식당이라 중국어(歡迎光臨)에서 한국어(어서오세요)로 글자가 하나씩 바뀌고,
-   바탕은 붉은 칠기 → 어두운 나무색 → 한지·창살 세 단계로 따라갑니다.
-   아무 데나 누르면 바로 건너뜁니다 — 바쁠 때 1초도 아깝습니다.
-   ※ 글자가 바뀔 때마다 render() 로 화면을 다시 그리면 CSS 전환이 전혀 재생되지 않습니다
-     (요소가 새로 만들어지니까). 처음 한 번만 그리고 그 뒤로는 클래스만 바꿉니다. */
-var INTRO = null, introTimers = [];
-var INTRO_FROM = "歡迎光臨";       /* 歡迎光臨 */
-var INTRO_TO   = "어서오세요";  /* 어서오세요 */
-function startIntro(){
-  tryFullscreen();   /* 로그인 통과 → 인트로에서 전체화면(재아). PIN 을 누른 손짓 직후라 허락됩니다 */
-  INTRO = { n:0 };
-  clearIntro(true);
-  render();                                   /* 한 번만 그립니다 */
-  /* 글자 5개가 200ms 간격(1초) — 135ms 는 거의 동시라 단계가 안 느껴졌고, 260ms 는 붉은 첫 장면이 길었습니다(6차-F).
-     첫 글자는 360ms, 마지막 글자 뒤 600ms 에 끝. 총 약 1.8초, 아무 데나 누르면 건너뜀 */
-  var steps = INTRO_TO.length, t0 = 70, gap = 88;   /* 재아: 1.7배 빠르게 — 글자 88ms 간격, 총 0.8초쯤 */
-  for(var i=1;i<=steps;i++){
-    introTimers.push(setTimeout((function(k){ return function(){ introStep(k); }; })(i), t0 + i*gap));
-  }
-  introTimers.push(setTimeout(endIntro, t0 + steps*gap + 265));
-}
-/* 글자 진행 p(0~1)에 따른 바탕 두 겹의 불투명도 — 나무색은 앞 절반에서, 한지(와 창호)는 뒤 절반에서 올라옵니다 */
-function introBg(n){
-  var p = Math.min(1, n / Math.max(1, INTRO_TO.length - 1));
-  return { mid: Math.min(1, p*2).toFixed(2), ko: Math.max(0, (p-.5)*2).toFixed(2) };
-}
-function clearIntro(keepState){
-  for(var i=0;i<introTimers.length;i++) clearTimeout(introTimers[i]);
-  introTimers = [];
-  if(!keepState) INTRO = null;
-}
-function endIntro(){ tryFullscreen(); clearIntro(); INTRO = null; render(); }   /* 인트로를 눌러 건너뛸 때도 전체화면 시도(손짓이 있으니) */
-/* k 번째 글자까지 바꿉니다. 화면을 다시 그리지 않고 클래스만 붙입니다 */
-function introStep(k){
-  if(!INTRO) return;
-  INTRO.n = k;
-  var root = document.querySelector(".intro");
-  if(!root) return;
-  root.className = "intro turning";
-  var cn = root.querySelectorAll(".intro-word.cn .ic"), ko = root.querySelectorAll(".intro-word.ko .ic"), i;
-  for(i=0;i<cn.length;i++) cn[i].className = "ic" + (i < k ? " off" : "");
-  for(i=0;i<ko.length;i++) ko[i].className = "ic" + (i < k ? " on"  : "");
-  /* 첫 글자가 바뀌는 순간 바탕도 함께 움직이기 시작하도록 조금 앞서 갑니다 (k=1 에 나무색 절반, k=2 에 나무색 완성, k=3~4 에 한지) */
-  var bg = introBg(k), mid = root.querySelector(".intro-mid"), kos = root.querySelectorAll(".intro-ko, .intro-sash");
-  if(mid) mid.style.opacity = bg.mid;
-  for(i=0;i<kos.length;i++) kos[i].style.opacity = bg.ko;
-}
-/* 다른 이유로 render() 가 도중에 불려도 진행 중인 단계(INTRO.n)를 그대로 그립니다 */
-function renderIntro(){
-  var i, cn = "", ko = "", n = INTRO.n || 0;
-  for(i=0;i<INTRO_FROM.length;i++) cn += '<span class="ic' + (i < n ? ' off' : '') + '">' + INTRO_FROM.charAt(i) + '</span>';
-  for(i=0;i<INTRO_TO.length;i++)   ko += '<span class="ic' + (i < n ? ' on'  : '') + '">' + INTRO_TO.charAt(i) + '</span>';
-  var bg = introBg(n);
-  var pm = n ? ' style="opacity:' + bg.mid + '"' : '', pk = n ? ' style="opacity:' + bg.ko + '"' : '';
-  return '<div class="intro' + (n ? ' turning' : '') + '" onclick="endIntro()">' +
-           '<div class="intro-bg intro-cn"></div>' +
-           '<div class="intro-bg intro-mid"' + pm + '></div>' +
-           '<div class="intro-bg intro-ko"' + pk + '></div>' +
-           '<div class="intro-sash l"' + pk + '></div><div class="intro-sash r"' + pk + '></div>' +
-           '<div class="intro-w">' +
-             '<div class="intro-word cn">' + cn + '</div>' +
-             '<div class="intro-word ko">' + ko + '</div>' +
-           '</div>' +
-         '</div>';
-}
+/* ---------- 로그인 뒤 ----------
+   10-06 재아: 인트로(歡迎光臨 → 어서오세요)를 없앰 — 로그인하면 바로 대시보드. 인트로가 하던 일 중 남길 것은 전체화면 시도뿐
+   (PIN 을 누른 손짓 직후라 브라우저가 허락함) */
+function enterAfterLogin(){ tryFullscreen(); render(); }
 /* ============================================================
    PIN 잠금 — 새로 열 때마다 입력합니다 (자동 로그인 없음)
    ============================================================ */
@@ -5740,12 +5591,12 @@ async function pinCheckServer(){
     PIN_BUF = ""; PIN_ERR = "";
     logEvent("로그인 성공", (SESSION && SESSION.name) || "공용 PIN");
     LOCK_BUSY = false;
-    startIntro();
+    enterAfterLogin();
     return;
   }catch(e){
     PIN_BUF = "";
     if(e.network){
-      if(pinHashOk(pin) && enterOffline(pin)){ LOCK_BUSY = false; startIntro(); return; }
+      if(pinHashOk(pin) && enterOffline(pin)){ LOCK_BUSY = false; enterAfterLogin(); return; }
       PIN_ERR = "서버에 연결할 수 없습니다";
     }else if(e.status === 400){                      /* Supabase: 비밀번호 틀림 = 400 invalid_credentials. 401 은 API 키 문제라 따로 */
       PIN_ERR = "PIN 번호가 맞지 않습니다."; pinFailed();
@@ -7682,7 +7533,7 @@ function goToday(){ view.date = todayStr(); view.calMonth = monthStr(); render()
 function notodayView(){
   /* 마법사가 열려 있으면 검정을 풀어 둡니다 — 다른 날짜를 보다가 등록을 눌러도 입력 화면은 평소 색(재아) */
   /* 사장님 메뉴처럼 화면 전체를 쓰는 페이지(view.form.page)도 날짜와 상관없는 화면이라 늘 흰 바탕(09-24 재아) */
-  return !!view.storeKey && AUTHED && !view.display && !INTRO && !WZ && view.tab!=="settings" && !(view.form && view.form.page) && view.date!==todayStr();
+  return !!view.storeKey && AUTHED && !view.display && !WZ && view.tab!=="settings" && !(view.form && view.form.page) && view.date!==todayStr();
 }
 /* 오늘 기준 가까운 날짜에 이름표 */
 function moveMonthDate(n){
