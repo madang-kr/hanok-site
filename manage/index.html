@@ -16114,7 +16114,7 @@ async function devEmbedEnter(m){
   DEV_EMBED_BUSY = false;
   render();
 }
-function devEmbedRetry(){ DEV_EMBED_TRIED = false; DEV_EMBED_ERR = ""; render(); devEmbedPost("madang-dev-ready"); }
+function devEmbedRetry(){ DEV_EMBED_TRIED = false; DEV_EMBED_ERR = ""; render(); devEmbedPost("hanok-dev-ready"); }
 /* 토큰이 곧 끝나거나 서버가 거절하면 개발자 페이지에 새 토큰을 달라고 하고 기다립니다(8초).
    이미 기다리는 중이면 같은 요청에 얹힙니다(요청을 여러 번 보내지 않음). 못 받으면 '연결 문제'로 보고 다음에 다시 */
 function devEmbedRefresh(){
@@ -16127,7 +16127,7 @@ function devEmbedRefresh(){
       DEV_EMBED_WAITERS = DEV_EMBED_WAITERS.filter(function(w){ return w !== ok; });
       var e = new Error("개발자 화면에서 새 토큰을 받지 못했습니다"); e.network = true; rej(e);
     }, 8000);
-    if(first) devEmbedPost("madang-dev-need-token");
+    if(first) devEmbedPost("hanok-dev-need-token");
   });
 }
 function devEmbedWaitHtml(){
@@ -16139,9 +16139,9 @@ if(DEV_EMBED){
   window.addEventListener("message", function(e){
     if(e.origin !== location.origin || e.source !== window.parent) return;   /* 같은 주소의 부모 창(개발자 페이지)만 */
     var m = e.data || {};
-    if(m.type === "madang-dev-session" && m.access_token) devEmbedEnter(m);
+    if(m.type === "hanok-dev-session" && m.access_token) devEmbedEnter(m);
   });
-  devEmbedPost("madang-dev-ready");
+  devEmbedPost("hanok-dev-ready");
 }
 /* ============================================================
    예시 데이터 — 처음 실행할 때만 채웁니다 (설정에서 지울 수 있음)

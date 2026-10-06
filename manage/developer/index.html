@@ -5,7 +5,7 @@
 <link rel="icon" href="/favicon.ico?v=2" sizes="any"><link rel="apple-touch-icon" href="/img/icon-180.png?v=2">   <!-- 09-25 재아: 사이트와 같은 아이콘 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>마당 · 개발자</title>
+<title>개발자 · 한옥반점</title>
 <!--
   개발자 페이지 (2026-09-24, 재아) — hanokbanjeom.com/manage/developer/
   재아 계정(madang-dev) 하나만 들어옴. 가게 기기에서 열 일이 없는 페이지라 가게 시스템(HTML 한 파일 빌드)과 따로 둠 —
@@ -158,8 +158,8 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 <script>
 "use strict";
 const CFG = window.SUPA || {};
-const DEV_ID = "madang-dev", DEV_EMAIL = "madang-dev@jaealee.com";   // 서버 hanok_is_dev() 와 같아야 함
-const SKEY = "madang.dev.session";
+const DEV_EMAIL = "madang-dev@jaealee.com";   // 서버 hanok_is_dev() 와 같아야 함 — 서버 계정 이름이라 그대로(화면에는 안 보임)
+const SKEY = "hanok.dev.session";   /* 10-06 이름 바꿈(옛 madang.dev.session) — 바꾼 날 한 번 다시 로그인 */
 const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, stats:null, statDays:30, ai:null, aiForm:"", busy:false, err:"" };
 const $app = document.getElementById("app");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -206,8 +206,8 @@ async function api(path, opt = {}, retry = true){
 }
 async function login(ev){
   ev.preventDefault();
-  const id = document.getElementById("id").value.trim(), pw = document.getElementById("pw").value;
-  if(id !== DEV_ID && id !== DEV_EMAIL){ S.err = "개발자 아이디가 아닙니다"; render(); return; }
+  /* 계정은 하나뿐이라 아이디 칸 없이 비밀번호만(10-06 재아: 화면에 옛 이름 'madang' 이 보이지 않게) — 서버 계정 이름은 그대로 DEV_EMAIL */
+  const pw = document.getElementById("pw").value;
   S.busy = true; S.err = ""; render();
   try{ saveSess(await auth("password", { email:DEV_EMAIL, password:pw })); S.tab = "req"; loadTab(); }
   catch(e){ S.err = e.message; }
@@ -231,14 +231,14 @@ function setFrameOpen(){
 function setFrameClose(){ $set.innerHTML = ""; $set.hidden = true; }
 function setSendToken(){
   const fr = setFrame(); if(!fr || !fr.contentWindow || !S.sess) return;
-  fr.contentWindow.postMessage({ type:"madang-dev-session", access_token:S.sess.access_token, refresh_token:S.sess.refresh_token, expires_at:S.sess.expires_at, email:DEV_EMAIL }, location.origin);
+  fr.contentWindow.postMessage({ type:"hanok-dev-session", access_token:S.sess.access_token, refresh_token:S.sess.refresh_token, expires_at:S.sess.expires_at, email:DEV_EMAIL }, location.origin);
 }
 window.addEventListener("message", async e => {
   const fr = setFrame();
   if(e.origin !== location.origin || !fr || e.source !== fr.contentWindow) return;   /* 우리가 띄운 그 창만 */
   const t = e.data && e.data.type;
-  if(t === "madang-dev-ready"){ if(await ensureSess()) setSendToken(); }
-  else if(t === "madang-dev-need-token"){ if(await ensureSess(360000)) setSendToken(); else render(); }   /* 6분 안에 끝나면 미리 갱신 */
+  if(t === "hanok-dev-ready"){ if(await ensureSess()) setSendToken(); }
+  else if(t === "hanok-dev-need-token"){ if(await ensureSess(360000)) setSendToken(); else render(); }   /* 6분 안에 끝나면 미리 갱신 */
 });
 function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
 
@@ -329,7 +329,7 @@ function tabHealth(){
         ${la ? "마지막 경고 " + esc(kst(la.at)) + " · " + esc(la.msg) : "보낸 경고 없음"} — 70·80·90% 에서 한 번씩(달마다)</div></div>
   </div>
   <div class="grid">
-    ${hc(c.ms < 1500 ? "ok" : "warn", "서버(Supabase)", c.ms + "ms", "madang-hanok · 서울")}
+    ${hc(c.ms < 1500 ? "ok" : "warn", "서버(Supabase)", c.ms + "ms", "실서비스 서버 · 서울")}
     ${hc(pagesOk ? "ok" : "bad", "홈페이지 · 시스템 · TV", pagesOk ? "모두 열림" : "안 열리는 곳 있음", pages.map((p, i) => ["홈", "시스템", "TV"][i] + " " + (p.ok ? p.ms + "ms" : "오류 " + p.status)).join(" · "))}
     ${hc(av < 30 ? "ok" : (open && av > 120) ? "bad" : "warn", "카운터 동기화(남은 자리 올림)", esc(ago(h.avail_at)), open ? "영업 중엔 몇 분마다 갱신돼야 정상 — 오래되면 카운터 태블릿이 꺼졌거나 로그아웃" : "영업 전후라 멈춰 있어도 정상")}
     ${hc(staff && mins(staff.last) < 60 * 24 * 7 ? "ok" : "warn", "가게 계정 마지막 로그인", "직원 " + esc(staff ? ago(staff.last) : "없음"), "사장 " + esc(admin ? ago(admin.last) : "없음"))}
@@ -491,9 +491,8 @@ function render(){
   if(!CFG.url){ $app.innerHTML = '<p class="spin">접속 설정(js/config.js)을 못 읽었습니다</p>'; return; }
   if(!S.sess){
     setFrameClose();
-    $app.innerHTML = `<header><h1>마당 <span>· 개발자</span></h1></header>
+    $app.innerHTML = `<header><h1>개발자 <span>· 한옥반점</span></h1></header>
       <form class="card login" onsubmit="login(event)"><h2>개발자 로그인</h2><p>재아 계정만 들어옵니다.</p>
-        <label class="f"><span>아이디</span><input id="id" type="text" autocomplete="off" value="${DEV_ID}" autocapitalize="off" spellcheck="false"></label>
         <label class="f"><span>비밀번호</span><input id="pw" type="password" autocomplete="new-password" autofocus></label>
         <div class="err">${esc(S.err)}</div>
         <button class="btn primary" ${S.busy ? "disabled" : ""}>${S.busy ? "확인 중…" : "들어가기"}</button></form>`;
@@ -501,7 +500,7 @@ function render(){
     return;
   }
   const open = S.reqs ? S.reqs.filter(r => !isDone(r)) : [], urg = open.filter(r => r.urgent).length;
-  $app.innerHTML = `<header><h1>마당 <span>· 개발자 · 한옥반점</span></h1><span class="sp"></span><button class="btn sm" onclick="logout()">로그아웃</button></header>
+  $app.innerHTML = `<header><h1>개발자 <span>· 한옥반점</span></h1><span class="sp"></span><button class="btn sm" onclick="logout()">로그아웃</button></header>
     <nav class="tabs">
       <button class="${S.tab === "req" ? "on" : ""}" onclick="go('req')">개발자에게${open.length ? `<span class="badge${urg ? " red" : ""}">${open.length}</span>` : ""}</button>
       <button class="${S.tab === "health" ? "on" : ""}" onclick="go('health')">점검</button>
