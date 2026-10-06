@@ -2479,7 +2479,7 @@ body.theme-hanok .pdot.on{color:var(--pine)}
    ============================================================ */
 /* ============================================================
    손님용 디스플레이 모드 (TV 전체화면) — 관리 화면과 다른 언어를 일부러 씁니다 (명조·한지색·창살)
-   이 구역은 디자인 개편 대상이 아닙니다. 구조만 정리했습니다.
+   이 구역은 디자인 개편 대상이 아닙니다. 구조만 정리했습니다. (단, 좌석표형은 10-06 재아 요청으로 다시 짬 — 고딕 통일·층별 기둥, 아래 '좌석표형' 절)
 
    [크기 단위 --tvu]
    머리글·날짜·바닥글은 예전에 `clamp(15px, 2.3vh, 30px)` 같은 식이었습니다.
@@ -2603,79 +2603,51 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 .tv.tv-mode-list .tv-stage{padding:0}
 
 .tv-exit:hover{color:#F3EADA; background:rgba(243,234,218,.2)}
-/* 머리글 — 날짜 · 매장 이름 · 금색 실선. 머리글·바닥글이 화면 높이의 1/4를 쓰던 것을 줄여 그만큼 목록 글자를 키웠습니다 */
-.tv-h{flex:none; text-align:center; position:relative; z-index:1; padding-bottom:calc(var(--tvu)*1.6)}
-/* 좌석표(09-20): 머리글을 한 줄로 — 왼쪽 날짜·시계, 가운데 제목. 세로 공간을 칸에 줍니다 */
-.tv-mode-grid .tv-h{display:flex; align-items:baseline; justify-content:center; gap:calc(var(--tvu)*3); padding-bottom:calc(var(--tvu)*1.2)}
-.tv-mode-grid .tv-h .tv-date{position:absolute; left:0; top:calc(var(--tvu)*.9)}
-.tv-mode-grid .tv-h h1{font-size:calc(var(--tvu)*3.8); margin:0}
-.tv-mode-grid .tv-h .tv-line{display:none}
-.tv-mode-grid .tv-inner{padding-top:calc(var(--tvu)*2.2); padding-bottom:calc(var(--tvu)*1.8)}
-.tv-h h1{font-family:var(--serif-tv); font-weight:800; margin:7px 0 0; letter-spacing:.18em; text-indent:.18em; line-height:1.2; color:#FFFFFF; text-shadow:0 2px 16px rgba(0,0,0,.75); font-size:calc(var(--tvu)*4.6); margin-top:calc(var(--tvu)*.7)}
-.tv-date{font-family:var(--serif-tv); letter-spacing:.24em; color:#E3D3B2; text-shadow:0 2px 10px rgba(0,0,0,.7); font-size:calc(var(--tvu)*2.2)}
-.tv-line{height:1px; margin:0 auto;   /* 위 여백은 뒤의 margin-top. 전엔 clamp() 가 들어 있어 구형 TV 가 이 줄을 통째로 버렸음(가운데 정렬까지 — 10-03) */ background:linear-gradient(90deg, transparent, #C9AE79, transparent); width:calc(var(--tvu)*9); margin-top:calc(var(--tvu)*1.2)}
-/* 칸 배치(09-20 재개편) — 층 기둥(.tv-col) 두 개. 칸 크기와 글자 크기는 고정하고 넘치는 만큼만 '외 N건' 으로 접습니다(capLists).
-   --tv-li·--tv-h3 은 fitDisplay() 가 다시 정하며, 여기 값은 자바스크립트가 못 돌았을 때의 기본값입니다 */
-.tv-grid{flex:1 1 auto; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:calc(var(--tvu)*3.2); overflow:hidden; --tv-li:calc(var(--tvu, 1vh) * 2.2); --tv-h3:calc(var(--tvu, 1vh) * 2.09); position:relative; z-index:1}
-.tv-col{min-width:0; min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:calc(var(--tvu)*1.4)}   /* 머리 / 룸 칸(남는 높이 전부) / 테이블 칸 */
-/* 층 머리 — 큰 명조 '1층' + 오른쪽에 룸·테이블 수. 아래 금 선 */
-.tv-col-h{flex:none; display:flex; align-items:baseline; gap:calc(var(--tvu)*1.4); padding:0 calc(var(--tvu)*.6) calc(var(--tvu)*.5); border-bottom:1px solid rgba(214,190,138,.45)}
-.tv-col-h b{font-family:var(--serif-tv); font-weight:900; font-size:calc(var(--tvu)*3.2); letter-spacing:.14em; color:#FFF6E4; text-shadow:0 2px 14px rgba(0,0,0,.7)}
-.tv-col-h span{font-family:var(--sans); font-size:calc(var(--tvu)*1.7); font-weight:600; color:#C9B891; letter-spacing:.06em}
-.tv-col-h em{margin-left:auto; font-style:normal; font-family:var(--sans); font-size:calc(var(--tvu)*1.7); font-weight:700; color:#FFD98A; letter-spacing:.04em}   /* 남은 예약 N팀 — 오른쪽 끝 */
-.tv-col + .tv-col{position:relative}
-.tv-col + .tv-col::before{content:""; position:absolute; left:calc(var(--tvu)*-1.6); top:calc(var(--tvu)*.5); bottom:0; width:1px; background:linear-gradient(180deg, rgba(214,190,138,.0), rgba(214,190,138,.35) 15%, rgba(214,190,138,.35) 85%, rgba(214,190,138,0))}   /* 두 층 사이 얇은 금 선 */
-.tv-cells{min-height:0; display:grid; grid-auto-rows:minmax(0,1fr); gap:calc(var(--tvu)*1.4)}
-.tv-row{display:none}   /* 옛 3줄 배치 — 안 씀 */
-/* ---------- 좌석표 카드 ----------
-   · 카드: 검은 유리판(거의 불투명) + 얇은 금 테. 모서리 둥글게. 뒤 사진은 분위기만
-   · 머리: 룸 이름(명조 900, 크게) · 정원(오른쪽, 작고 흐리게)
-   · 줄: 시각은 금색 숫자, 이름은 흰 고딕 굵게, 인원은 오른쪽 흐리게
-   · 다음 손님(.next): 한 단계 크게 + 왼쪽 금 띠 — 직원이 멀리서도 '다음이 누구' 를 봅니다
-   · 지난 손님: 흐리게. 비어 있는 카드(.empty)는 테두리·글자 모두 한 단계 죽여 눈이 예약 있는 칸으로 가게 */
-.dsec{min-width:0; min-height:0; display:flex; flex-direction:column;
-  background:linear-gradient(180deg, rgba(12,14,18,.93) 0%, rgba(7,9,12,.95) 100%);
-  border:1px solid rgba(214,190,138,.42); border-top-color:rgba(255,226,170,.62);
-  border-radius:calc(var(--tvu)*1.4);
-  box-shadow:0 10px 34px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,235,200,.12);
-  padding:calc(var(--tvu)*.9) calc(var(--tvu)*1.6) calc(var(--tvu)*.9)}
-.dsec.hall{height:calc(var(--tvu)*17); border-color:rgba(214,182,120,.5);
-  background:linear-gradient(180deg, rgba(24,19,11,.93), rgba(14,11,6,.95))}
-.dsec.empty{border-color:rgba(214,190,138,.18); border-top-color:rgba(214,190,138,.22); background:linear-gradient(180deg, rgba(12,14,18,.62), rgba(7,9,12,.66)); box-shadow:0 6px 20px rgba(0,0,0,.35)}
-.dsec.empty h3 .nm{color:rgba(255,246,228,.55); text-shadow:none}
-.dsec.empty h3 .cap{color:rgba(185,169,133,.5)}
-.dsec li .tn{font-size:.72em; color:#C8B795; margin-left:.4em; font-weight:500}
-/* 카드 머리 */
-.dsec h3{flex:none; display:flex; align-items:baseline; gap:calc(var(--tvu)*1); font-size:var(--tv-h3); font-weight:700; letter-spacing:.04em;
-  border-bottom:1px solid rgba(214,190,138,.28); white-space:nowrap; color:#FFFFFF; margin:0 0 calc(var(--tvu)*.5); padding:0 0 calc(var(--tvu)*.4)}
-.dsec h3 .nm{font-family:var(--serif-tv); font-weight:900; font-size:1.3em; letter-spacing:.1em; color:#FFF6E4; text-shadow:0 2px 12px rgba(0,0,0,.6); flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:left}
-.dsec.hall h3 .nm{font-size:1.15em}
-.dsec h3 .fl{display:none}
-.dsec h3 .cap{font-family:var(--sans); font-size:.72em; font-weight:600; color:#B9A985; flex:none; letter-spacing:.04em}
-/* 예약 줄 */
-.dsec ul{flex:1 1 auto; min-height:0; list-style:none; margin:0; padding:0; display:flex; flex-direction:column; overflow:hidden; gap:0}
-.dsec ul.two-col{display:grid; grid-template-columns:1fr 1fr; grid-auto-flow:column; grid-template-rows:repeat(6,auto); align-content:start; gap:0 calc(var(--tvu)*2.6)}
-.dsec li{flex:none; display:flex; align-items:baseline; font-family:var(--sans); font-weight:600; font-size:var(--tv-li); line-height:1.35; white-space:nowrap;
-  gap:calc(var(--tvu)*1); padding:calc(var(--tvu)*.22) calc(var(--tvu)*.6); border-bottom:1px solid rgba(255,255,255,.06); border-radius:calc(var(--tvu)*.5)}
-.dsec li:last-child{border-bottom:none}
-.dsec li .t{font-weight:800; color:#FFD98A; flex:none; letter-spacing:.02em; font-variant-numeric:tabular-nums; font-size:.95em}
-.dsec li .n{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; color:#FFFFFF}
-.dsec li .p{flex:none; color:#C9BB9C; font-size:.86em; font-weight:500}
-.dsec li .p small{font-size:.8em; margin-left:.1em}
-/* 다음 손님 — 한 단계 크게 + 금 띠 */
-.dsec li.next{font-size:calc(var(--tv-li) * 1.06); background:linear-gradient(90deg, rgba(255,217,138,.16), rgba(255,217,138,.02)); box-shadow:inset 4px 0 0 #FFD98A; padding-top:calc(var(--tvu)*.3); padding-bottom:calc(var(--tvu)*.3)}
-.dsec li.next .n{color:#FFF9EC}
-.dsec li.next .t{color:#FFE6A8}
-/* 지난 예약은 흐리게 하되, TV에서 아예 사라지지 않을 만큼만 */
-.dsec li.past{opacity:.4}
-.dsec li.past .t{color:#C9B68F}
-.dsec li.none{color:#8E836F; font-weight:500; font-size:calc(var(--tv-li) * .8); padding-top:calc(var(--tvu)*.6); border:none}
-/* 자리가 모자라 접은 줄 수 (fitDisplay → trimOverflow) */
-.dsec li.more{color:#C3B49A; font-weight:600; font-size:calc(var(--tv-li) * .8); border:none; justify-content:flex-end}
-/* 머리글의 시계 — 날짜 옆에 */
-.tv-clock{margin-left:calc(var(--tvu)*1.6); font-family:var(--sans); font-weight:700; letter-spacing:.04em; color:#FFF6E4; font-variant-numeric:tabular-nums}
-/* 바닥글 */
-.tv-f{flex:none; text-align:center; border-top:1px solid rgba(243,234,218,.24); font-family:var(--serif-tv); color:#D3C2A2; text-shadow:0 2px 10px rgba(0,0,0,.7); letter-spacing:.26em; text-indent:.26em; position:relative; z-index:1; padding-top:calc(var(--tvu)*1.4); margin-top:calc(var(--tvu)*1.2); font-size:calc(var(--tvu)*2.5)}
+/* ---------- 좌석표형(10-06 재아 다시 짬 — A안 2차 · 고딕 통일) ----------
+   층마다 기둥(.tvg-col): 머리 '1층' / 룸 칸 2열(.tvg-rooms) / 그 층 테이블 칸(.dsec.hall).
+   글자는 네 단계만 — --tg1 제목·시계 · --tg2 층·룸 이름·날짜 · --tv-li 예약 줄(fitDisplay 가 넘칠 때만 줄임) · --tg4 작은 안내.
+   글꼴은 전부 Pretendard(var(--sans)) — 명조와 섞으면 울퉁불퉁해 보였음. 카드·줄 이름(.dsec·ul.two-col)은 fitDisplay 가 찾으므로 그대로
+   구형 TV: flex gap 대신 margin(13-fallback), inset 대신 top/right/bottom/left */
+.tv-mode-grid .tv-inner{--tg1:calc(var(--tvu)*3.8); --tg2:calc(var(--tvu)*2.5); --tg4:calc(var(--tvu)*1.5);
+  padding:calc(var(--tvu)*3.4) calc(var(--tvu)*5) calc(var(--tvu)*2.4); font-family:var(--sans); letter-spacing:-.005em}
+.tv-mode-grid .tv-bgs::after{content:""; position:absolute; top:0; right:0; bottom:0; left:0; background:radial-gradient(120% 90% at 50% 10%, rgba(10,11,13,.72), rgba(6,7,9,.9))}
+.tvg-h{flex:none; display:flex; align-items:baseline; justify-content:space-between; padding-bottom:calc(var(--tvu)*1.4); border-bottom:1px solid rgba(217,182,110,.4)}
+.tvg-h h1{margin:0; font-size:var(--tg1); font-weight:700; letter-spacing:.02em; line-height:1; color:#F4EEE3}
+.tvg-when{display:flex; align-items:baseline; gap:calc(var(--tvu)*1.6); font-size:var(--tg2); font-weight:600; color:#C9BA9B}
+.tvg-when b{font-size:var(--tg1); font-weight:700; color:#F4EEE3; font-variant-numeric:tabular-nums; line-height:1}
+.tv-grid.tvg-body{flex:1 1 auto; min-height:0; display:grid; gap:calc(var(--tvu)*3); padding-top:calc(var(--tvu)*2); overflow:hidden;
+  --tv-li:calc(var(--tvu, 1vh) * 2.15); --tv-h3:calc(var(--tvu, 1vh) * 2.5)}
+.tvg-col{min-width:0; min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr) calc(var(--tvu)*22.5); gap:calc(var(--tvu)*1.2)}
+.tvg-col.nohall{grid-template-rows:auto minmax(0,1fr)}
+.tvg-col.norooms{grid-template-rows:auto minmax(0,1fr)}
+.tvg-fl{padding:0 calc(var(--tvu)*.3); font-size:var(--tg2); font-weight:700; letter-spacing:.04em; color:#D9B66E; line-height:1.2}
+.tvg-rooms{min-height:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:calc(var(--tvu)*1.2)}
+.tvg-f{flex:none; margin-top:calc(var(--tvu)*1.6); text-align:center; font-size:var(--tg4); font-weight:600; letter-spacing:.12em; color:#A8987A}
+/* 카드 */
+.dsec{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden; text-align:left;   /* 바깥 .tv 가 가운데 정렬이라 */
+  background:linear-gradient(180deg, rgba(24,22,19,.86), rgba(14,13,12,.86)); border:1px solid rgba(217,182,110,.24);
+  border-radius:calc(var(--tvu)*1.1); padding:calc(var(--tvu)*1.3) calc(var(--tvu)*1.7) calc(var(--tvu)*1);
+  box-shadow:0 calc(var(--tvu)*.8) calc(var(--tvu)*2.4) rgba(0,0,0,.4)}
+.dsec.empty{background:rgba(14,13,12,.6); border-color:rgba(217,182,110,.12)}
+.dsec h3{flex:none; margin:0 0 calc(var(--tvu)*.6); padding-bottom:calc(var(--tvu)*.6); border-bottom:1px solid rgba(217,182,110,.2);
+  font-size:var(--tv-h3); font-weight:700; letter-spacing:.02em; line-height:1.2; white-space:nowrap; color:#F4EEE3}
+.dsec h3 .nm{display:block; overflow:hidden; text-overflow:ellipsis}
+.dsec.empty h3{color:rgba(244,238,227,.42); border-bottom-color:rgba(217,182,110,.1)}
+.dsec.empty ul, .dsec.empty ul.two-col{display:none}
+.tvg-none{margin:auto 0; text-align:center; font-size:var(--tg4); color:rgba(201,186,155,.42)}
+/* 예약 줄 — 시각 칸 폭 고정(이름이 줄마다 같은 자리에서 시작), 인원은 오른쪽 끝 */
+.dsec ul{flex:1 1 auto; min-height:0; list-style:none; margin:0; padding:0; overflow:hidden}
+.dsec ul.two-col{display:grid; grid-auto-flow:column; align-content:start; column-gap:calc(var(--tvu)*3)}
+.dsec li{display:grid; grid-template-columns:calc(var(--tvu)*7.4) minmax(0,1fr) auto; align-items:baseline; padding:calc(var(--tvu)*.4) 0;
+  font-size:var(--tv-li); font-weight:600; line-height:1.3; white-space:nowrap; color:#F4EEE3; border-top:1px solid rgba(255,255,255,.06)}
+.dsec ul > li:first-child, .dsec ul.two-col > li{border-top:none}
+.dsec ul.two-col > li + li{border-top:1px solid rgba(255,255,255,.06)}
+.dsec li .t{font-weight:700; color:#E2C27C; font-variant-numeric:tabular-nums}
+.dsec li .n{min-width:0; overflow:hidden; text-overflow:ellipsis}
+.dsec li .p{padding-left:calc(var(--tvu)*1); color:#B9AA8B; font-variant-numeric:tabular-nums}
+.dsec li.past{opacity:.38}
+.dsec li.more{display:block; text-align:right; color:#A8987A; font-size:var(--tg4); border-top:none}
+.tv .tvm{letter-spacing:.24em; margin-right:-.24em}   /* 가린 이름 전체에 고른 자간 — '이 * 아'(10-06 재아). 별표마다 여백을 주면 별표끼리만 벌어졌음. 끝 자간은 margin 으로 되돌림 — 목록형에도 */
 /* 화면이 작으면(900px 이하 또는 높이 480 이하) 디스플레이 대신 '화면이 작습니다' 안내(.tv-small)를 띄웁니다 — 11구역 @media */
 .tv-small{display:none}
 
@@ -2767,12 +2739,6 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 .tv .tier{display:inline-block; vertical-align:middle; margin-left:calc(var(--tvu)*0.9); padding:calc(var(--tvu)*0.15) calc(var(--tvu)*0.7); border-radius:999px; font-size:calc(var(--tvu)*1.3); font-weight:800; letter-spacing:.05em; line-height:1.5; border:1px solid #D6BE8A; color:#D6BE8A; background:rgba(214,190,138,.12)}
 .tv .tier.vvip{background:#D6BE8A; color:#1B1A18; border-color:#D6BE8A}
 
-/* 09-20 재아: 기둥 없이 한 판 — 위 룸 격자(4×2), 아래 테이블 두 칸 */
-.tv-grid.tv-one{grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) auto; gap:calc(var(--tvu)*1.6)}
-.tv-one .tv-rooms{min-height:0; display:grid; grid-auto-rows:minmax(0,1fr); gap:calc(var(--tvu)*1.4)}
-.tv-one .tv-halls{display:grid; gap:calc(var(--tvu)*1.4)}
-.tv-one .dsec.hall{height:calc(var(--tvu)*17)}
-.tv-mode-grid .tv-h .tv-date{position:absolute; left:0; top:calc(var(--tvu)*.9)}
 /* 오늘 예약이 없을 때 목록 자리 안내 — 10-05 에 13-fallback.css 에서 옮겨 옴 */
 .tvl-empty{list-style:none; text-align:center; opacity:.7; font-size:calc(var(--tvu)*2.4); padding:calc(var(--tvu)*6) 0}
 /* ============================================================
@@ -3356,7 +3322,7 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 @supports not (gap: 1px){
   .btn-row > *, .seg > *, .bar-right > *, .tl-legends > *{margin:3px}
   .tl-row > * + *{margin-left:8px}
-  .tv-col > * + *{margin-top:12px}   /* 좌석표 층 기둥(09-20) — grid gap 은 구형에서도 되지만 flex gap 은 안 됨 */
+  .tvg-when > * + *{margin-left:calc(var(--tvu)*1.6)}   /* 좌석표 머리 날짜·시계(10-06) — grid gap 은 구형에서도 되지만 flex gap 은 안 됨 */
 }
 /* clamp 를 못 읽는 브라우저를 위한 기본값.
    ※ 예전에는 이 규칙들이 @supports 없이 그냥 파일 끝에 놓여 있었습니다.
@@ -3374,10 +3340,6 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
 @supports not (aspect-ratio: 1 / 1){
   .tvl-g > * + *{margin-left:calc(var(--tvu)*1.2)}
   .tvl-s > * + *{margin-left:calc(var(--tvu)*1.1)}
-  .tv-mode-grid .tv-h > * + *{margin-left:calc(var(--tvu)*3)}
-  .tv-col-h > * + *{margin-left:calc(var(--tvu)*1.4)}
-  .dsec h3 > * + *{margin-left:calc(var(--tvu)*1)}
-  .dsec li > * + *{margin-left:calc(var(--tvu)*1)}
 }
 </style>
 </head>
@@ -15703,7 +15665,7 @@ function tableFloors(){
 /* vh 단위, 큰 것부터. 첫 값이 상한, 마지막이 하한입니다.
    **글자가 크거나 작다는 말이 나오면 첫 값만 바꾸면 됩니다.**
    하한보다 더 줄이면 TV에서 못 읽으므로, 그래도 안 들어가면 목록을 접습니다. */
-var TV_SIZES = [3.6, 3.3, 3.0, 2.8, 2.6, 2.4, 2.2];   /* 09-20: 좌석표를 층 기둥으로 바꾸며 칸이 커져 상한을 3.6 으로 */   /* 8차-J: 칸이 비어 있으면 글자를 키웁니다 — 안 넘치는 가장 큰 값을 고릅니다 */
+var TV_SIZES = [2.15, 2.0, 1.85];   /* 10-06 재아: 글자가 크고 들쭉날쭉 — 비었다고 키우지 않고 기본 2.15 에서 넘칠 때만 줄임. 옛 [3.6 … 2.2] */   /* 09-20: 좌석표를 층 기둥으로 바꾸며 칸이 커져 상한을 3.6 으로 */   /* 8차-J: 칸이 비어 있으면 글자를 키웁니다 — 안 넘치는 가장 큰 값을 고릅니다 */
 /* 목록형 — 날개에 들어가는 줄 수는 TV 높이에 따라 달라집니다.
    넘치는 줄은 숨기고 '외 N건' 으로 알립니다.
    글자를 줄이지 않는 이유: 입구 TV 는 멀리서 봅니다. 작아지면 있으나 마나입니다. */
@@ -15942,7 +15904,7 @@ function tvSideHtml(){
     const items = g.items.map(function(r){
       const seat = r.roomId ? resSeatLabel(r) : "";
       return `<div class="tvl-g">
-        <span class="tvl-n">${esc(maskName(r.name))} 님${r.tier ? tierTagOf(r.tier) : ""}</span>
+        <span class="tvl-n">${tvName(r.name)} 님${r.tier ? tierTagOf(r.tier) : ""}</span>
         <span class="tvl-s">${seat ? `<span class="tvl-seat">${esc(seat)}</span>` : ""}<span class="tvl-cnt">${pplOf(r)}<small>명</small></span></span>
       </div>`;
     }).join("");
@@ -15968,42 +15930,44 @@ function tvSideHtml(){
    · TV(40~43인치, 3~5m)는 대비가 중요 — 유리판 카드 위에 흰 글자, 금색은 다음 손님 표시에만.
    fitDisplay/capList 는 그대로 씁니다(.tv-grid · .dsec ul · li.past · li.more · two-col). */
 function renderTvGrid(){
+  /* 10-06 재아 다시 짬(A안 2차 · 고딕 통일): 층마다 기둥 하나 — 머리 '1층' / 룸 칸(2열) / 그 층 테이블 칸.
+     글자는 네 단계만(제목·시계 / 층·룸 이름·날짜 / 예약 줄 / 작은 안내), 전부 Pretendard. '남은 예약 N팀'·'N팀' 은 뺌(재아: 굳이) */
   const s = store() || DATA.hanok;
   const today = todayStr();
   const nowM = toMin(nowHM());
   /* 룸은 배정된 것만, 테이블은 층 희망(seatPref)까지 — 당일에는 룸 미배정이 없도록 운영한다는 전제 */
   const list = s.reservations.filter(r=>r.date===today && (r.status==="확정"||r.status==="방문") && (r.roomId || isTablePref(r.seatPref)));
   const rooms = roomsAt(today).filter(isRoom);
+  const tfl = tableFloors();
   const floors = [];
   rooms.forEach(r => { const f = r.floor || ""; if(floors.indexOf(f) < 0) floors.push(f); });
-  tableFloors().forEach(f => { if(floors.indexOf(f) < 0) floors.push(f); });
+  tfl.forEach(f => { if(floors.indexOf(f) < 0) floors.push(f); });
 
-  const card = (title, cap, rows, hall) => {
-    let nextMarked = false;
+  const card = (title, rows, hall) => {
     const items = rows.map(r => {
       const past = isBlockPast(r, toMin(r.time), today, nowM);
-      return `<li class="${past?'past':''}">
-        <span class="t">${esc(r.time)}</span>
-        <span class="n">${esc(maskName(r.name))} 님${r.tier ? tierTagOf(r.tier) : ""}${pplOf(r) >= (s.settings.groupSize || 8) ? '<span class="tier grp">단체</span>' : ""}</span>
-        <span class="p">${pplOf(r)}<small>명</small></span>
-      </li>`;
+      return `<li class="${past?'past':''}"><span class="t">${esc(r.time)}</span>` +
+        `<span class="n">${tvName(r.name)} 님${r.tier ? tierTagOf(r.tier) : ""}${pplOf(r) >= (s.settings.groupSize || 8) ? '<span class="tier grp">단체</span>' : ""}</span>` +
+        `<span class="p">${pplOf(r)}명</span></li>`;
     }).join("");
+    const cols = hall && rows.length > 8 ? 3 : 2;
     return `<section class="dsec ${hall?'hall':''} ${rows.length?'':'empty'}">
-      <h3><span class="nm">${esc(title)}</span>${cap ? `<span class="cap">${esc(cap)}</span>` : ""}</h3>
-      <ul class="${hall?"two-col":""}"${hall ? ` style="grid-template-rows:repeat(${Math.max(1,Math.ceil(rows.length/2))},auto)"` : ""}>${items}</ul>
+      <h3><span class="nm">${esc(title)}</span></h3>
+      <ul class="${hall?"two-col":""}"${hall ? ` style="grid-template-columns:repeat(${cols},minmax(0,1fr)); grid-template-rows:repeat(${Math.max(1,Math.ceil(rows.length/cols))},auto)"` : ""}>${items}</ul>
+      ${rows.length ? "" : '<div class="tvg-none">예약 없음</div>'}
     </section>`;
   };
-  /* 09-20(재아): 층 기둥 없이 룸 8칸을 한 격자로, 그 아래 '1층 테이블'·'저층 테이블' 두 칸. 시계·'예약 없음'·다음 손님 강조는 뺌 */
-  const roomCards = rooms.map(room => {
-    const rows = list.filter(r => r.roomId === room.id || (r.extraIds||[]).indexOf(room.id) >= 0).sort((a,b)=>a.time.localeCompare(b.time));
-    return card(room.name, "", rows, false);
-  }).join("");
-  const hallCards = tableFloors().map(fl => {
-    /* 09-25 전수검토: 테이블을 지정한 예약(roomId 가 테이블)·층 상관없음 예약이 TV 에서 사라지던 것 */
-    const trows = list.filter(r => { const f = resFloor(r); if(f === undefined) return false; if(f === null) return fl === tableFloors()[0]; return f === fl; }).sort((a,b)=>a.time.localeCompare(b.time));
-    return card(`${fl} 테이블`, "", trows, true);
-  }).join("");
-  const cols = [`<div class="tv-cells tv-rooms" style="grid-template-columns:repeat(${Math.min(4, Math.max(1, rooms.length))},1fr)">${roomCards}</div><div class="tv-halls" style="grid-template-columns:repeat(${Math.max(1, tableFloors().length)},1fr)">${hallCards}</div>`];
+  const roomRows = room => list.filter(r => r.roomId === room.id || (r.extraIds||[]).indexOf(room.id) >= 0).sort((a,b)=>a.time.localeCompare(b.time));
+  /* 09-25 전수검토: 테이블을 지정한 예약(roomId 가 테이블)·층 상관없음 예약이 TV 에서 사라지던 것 — 층 미정은 첫 테이블 층으로 */
+  const hallRows = fl => list.filter(r => { const f = resFloor(r); if(f === undefined) return false; if(f === null) return fl === tfl[0]; return f === fl; }).sort((a,b)=>a.time.localeCompare(b.time));
+  const colHtml = fl => {
+    const rs = rooms.filter(r => (r.floor || "") === fl), hasHall = tfl.indexOf(fl) >= 0;
+    return `<div class="tvg-col${hasHall ? "" : " nohall"}${rs.length ? "" : " norooms"}">
+      <div class="tvg-fl">${esc(fl || "룸")}</div>
+      ${rs.length ? `<div class="tvg-rooms" style="grid-template-rows:repeat(${Math.ceil(rs.length/2)},minmax(0,1fr))">${rs.map(r => card(r.name, roomRows(r), false)).join("")}</div>` : ""}
+      ${hasHall ? card(`${fl} 테이블`, hallRows(fl), true) : ""}
+    </div>`;
+  };
 
   const d = new Date();
   const dateTxt = `${d.getMonth()+1}월 ${d.getDate()}일 ${WD_KO[d.getDay()]}요일`;
@@ -16013,15 +15977,16 @@ function renderTvGrid(){
         ${tvBgsHtml()}
       </div>
       <div class="tv-inner">
-        <header class="tv-h">
-          <div class="tv-date">${dateTxt}</div>
+        <header class="tvg-h">
           <h1>오늘의 예약 안내</h1>
-          <div class="tv-line"></div>
+          <div class="tvg-when"><span>${dateTxt}</span><b>${clock}</b></div>
         </header>
-        <div class="tv-grid tv-one">${cols.join("")}</div>
-        <footer class="tv-f">찾아주셔서 감사합니다${DISP_FAIL >= 3 ? '<span class="tvl-off">연결 확인 중</span>' : ""}</footer>
+        <div class="tv-grid tvg-body" style="grid-template-columns:repeat(${Math.max(1, floors.length)},minmax(0,1fr))">${floors.map(colHtml).join("")}</div>
+        <footer class="tvg-f">찾아주셔서 감사합니다 · 한옥반점${DISP_FAIL >= 3 ? '<span class="tvl-off">연결 확인 중</span>' : ""}</footer>
       </div>`;
 }
+/* TV 의 손님 이름 — 가린 별표 양옆에 살짝 간격(10-06 재아: '이*아' 보다 '이 * 아'). 서버가 가려 보낸 이름('이*아')도 같게 */
+function tvName(n){ var s = maskName(n); return s.indexOf("*") < 0 ? esc(s) : '<span class="tvm">' + esc(s.replace(/\s+/g, "")) + '</span>'; }
 
 /* 화면이 처음 그려질 때 예정 설정을 흡수합니다(불러온 직후) */
 setTimeout(function(){ try{ if(AUTHED && DATA && view.storeKey){ absorbScheduled(); if(typeof pullRequests === "function"){ pullRequests().then(function(n){ if(n) render(); }); publishAvail(true); } if(typeof gsLoadMemos === "function") gsLoadMemos(); } }catch(e){} }, 1500);
