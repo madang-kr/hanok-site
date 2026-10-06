@@ -367,6 +367,22 @@ function tabHealth(){
   <table class="logs">${(h.logs || []).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="a">${esc(l.action)}</td><td class="d">${esc(l.detail)}${l.who ? ` <span class="muted">· ${esc(l.who)}</span>` : ""}</td></tr>`).join("") || '<tr><td class="muted">기록 없음</td></tr>'}</table>`;
 }
 
+/* 저장 충돌(10-06) — 가게 기기가 '예약 충돌'·'설정 충돌' 을 logs 에 남김(manage/src/js/02-supabase.js conflictLog). 통계 기간과 같게 읽음 */
+async function loadConflicts(){
+  try{ const since = new Date(Date.now() - (S.statDays || 30) * 864e5).toISOString();
+    S.conf = await api("/rest/v1/logs?select=at,action,detail,who&action=in.(" + encodeURIComponent('"예약 충돌","설정 충돌"') + ")&at=gte." + since + "&order=at.desc&limit=200"); }
+  catch(e){ S.conf = { error:e.message }; }
+  render();
+}
+function conflictHtml(){
+  const c = S.conf;
+  if(!c){ loadConflicts(); return '<h2 class="sec">저장 충돌</h2><p class="spin">불러오는 중…</p>'; }
+  if(c.error) return `<h2 class="sec">저장 충돌</h2><p class="muted">못 읽었습니다 — ${esc(c.error)}</p>`;
+  const r = c.filter(x => x.action === "예약 충돌").length, st = c.length - r;
+  return `<h2 class="sec">저장 충돌 · ${c.length}건 <span class="muted" style="font-weight:400">(예약 ${r} · 설정 ${st})</span></h2>` +
+    (c.length ? `<table class="logs">${c.slice(0, 50).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="d"><b>${esc(l.action)}</b> ${esc(l.detail)}<br><span class="muted">${esc(l.who || "")}</span></td></tr>`).join("")}</table>`
+               : '<p class="muted">이 기간에 충돌이 없었습니다.</p>');
+}
 /* ---------- 통계(24차) ----------
    '잘 돌아가고 있나' — 홈페이지 방문(하루 방문자·장별·기기·유입), 예약 창 → 접수, 가게 시스템에서 많이 쓴 기능(기록 logs 의 동작별),
    예약 등록·경로, 접수 처리, 감사 문자, 화면 오류. 기간 7·30·90일 */
@@ -383,7 +399,7 @@ function hbars(list, fmt){
 }
 function tabStats(){
   const st = S.stats;
-  const chips = [7, 30, 90].map(d => `<button class="chip${S.statDays === d ? " on" : ""}" onclick="S.statDays=${d}; loadStats()">${d}일</button>`).join("");
+  const chips = [7, 30, 90].map(d => `<button class="chip${S.statDays === d ? " on" : ""}" onclick="S.statDays=${d}; S.conf=null; loadStats()">${d}일</button>`).join("");
   const head = `<div class="bar">${chips}<span style="flex:1"></span><button class="btn sm" onclick="loadStats()">새로고침</button></div>`;
   if(!st) return head + '<p class="spin">모으는 중…</p>';
   if(st.error) return head + `<div class="card"><b>통계를 못 가져왔습니다</b><p class="muted">${esc(st.error)}</p></div>`;
@@ -413,6 +429,7 @@ function tabStats(){
       <div class="card"><h4>많이 본 장</h4>${hbars(st.pages, pageName)}<h4 style="margin-top:16px">기기</h4>${hbars(st.devices, devName)}</div>
       <div class="card"><h4>어디서 왔나</h4>${hbars(st.refs)}<h4 style="margin-top:16px">예약 경로 (가게 등록)</h4>${hbars(res.by_source)}</div>
     </div>
+    ${conflictHtml()}
     ${er.n ? `<h2 class="sec">최근 화면 오류</h2><table class="logs">${(er.recent || []).map(l => `<tr><td class="t">${esc(kst(l.at))}</td><td class="d">${esc(l.detail)}<br><span class="muted">${esc((l.ua || "").slice(0, 90))}</span></td></tr>`).join("")}</table>` : ""}`;
 }
 

@@ -4245,6 +4245,14 @@ function setMerge(base, local, server){
   return out;
 }
 function setMigrate(k, settings){ var mg = {}; mg[k] = { settings: settings }; return migrate(mg)[k].settings; }
+/* 저장 충돌 기록(10-06 재아: "자꾸 충돌 난다" 를 숫자로 보려고) — 서버 logs 에 한 줄만. 개발자 페이지 → 통계 → '저장 충돌' 에서 봄.
+   logEvent 를 안 쓰는 이유: 그건 saveData 를 다시 불러, 저장 도중(flush 안)에 부르면 저장이 또 돌아감. 손님 이름·전화는 안 적음(예약 id·날짜·시각·바뀐 칸 이름만) */
+var CONFLICT_N = 0;
+function conflictLog(action, detail){
+  if(CONFLICT_N >= 30) return; CONFLICT_N++;   /* 한 번 켤 때 30줄까지 — 무언가 되풀이되면 표가 넘치지 않게 */
+  if(!(supaOn() && SESSION && !OFFLINE)) return;
+  sb("/rest/v1/logs", { method:"POST", body:{ store:view.storeKey || "-", action:action, detail:String(detail || "").slice(0, 300), ua:(navigator.userAgent || "").slice(0, 120) }, prefer:"return=minimal" }).catch(function(){});
+}
 /* 매장 설정·스냅샷 올리기 — 마지막으로 본 updated_at 일 때만. 0행이면(다른 기기가 먼저 씀) 최신을 받아 합치고 다시(최대 4번) */
 async function pushStore(k, st){
   var base = SYNC.settings[k] ? JSON.parse(SYNC.settings[k]) : {};
@@ -4257,6 +4265,7 @@ async function pushStore(k, st){
     var seen = SYNC.storeUpd[k] || "";
     var rows = await sb("/rest/v1/stores?key=eq." + k + (seen ? "&updated_at=eq." + encodeURIComponent(seen) : ""), { method:"PATCH", body:body, prefer:"return=representation" });
     if(rows && rows.length){
+      if(n > 0) conflictLog("설정 충돌", "다른 기기가 먼저 저장 → 합쳐서 저장(" + (n + 1) + "번째에 됨) · " + (body.settings ? "바꾼 설정: " + setKeysChanged(base, st.settings).slice(0, 8).join(", ") : "스냅샷"));
       if(body.settings) SYNC.settings[k] = sent;
       SYNC.snapshots[k] = pj; SYNC.storeUpd[k] = rows[0].updated_at;
       if(JSON.stringify(st.settings) !== sent) FLUSH_AGAIN = true;   /* 보내는 사이에 또 바뀜 */
@@ -4271,6 +4280,7 @@ async function pushStore(k, st){
     if(k === "hanok") reloadWatch(cur.settings && cur.settings._reloadAt);
     if(typeof draftRebase === "function") draftRebase();
   }
+  conflictLog("설정 충돌", "4번 모두 겹쳐 저장 못 함");
   throw new Error("설정 저장이 다른 기기와 계속 겹칩니다 — 잠시 뒤 다시 시도하세요");
 }
 /* 보낸 뒤 처리. sent = 보낼 때의 JSON — 요청이 오가는 사이에 객체가 또 바뀌었을 수 있습니다
@@ -4314,13 +4324,15 @@ async function pushChanged(rec, k, cur){
   /* 내용이 같으면(시각만 다름) 묻지 않고 상대 것을 받습니다.
      두 기기가 같은 결론에 도달하는 경우가 실제로 잦습니다 — 각자 저장한 뒤 reflowTentatives 가 같은 잠정 배정을 계산하는 식으로. 이걸 매번 물으면 확인창이 수십 개 뜹니다 */
   var mineNoTs = Object.assign({}, rec), theirsNoTs = Object.assign({}, trec); delete mineNoTs.updatedAt; delete theirsNoTs.updatedAt;
-  if(canon(mineNoTs) === canon(theirsNoTs)){   /* 키 순서가 달라도(내 객체 vs 서버에서 온 객체) 같은 내용이면 같게 */
+  if(canon(mineNoTs) === canon(theirsNoTs)){   /* 키 순서가 달라도(내 객체 vs 서버에서 온 객체) 같은 내용이면 같게 — 충돌로 안 침(기록도 안 함) */
     rec.updatedAt = trec.updatedAt; SYNC.res[rec.id] = JSON.stringify(rec);
     if(t.updated_at > (SYNC.lastUpd[k] || "")) SYNC.lastUpd[k] = t.updated_at;
     return;
   }
   /* 선택지를 주지 않습니다(재아 결정) — 서버 내용으로 화면을 바꾸고 다시 하라고 알립니다. 다시 하면 그때는 충돌이 아닙니다 */
   var title = t.deleted_at ? "다른 기기에서 이미 삭제된 예약입니다" : "작성 도중 다른 기기에서 수정된 내용입니다";
+  var diffKeys = Object.keys(Object.assign({}, mineNoTs, theirsNoTs)).filter(function(f){ return canon(mineNoTs[f]) !== canon(theirsNoTs[f]); });
+  conflictLog("예약 충돌", (t.deleted_at ? "이미 삭제됨 · " : "") + rec.id + " · " + (trec.date || "") + " " + (trec.time || "") + " · 다른 칸: " + diffKeys.slice(0, 10).join(", ") + " · 서버 저장 " + String(t.updated_at || "").slice(0, 19) + (t.by ? " by " + t.by : ""));
   var li = st.reservations.indexOf(rec), ti = st.trash.indexOf(rec);
   if(li >= 0) st.reservations.splice(li, 1); if(ti >= 0) st.trash.splice(ti, 1);
   if(t.deleted_at) st.trash.push(trec); else st.reservations.push(trec);
