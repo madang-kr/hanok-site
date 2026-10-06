@@ -84,7 +84,7 @@ window.SITE_DEFAULT = {
 
   /* ---------- 장별 글·사진 ---------- */
   home: {
-    heroSlides: ["hanok.jpg", "room-jangbi-gwanu.webp", "room-jojo.webp"],
+    heroSlides: ["hero-1-night.webp", "hero-2-day.webp", "hero-3-dumpling.webp", "hero-4-wok.webp"],   /* 10-06 재아가 보낸 순서: 밤 전경 · 낮 전경 · 만두 · 웍 */
     heroTitle: "한옥에서 즐기는 중식",
     heroSub: "경기 성남시 분당구 새마을로51번길 2",
     intro: {
