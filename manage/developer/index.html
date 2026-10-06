@@ -215,7 +215,7 @@ async function login(ev){
 }
 function logout(){
   if(S.sess) fetch(CFG.url + "/auth/v1/logout", { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token } }).catch(() => {});
-  saveSess(null); S.reqs = null; S.health = null; S.stats = null; S.ai = null; setFrameClose(); render();
+  saveSess(null); S.reqs = null; S.health = null; S.stats = null; S.ai = null; S.mail = null; setFrameClose(); render();
 }
 /* ---------- 설정 탭(10-03 재아: 설정은 사장님 화면이 아니라 여기서) ----------
    예약 시스템(../?devset=1)을 창 안에 띄우고, 이 페이지가 로그인한 개발자 토큰을 건네줍니다 — 창 안에서는 PIN 을 묻지 않음(src/js/18b-devembed.js).
@@ -419,6 +419,34 @@ function tabStats(){
 /* ---------- 감사 문자 AI 키(27차) ----------
    키는 서버 금고(Vault)에만. 여기서도 값은 못 봄 — 있는지·언제 바꿨는지·최근 24시간 사용·상한·최근 호출만.
    넣기·상한 바꾸기는 개발자 계정만(서버가 막음). 사장님 화면에는 키 칸이 없음(재아 09-24) */
+/* 사장님 메일 알림(42차, 10-06 재아) — '개발자에게' 에 답을 달면 서버가 사장님 메일로 한 통. 키·주소는 서버 Vault 에만 */
+async function loadMail(){
+  try{ S.mail = await api("/rest/v1/rpc/hanok_mail_status", { method:"POST", body:{} }); }
+  catch(e){ S.mail = { error:/hanok_mail_status|404|PGRST202/.test(e.message) ? "서버에 42차가 아직 없습니다(patch_42차_답변메일 먼저 실행)" : e.message }; }
+  render();
+}
+async function mailSave(){
+  const g = id => ((document.getElementById(id) || {}).value || "").trim();
+  const k = g("ml-k"), t = g("ml-t"), f = g("ml-f");
+  if(!k && !t && !f){ toast("바꿀 칸을 채워 주세요"); return; }
+  try{ const m = await api("/rest/v1/rpc/hanok_set_mail", { method:"POST", body:{ p_key:k, p_to:t, p_from:f } }); toast(m); await loadMail(); }
+  catch(e){ toast("저장하지 못했습니다 — " + e.message); }
+}
+async function mailTest(){
+  try{ const m = await api("/rest/v1/rpc/hanok_mail_test", { method:"POST", body:{} }); toast(m); }
+  catch(e){ toast("보내지 못했습니다 — " + e.message); }
+}
+function mailCard(){
+  const m = S.mail;
+  if(!m) return '<p class="spin">불러오는 중…</p>';
+  if(m.error) return `<div class="card em"><div class="tx"><h3>사장님 메일 알림</h3><p>${esc(m.error)}</p></div><button class="btn" onclick="loadMail()">다시</button></div>`;
+  return `<div class="card"><h3 style="margin:0 0 4px">사장님 메일 알림</h3>
+    <p class="muted" style="margin:0 0 10px">'개발자에게' 에 답을 보내면 사장님 메일로 알림이 갑니다. 지금: 키 ${m.has_key ? "있음" : "없음"} · 받는 주소 ${esc(m.to || "없음")} · 보내는 주소 ${esc(m.from || "기본(onboarding@resend.dev)")}</p>
+    <input id="ml-k" type="password" autocomplete="off" placeholder="Resend API 키 (re_… · 비우면 그대로)" style="width:100%; margin-bottom:8px">
+    <input id="ml-t" type="email" autocomplete="off" placeholder="사장님 메일 (비우면 그대로)" style="width:100%; margin-bottom:8px">
+    <input id="ml-f" type="text" autocomplete="off" placeholder="보내는 주소 — 예: 한옥반점 <noreply@hanokbanjeom.com> (도메인 확인 뒤)" style="width:100%">
+    <div class="row-btns"><button class="btn sm" onclick="mailTest()">시험 메일</button><button class="btn sm primary" onclick="mailSave()">저장</button></div></div>`;
+}
 async function loadAi(){
   try{ S.ai = await api("/rest/v1/rpc/dev_ai_status", { method:"POST", body:{} }); }
   catch(e){ S.ai = { error:e.message }; }
@@ -494,6 +522,8 @@ function tabEm(){
       <button class="btn" id="bk" onclick="backup()">백업 내려받기</button></div>
     <div class="card em"><div class="tx"><h3>알림 시험 · 용량 점검</h3><p>텔레그램이 오는지 시험하거나, 매일 10시 용량 점검을 지금 한 번 돌립니다(70% 넘으면 그때 알림).</p></div>
       <button class="btn" onclick="act('telegram_test')">텔레그램 시험</button><button class="btn" onclick="act('usage_check')">용량 점검 지금</button></div>
+    <h2 class="sec">사장님 메일 알림</h2>
+    ${mailCard()}
     <h2 class="sec">감사 문자 AI</h2>
     ${aiCard()}
     <h2 class="sec">바로가기</h2>
@@ -506,7 +536,7 @@ function tabEm(){
 }
 
 /* ---------- 틀 ---------- */
-function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); }
+function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); if(S.tab === "em" && !S.mail) loadMail(); }
 function go(t){ S.tab = t; loadTab(); render(); }
 function tabSet(){ return ""; }   /* 내용은 #setwrap 의 창 */
 function render(){
