@@ -63,20 +63,23 @@ window.SITE_DEFAULT = {
     { name: "샤오롱바오", cn: "小籠包", img: "" }
   ],
 
-  /* 공간 — 룸 이름·인원은 예약 시스템 설정과 같게. 사진은 지금 임시 */
+  /* 공간 — 룸 이름·인원은 예약 시스템 설정과 같게. 사진은 10-06 재아가 공간별로 짝지어 준 것
+     (bg1 조조 · bg3 유비 · bg4 동탁 · bg6 초선·주유·공명 같은 방 모양 · bg7 1층 홀 · bg2 저층 홀 · 장비·관우 같은 방 모양 · 여포).
+     전엔 사진과 방 이름이 엇갈려 있었음(조조 사진이 관우·동탁에 붙는 식) */
   rooms: [
-    { name: "조조", cap: "4인 (최대 6인)", img: "bg5.jpg", floor: "1층" },
-    { name: "유비", cap: "8인 (최대 9인)", img: "bg4.jpg", floor: "1층" },
-    { name: "장비", cap: "6인 (최대 7인)", img: "bg3.jpg", floor: "1층", join: "관우와 합쳐 12 ~ 14인" },
-    { name: "관우", cap: "6인 (최대 7인)", img: "bg1.jpg", floor: "1층", join: "장비와 합쳐 12 ~ 14인" },
-    { name: "공명", cap: "6인 (최대 7인)", img: "bg5.jpg", floor: "저층", join: "주유·초선과 합쳐 18 ~ 21인" },
-    { name: "주유", cap: "6인 (최대 7인)", img: "bg3.jpg", floor: "저층" },
-    { name: "초선", cap: "6인 (최대 7인)", img: "bg4.jpg", floor: "저층" },
-    { name: "동탁", cap: "12인 (최대 14인)", img: "bg1.jpg", floor: "저층", note: "원탁" }
+    { name: "조조", cap: "4인 (최대 6인)", img: "bg1.jpg", floor: "1층" },
+    { name: "유비", cap: "8인 (최대 9인)", img: "bg3.jpg", floor: "1층" },
+    { name: "장비", cap: "6인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "관우와 합쳐 12 ~ 14인" },
+    { name: "관우", cap: "6인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "장비와 합쳐 12 ~ 14인" },
+    { name: "공명", cap: "6인 (최대 7인)", img: "bg6.jpg", floor: "저층", join: "주유·초선과 합쳐 18 ~ 21인" },
+    { name: "주유", cap: "6인 (최대 7인)", img: "bg6.jpg", floor: "저층" },
+    { name: "초선", cap: "6인 (최대 7인)", img: "bg6.jpg", floor: "저층" },
+    { name: "동탁", cap: "12인 (최대 14인)", img: "bg4.jpg", floor: "저층" }
   ],
   halls: [
-    { name: "1층 테이블", cap: "테이블 6 · 18석", img: "bg6.jpg" },
-    { name: "저층 테이블", cap: "테이블 6 · 20석", img: "bg2.jpg" }
+    { name: "1층 테이블", cap: "테이블 6 · 18석", img: "bg7.jpg" },
+    { name: "저층 테이블", cap: "테이블 6 · 20석", img: "bg2.jpg" },
+    { name: "여포 (파셜룸)", cap: "4인 (최대 5인) · 저층", img: "room-yeopo.webp" }
   ],
 
   /* ---------- 장별 글·사진 ---------- */
@@ -94,9 +97,9 @@ window.SITE_DEFAULT = {
       ],
       more: "이야기 전체"
     },
-    menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "bg1.jpg", imgAlt: "관우 룸의 원탁", more: "차림 전체" },
+    menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "bg1.jpg", imgAlt: "조조 룸의 원탁", more: "차림 전체" },
     spaceSec: { title: "공간", lead: "나무와 창호가 만드는 조용한 자리. 문을 닫으면 방 하나가 온전히 손님의 것이 됩니다", more: "공간 전체",
-      tiles: [ { img: "bg2.jpg", alt: "저층 테이블", wide: true }, { img: "bg4.jpg", alt: "유비 룸" }, { img: "bg5.jpg", alt: "조조 룸" }, { img: "bg3.jpg", alt: "장비 룸" } ] },
+      tiles: [ { img: "bg2.jpg", alt: "저층 테이블", wide: true }, { img: "bg3.jpg", alt: "유비 룸" }, { img: "bg1.jpg", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ] },
     infoSec: { visitMore: "오시는 길 전체", telNote: "예약과 문의는 언제든 편하게 전화 주세요" },
     band: { img: "bg6.jpg", title: "예약", lines: ["원하시는 날짜와 인원을 선택해 예약해 주세요."], button: "예약하기" }
   },
@@ -127,7 +130,7 @@ window.SITE_DEFAULT = {
         "방은 여덟 곳입니다. 중문을 떼면 두 방이 하나가 되어 스무 명 남짓한 모임도 한 자리에서 나눌 수 있습니다. 상을 물리고 자리를 넓히는 일이 한옥에서는 어렵지 않습니다.",
         "주방만은 중식에 맞췄습니다. 센 불을 쓰는 화구를 들이고 배기를 따로 냈습니다. 사천의 매운 향과 광둥의 담백함을 함께 냅니다. 옆집 안집과는 한 가족이 함께 운영합니다."
       ],
-      pics: [ { img: "bg1.jpg", alt: "관우 룸" }, { img: "bg3.jpg", alt: "장비 룸" } ]
+      pics: [ { img: "bg1.jpg", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ]
     }
   },
 

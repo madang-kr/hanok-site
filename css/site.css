@@ -171,7 +171,7 @@ html.shot .band{height:580px}
 
 /* 공간 — 방마다 가장 편한 인원과 최대 인원을 사진 아래에서 바로 비교합니다 */
 .rooms{display:grid; grid-template-columns:repeat(4,1fr); gap:48px 20px}
-.halls{display:grid; grid-template-columns:1fr 1fr; gap:48px 20px}
+.halls{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:48px 20px}   /* 카드 수만큼 한 줄에(10-06 여포가 더해져 3장 — 2열이면 하나가 혼자 남음) */
 .room img{width:100%; aspect-ratio:4/3; object-fit:cover}
 .hall img{width:100%; aspect-ratio:16/10; object-fit:cover}
 .room figcaption, .hall figcaption{margin-top:16px; font-size:18px; font-weight:600; color:var(--ink); letter-spacing:.02em}
