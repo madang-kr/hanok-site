@@ -88,7 +88,7 @@ window.SITE_DEFAULT = {
     heroTitle: "한옥에서 즐기는 중식",
     heroSub: "경기 성남시 분당구 새마을로51번길 2",
     intro: {
-      img: "hall-1f.webp", imgAlt: "1층 테이블",
+      img: "head-space-doors.webp", imgAlt: "창호 복도",
       title: "한옥을 지어\n문을 열었습니다",
       paras: [
         "2020년 분당 새마을로에 한옥을 새로 지어 문을 열었습니다. 나무로 기둥을 세우고 기와를 올렸습니다. 창호를 지난 빛이 부드럽고, 문을 닫으면 방이 조용해집니다.",
@@ -97,7 +97,7 @@ window.SITE_DEFAULT = {
       ],
       more: "이야기 전체"
     },
-    menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "room-jojo.webp", imgAlt: "조조 룸의 원탁", more: "차림 전체" },
+    menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "home-menu-table.webp", imgAlt: "한옥반점의 요리", more: "차림 전체" },
     spaceSec: { title: "공간", lead: "나무와 창호가 만드는 조용한 자리. 문을 닫으면 방 하나가 온전히 손님의 것이 됩니다", more: "공간 전체",
       tiles: [ { img: "hall-low.webp", alt: "저층 테이블", wide: true }, { img: "room-yubi.webp", alt: "유비 룸" }, { img: "room-jojo.webp", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ] },
     infoSec: { visitMore: "오시는 길 전체", telNote: "예약과 문의는 언제든 편하게 전화 주세요" },
