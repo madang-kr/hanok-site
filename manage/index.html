@@ -2229,7 +2229,6 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .hr-daybtn{width:100%; height:44px; min-height:44px; padding:0 var(--s8); justify-content:center; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .hr-daybtn.none{color:var(--rust); border-color:var(--rust)}
 .hr-daypick .seg.hr-days button{height:48px; min-height:48px; font-size:var(--fs-body); font-weight:700}
-.hr-dayquick{margin-top:var(--s12)}
 .hr-hist.past{background:var(--surface-2); opacity:.85}
 .hr-fold{display:flex; width:100%; align-items:center; justify-content:space-between; margin:var(--s12) 0 var(--s8); padding:var(--s8) var(--s12); border:1px dashed var(--border-strong); border-radius:var(--r-sm); background:none; font:inherit; font-weight:600; color:var(--text-2); cursor:pointer}
 .hr-fold span{font-weight:500; color:var(--text-3)}
@@ -3685,7 +3684,6 @@ async function loadFromServer(){
   var d = { _logs: [] }, keys = Object.keys(DEFAULT_DATA), i, k, srow;
   for(i = 0; i < keys.length; i++){
     k = keys[i]; srow = rows.find(function(r){ return r.key === k; }) || {};
-    if(typeof BASELINE !== "undefined") BASELINE[k] = srow.baseline || null;   /* '기본값으로 저장' 해 둔 설정(33차) */
     d[k] = { name: srow.name || DEFAULT_DATA[k].name, settings: srow.settings || {}, snapshots: srow.snapshots || {},
              reservations: [], trash: [], _updatedAt: srow.updated_at || "",
              _rawSettings: JSON.stringify(srow.settings || {}) };   /* 서버에 있던 그대로 — migrate 가 기본값을 채운 것과 다르면 첫 flush 가 올립니다 */
@@ -4976,6 +4974,50 @@ function reflowTentatives(date){
     const f = findSeat({date:r.date, time:r.time, people:pplOf(r), infants:r.infants||0, kind:isTablePref(r.seatPref) ? "table-any" : (r.seatPref||"any"), floor:fl, excludeId:r.id, strict:true});
     r.tentativeRoomId = f ? f.id : null; r.tentativeExtra = f && f.extra.length ? f.extra : []; r.tentativeSplit = !!(f && f.split);
   });
+  /* 10-06 시나리오 재점검: 시간순으로 한 팀씩 앉히다 보니, 다른 방에도 갈 수 있는 앞 팀이 뒤 팀에게 맞는 단 하나의 방을 먼저 차지해
+     뒤 팀이 자리를 못 받았음(예: 10시 4명이 조조를 잡아 12시 3명 — 조조만 맞음 — 이 미정). 자리를 못 받은 팀마다, 맞는 자리를 '잠정으로만'
+     막고 있는 팀들을 다른 빈 자리로 한 번 옮겨 봄. 다 옮겨질 때만 바꾸고, 안 되면 그대로 되돌림(확정 예약은 건드리지 않음) */
+  targets.filter(function(r){ return !r.tentativeRoomId; }).forEach(function(r){ reflowSwap(r); });
+}
+function tentKind(r){ return isTablePref(r.seatPref) ? "table-any" : (r.seatPref || "any"); }
+function reflowSwap(r){
+  var kind = tentKind(r), fl = prefFloor(r.seatPref), ppl = pplOf(r), adults = adultCount(ppl, r.infants || 0, r.date);
+  var wantRoom = kind === "room-any" || kind === "any", wantTable = kind === "table-any" || kind === "any";
+  var cands = roomsAt(r.date).filter(function(x){
+    if(blockedDuring(x, r.date, r.time)) return false;
+    if(wantRoom && isRoom(x) && adults >= roomMin(x, r.date) && ppl <= seatMax(x)) return true;
+    return wantTable && isTable(x) && (fl == null || (x.floor || "") === (fl || "")) && ppl >= roomMin(x) && ppl <= seatMax(x);
+  });
+  for(var i = 0; i < cands.length; i++){
+    var x = cands[i], rs = roomStatus(r.date, r.time, x.id, r.id, true);   /* hitsOnly — hits = 확정, tentative = 잠정 */
+    if(rs.hits.length || !rs.tentative.length) continue;
+    var blockers = rs.tentative, saved = blockers.map(function(b){ return { b:b, id:b.tentativeRoomId, ex:b.tentativeExtra, sp:b.tentativeSplit }; });
+    blockers.forEach(function(b){ b.tentativeRoomId = null; b.tentativeExtra = []; b.tentativeSplit = false; });
+    r.tentativeRoomId = x.id; r.tentativeExtra = []; r.tentativeSplit = false;   /* 먼저 이 팀이 x 를 잡고, 막던 팀들이 다른 데로 가는지 */
+    var ok = true;
+    for(var k = 0; k < blockers.length && ok; k++){
+      var b = blockers[k], f = findSeat({date:b.date, time:b.time, people:pplOf(b), infants:b.infants || 0, kind:tentKind(b), floor:prefFloor(b.seatPref), excludeId:b.id, excludeSeat:x.id, strict:true});
+      if(f){ b.tentativeRoomId = f.id; b.tentativeExtra = f.extra.length ? f.extra : []; b.tentativeSplit = !!f.split; } else ok = false;
+    }
+    if(ok) return true;
+    r.tentativeRoomId = null; r.tentativeExtra = []; r.tentativeSplit = false;
+    saved.forEach(function(v){ v.b.tentativeRoomId = v.id; v.b.tentativeExtra = v.ex; v.b.tentativeSplit = v.sp; });
+  }
+  return false;
+}
+/* 새 예약이 실제로 잠정 자리를 받는지 — 저장 뒤에 도는 재계산(reflowTentatives)을 그대로 미리 돌려 보고 되돌림(10-06).
+   전엔 '잠정 팀이 비켜 줄 수 있다' 고 보는 느슨한 계산(findSeat 기본)이라, 접수 때는 경고가 없는데 저장하고 나면 자리가 없는 일이 있었음 */
+function simTentative(date, time, people, infants, seatPref, menuType){
+  var s = store(), keep = s.reservations.filter(function(x){ return x.date === date; }).map(function(x){ return { x:x, id:x.tentativeRoomId, ex:x.tentativeExtra, sp:x.tentativeSplit }; });
+  var tmp = { id:"__sim_" + Date.now(), date:date, time:time, people:people, infants:infants || 0, seatPref:seatPref, status:"확정", roomId:null, extraIds:[], menuType:menuType || "", tentativeRoomId:null, tentativeExtra:[] };
+  s.reservations.push(tmp);
+  var out = null;
+  try{ reflowTentatives(date); if(tmp.tentativeRoomId) out = { id:tmp.tentativeRoomId, extra:tmp.tentativeExtra || [], split:!!tmp.tentativeSplit }; }
+  finally{
+    var i = s.reservations.indexOf(tmp); if(i >= 0) s.reservations.splice(i, 1);
+    keep.forEach(function(v){ v.x.tentativeRoomId = v.id; v.x.tentativeExtra = v.ex; v.x.tentativeSplit = v.sp; });
+  }
+  return out;
 }
 /* 홀의 그 시간대 테이블 사용 현황 (잠정 배정 포함)
    실제 테이블 목록을 놓고 먼저 온 팀부터 앉혀 봅니다. */
@@ -7680,7 +7722,7 @@ function reqPending(){ reqSweep(); return REQUESTS.filter(q => q.status === "대
 /* 대기 중인 요청을 예약처럼 — 타임라인에 연회색으로 그리고, 남은 자리 계산에서 찬 것으로 칩니다(확정 전이라도 자리를 잡아 두려고 — 재아).
    좌석은 그때그때 빈 곳을 골라 잠정으로. 실제 예약 표에는 없고 화면·계산에만 잠깐 끼워 넣습니다 */
 function reqAsRes(q){
-  const f = suggestSeatFull(q.date, q.time, q.people, q.seat === "room" ? "room-any" : "table-any");
+  const f = simTentative(q.date, q.time, q.people, q.infants || 0, q.seat === "room" ? "room-any" : "table-any");   /* 승인 뒤 재계산과 같은 답(10-06) */
   let pref = q.seat === "room" ? "room-any" : "table-any";
   if(q.seat !== "room" && f){ const t = seatById(f.id); if(t && isTable(t)) pref = "table:" + (t.floor || ""); }
   if(q.seat !== "room" && !f){ const fl = tableFloors()[0]; if(fl != null) pref = "table:" + fl; }
@@ -13919,32 +13961,7 @@ function sheetSetLog(){
   return `${sheetHead("설정 변경 내역")}<div class="logbox">${rows}</div><p class="f-note">최근 60번의 '적용하기' 까지. 운영시간·임시 일정처럼 바로 저장되는 것은 접속 기록에 남습니다.</p>
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
-/* 설정 초기화 — 기본표(DEFAULT_DATA)로. 누님과 정한 값이 기본표에 들어간 뒤에 쓸모가 있습니다. 관리자 비밀번호 */
-/* 초기화해도 그대로 두는 것 — 날짜별 기록·목록·메뉴판 배경·내부 표시(09-25 재아: 무엇이 지워지고 남는지 정확히) */
-var RESET_KEEP = ["_setlog", "_closedDay", "_cd", "_reloadAt", "menuBgs", "menuBgDefault", "menuBgFlowerName", "menuBgFlowerOff", "smsFreeLog", "noshowExcluded", "overrides", "holidays", "holidaysOff", "holidaysLegal"];
-var BASELINE = {};   /* 가게별 '기본값으로 저장' 해 둔 설정(33차 stores.baseline) */
-function settingsForBaseline(st){ var o = deepClone(st); RESET_KEEP.forEach(function(k){ delete o[k]; }); delete o.scheduled; return o; }   /* 예정은 기본값에 안 넣음(09-25) */
-async function saveBaseline(){
-  if(!await uiConfirm("현재 설정을 기본값으로 저장할까요?", "지금 적용된 설정(운영시간·예약 규칙·좌석·코스·경로·문자·디스플레이·운영 판단·화면 크기)이 '기본값' 이 됩니다.\n다음에 '설정 초기화' 를 누르면 이 값으로 돌아갑니다.", {ok:"기본값으로 저장", tone:"warn"})) return;
-  if(!await adminGate("기본값 저장", {force:true})) return;
-  var k = view.storeKey || "hanok", base = settingsForBaseline(store().settings);
-  try{ if(supaOn()) await sb("/rest/v1/stores?key=eq." + k, { method:"PATCH", body:{ baseline:base }, prefer:"return=minimal" }); }
-  catch(e){ await uiAlert("저장하지 못했습니다", e.status === 400 ? "서버 준비 전(33차)" : (e.message || String(e)), "warn"); return; }
-  BASELINE[k] = base; logEvent("설정 기본값 저장", ""); showToast("현재 설정을 기본값으로 저장했습니다");
-}
-async function resetSettingsAll(){
-  var k = view.storeKey || "hanok", base = BASELINE[k];
-  if(!await uiConfirm("설정을 " + (base ? "저장해 둔 기본값" : "처음 설치 값") + "으로 되돌릴까요?",
-    "되돌아가는 것: 운영시간, 예약 규칙, 좌석·룸 합침, 코스·세트, 예약 경로, 문자 설정(안내 문자·감사 문자 AI), 디스플레이 설정, 운영 판단(단골 등급 포함), 화면 크기 공통 비율, 예정된 설정 변경\n\n그대로 남는 것: 예약·휴지통, 손님 메모, 워크시프트·급여, 홈페이지 내용·소식, 메뉴판·메뉴판 배경, 임시 일정·쉬는 날, 노쇼 제외 목록, 문자 기록, PIN·2차 PIN, 로그\n\n2차 PIN 을 한 번 더 묻습니다.", {ok:"초기화", tone:"warn"})) return;
-  if(!await adminGate("설정 초기화", {force:true})) return;   /* 되돌릴 수 없는 일 — 사장님 메뉴 안이어도 다시 물음 */
-  var cur = store().settings, def = migrate(deepClone(DEFAULT_DATA))[k].settings;
-  if(base) def = Object.assign(def, deepClone(base));
-  RESET_KEEP.forEach(function(x){ if(cur[x] !== undefined) def[x] = deepClone(cur[x]); else delete def[x]; });
-  var items = ["설정 초기화(" + (base ? "저장해 둔 기본값" : "처음 설치 값") + ")"];
-  def._setlog = (cur._setlog || []).concat([{at:new Date().toISOString(), who:(sessionBy() || "-"), items:items}]).slice(-60);
-  store().settings = def; view.draft = null; setLogServer(items);
-  logEvent("설정 변경", "초기화"); takeSnapshot(); saveData(); render();
-}
+/* '설정 초기화'·'현재 설정을 기본값으로 저장'(33차 stores.baseline)은 10-06 재아 결정으로 뺌 — 설정은 개발자가 바꿈. 되살리려면 태그 전 판에서 */
 /* 로그 두 탭 — 09-25(재아): 검색은 설정 로그에도, '전체 복사' 는 탭 줄 오른쪽 끝. 계정은 이름으로(whoLabel) */
 function logTime(ts, sec){ const d = new Date(ts); return isNaN(d) ? String(ts).slice(0,19) : `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` + (sec ? `:${pad(d.getSeconds())}` : ""); }   /* 저장은 UTC, 표시는 이 기기(한국) 시각 */
 function logList(tab, q){
@@ -15053,7 +15070,7 @@ async function wzSeat(v){
     return;
   }
   /* 좌석 미정 — 잠정 배정 가능 여부를 먼저 확인 */
-  const f = suggestSeatFull(WZ.date, WZ.time, people, v);
+  const f = simTentative(WZ.date, WZ.time, people, WZ.infants || 0, v, WZ.menuType);   /* 저장 뒤 재계산과 같은 답(10-06) */
   if(!f){
     if(!await uiConfirm2(`지금 ${hm(WZ.time)} 기준으로 ${people}명이 들어갈 빈 자리가 없습니다.\n먼저 접수한 좌석 미정 예약까지 계산한 결과입니다.\n\n자리 없이 접수할까요?`)) return;
   }
