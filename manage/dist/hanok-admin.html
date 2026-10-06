@@ -443,7 +443,7 @@ button.rowitem:hover{background:var(--surface-2)}
    확인창(.modal-ov)은 .shell 밖에 그려지므로 6구역에서 따로 겁니다.
    매장 선택 화면은 배경 사진이 화면을 꽉 채우는 구성이라 배율을 걸지 않습니다. */
 .shell{min-height:calc(100vh / var(--ui-zoom, 1)); zoom:var(--ui-zoom, 1)}   /* zoom 이 min-height 도 곱하므로 나눠 둡니다 — 안 그러면 내용이 짧아도 스크롤이 생깁니다(전체화면에서 티남) */
-.lock{min-height:calc(100vh / var(--ui-zoom, 1)); display:flex; align-items:center; justify-content:center; padding:var(--s24); background:var(--bg); zoom:var(--ui-zoom, 1)}
+.lock{min-height:calc(100vh / var(--lock-zoom, 1)); display:flex; align-items:center; justify-content:center; padding:var(--s24); background:var(--bg); zoom:var(--lock-zoom, 1)}
 .zoomseg button{min-width:64px; justify-content:center}
 .layout{display:block}
 .content{padding:var(--s16) var(--s16) 90px; max-width:none; margin:0}
@@ -5396,6 +5396,7 @@ function applyTheme(){
   /* 화면 배율. 브라우저 확대와 같은 방식이라 레이아웃이 그대로 커집니다.
      transform:scale 은 자리를 그대로 차지해 화면이 잘리므로 쓰지 않습니다. */
   document.documentElement.style.setProperty("--ui-zoom", (uiZoom()/100) * ZOOM_K);
+  document.documentElement.style.setProperty("--lock-zoom", uiZoom()/100);   /* 로그인 화면은 예전 크기(ZOOM_K 없이) — 1.35배면 PIN 판이 화면 밑으로 밀려 안 보였음(10-06) */
 }
 /* 기본 110%. 100%는 태블릿·모니터 모두 조금 작고, 125%는 브라우저 확대와 겹치면 너무 커집니다.
    기기마다 다르므로 설정 → 화면 크기에서 바꿉니다. */
