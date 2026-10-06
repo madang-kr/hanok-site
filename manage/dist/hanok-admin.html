@@ -3979,7 +3979,10 @@ function hasDirty(){
   var k, dirty = false;
   for(k in DEFAULT_DATA){
     var st = DATA[k]; if(!st || !DEFAULT_DATA[k].enabled) continue;
-    if(JSON.stringify(st.settings) !== SYNC.settings[k]) dirty = true;
+    /* 설정은 항목별로(순서 무시) — 저장하는 쪽(pushStore 의 setKeysChanged)과 같은 기준. 10-06: 글자 그대로 비교했더니
+       서버(jsonb)가 돌려준 키 순서와 앱이 정리한 순서가 달라, 아무것도 안 고쳤는데 로그아웃 때 '저장되지 않은 변경' 이 떴음 */
+    var sbase = null; try{ sbase = JSON.parse(SYNC.settings[k] || "{}"); }catch(e){}
+    if(!sbase || setKeysChanged(sbase, st.settings).length) dirty = true;
     (st.reservations || []).concat(st.trash || []).forEach(function(r){ if(JSON.stringify(r) !== SYNC.res[r.id]) dirty = true; });
   }
   return dirty;
