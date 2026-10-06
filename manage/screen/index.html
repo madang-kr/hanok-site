@@ -5825,14 +5825,17 @@ function renderModal(){
 }
 
 /* ---------- 매장 선택 ---------- */
-/* 첫 화면 — 09-20(재아): 안집은 뺌(사장·직원이 다 달라서 나중에 따로). 한옥반점 한 장만 잠깐 보이고 몇 초 뒤 자동으로 PIN 화면으로.
-   아무 데나 누르면 바로. (예전엔 안집|한옥반점 좌우 분할에서 골랐음 — .split/.panel CSS 는 그대로 씀) */
-var SELECT_TIMER = null;
+/* 첫 화면 — 09-20(재아): 안집은 뺌(사장·직원이 다 달라서 나중에 따로). 한옥반점 한 장.
+   10-06 재아: 저절로 넘어가지 않음 — 화면을 누르거나 아무 키(리모컨 버튼 포함)를 누르면 PIN 화면으로.
+   (예전엔 2.5초 뒤 자동으로 넘어갔음 · 그 전엔 안집|한옥반점 좌우 분할에서 골랐음 — .split/.panel CSS 는 그대로 씀) */
+document.addEventListener("keydown", function(e){
+  if(view.storeKey || view.display || MODAL || !document.querySelector(".split.solo")) return;
+  if(e.key === "Tab" || e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
+  e.preventDefault(); e.stopImmediatePropagation(); goStore("hanok");   /* 같은 키가 PIN 첫 숫자로 들어가지 않게(잡는 단계에서 먼저 받고 멈춤) */
+}, true);
 function renderSelect(){
   const key = "hanok", s = DATA[key];
   const cnt = s.reservations.filter(r => r.date===todayStr() && r.status==="확정").length;
-  clearTimeout(SELECT_TIMER);
-  SELECT_TIMER = setTimeout(function(){ if(!view.storeKey && !view.display) goStore(key); }, 2500);
   return `<div class="split solo" onclick="goStore('${key}')">
       <button class="panel" data-store="${key}">
         <span class="bg"></span><span class="veil"></span>
@@ -5845,7 +5848,6 @@ function renderSelect(){
     </div>`;
 }
 function goStore(key){
-  clearTimeout(SELECT_TIMER);
   view.storeKey=key; view.tab="dash"; view.date=todayStr(); view.calMonth=monthStr();
   if(AUTHED) logEvent("매장 진입", key);
   render();

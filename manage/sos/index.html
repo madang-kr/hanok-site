@@ -20,28 +20,37 @@
      구형 기기도 열리게 ?. ?? 같은 새 문법은 쓰지 않음
      ============================================================ -->
 <style>
-  :root{--bg:#F4F3F0; --card:#fff; --text:#1D1B18; --sub:#6B665E; --line:#E3DFD8; --rust:#B0553F; --rust-soft:#F8E9E4; --amber:#8A5E0E; --amber-soft:#FBF1DC}
+  /* 10-06 재아: 전체를 빨간 바탕으로 — 한눈에 '비상 페이지' 인 게 티나게(평소 예약 시스템과 헷갈리지 않게) */
+  :root{--bg:#FBECE9; --card:#fff; --text:#1D1B18; --sub:#6E5E5A; --line:#EDD3CD; --red:#B3261E; --red-d:#7F1A14; --red-soft:#FCE3DE;
+        --rust:#B3261E; --rust-soft:#FCE3DE; --amber:#7F1A14; --amber-soft:#fff}
   *{box-sizing:border-box}
+  html{border-top:8px solid var(--red)}
   html,body{margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif; -webkit-text-size-adjust:100%}
+  /* 맨 위 주의 띠(빨강·짙은 빨강 빗금) */
+  body:before{content:""; display:block; height:10px; background:repeating-linear-gradient(-45deg, var(--red) 0 14px, var(--red-d) 14px 28px)}
   button,input,select,textarea{font:inherit; color:inherit}
   a{color:inherit}
   .wrap{max-width:860px; margin:0 auto; padding:16px 16px 40px}
   h1{margin:0; font-size:20px; line-height:1.3}
   .muted{color:var(--sub); font-size:13.5px}
-  .err{color:var(--rust); font-size:13.5px; font-weight:600; min-height:20px; margin-top:10px}
+  .err{color:var(--red); font-size:13.5px; font-weight:700; min-height:20px; margin-top:10px}
   .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px}
   .btn{display:inline-flex; align-items:center; justify-content:center; min-height:40px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:0 16px; cursor:pointer; font-weight:600; white-space:nowrap; text-decoration:none}
-  .btn.primary{background:var(--text); color:#fff; border-color:var(--text)}
-  .btn.danger{color:var(--rust); border-color:var(--rust)}
+  .btn.primary{background:var(--red); color:#fff; border-color:var(--red)}
+  .btn.danger{color:var(--red); border-color:var(--red)}
   .btn.sm{min-height:32px; padding:0 12px; font-size:13.5px}
   .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   input[type=text], input[type=tel], input[type=date], input[type=time], input[type=number], select, textarea{border:1px solid var(--line); border-radius:10px; padding:9px 11px; background:#fff; width:100%; min-width:0}
-  /* ---- 첫 화면: 백업 파일 고르기 하나 ---- */
-  .start{max-width:460px; margin:8vh auto 0}
-  .start .badge{margin-bottom:10px}
-  .pick{display:block; margin:16px 0 0; border:2px dashed #CFC9BF; border-radius:14px; background:#FBFAF8; padding:24px 16px; text-align:center; cursor:pointer}
-  .pick.over{border-color:var(--text); background:#fff}
-  .pick b{display:block; font-size:16px; margin-bottom:4px}
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--red); outline-offset:1px}
+  /* ---- 첫 화면: 빨간 머리 상자 + 백업 파일 고르기 하나 ---- */
+  .start{max-width:480px; margin:6vh auto 0; background:#fff; border:2px solid var(--red); border-radius:18px; overflow:hidden; box-shadow:0 10px 30px rgba(127,26,20,.15)}
+  .start-h{background:var(--red); color:#fff; padding:22px 22px 18px}
+  .start-h .sig{display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:#fff; color:var(--red); font-size:26px; font-weight:900; margin-bottom:10px}
+  .start-h h1{font-size:22px} .start-h p{margin:6px 0 0; color:rgba(255,255,255,.88); font-size:14px}
+  .start-b{padding:4px 22px 22px}
+  .pick{display:block; margin:16px 0 0; border:2px dashed var(--red); border-radius:14px; background:var(--red-soft); padding:24px 16px; text-align:center; cursor:pointer; color:var(--red-d)}
+  .pick.over{background:#fff}
+  .pick b{display:block; font-size:17px; margin-bottom:4px; color:var(--red)}
   .pick input{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}   /* 기본 파일 칸은 기기마다 모양이 달라 숨기고 이 상자가 대신 */
   .files{margin:10px 0 0; padding:0; list-style:none; font-size:13.5px}
   .files li{display:flex; gap:6px; padding:3px 0}
@@ -50,14 +59,16 @@
   details textarea{margin-top:8px}
   .help{margin-top:20px; font-size:13px; color:var(--sub); line-height:1.6}
   .help b{color:var(--text)}
-  .badge{display:inline-block; padding:2px 10px; border-radius:999px; background:var(--rust); color:#fff; font-size:12px; font-weight:700}
-  /* ---- 본 화면 ---- */
-  .top{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .badge{display:inline-block; padding:2px 10px; border-radius:999px; background:var(--red); color:#fff; font-size:12px; font-weight:800; letter-spacing:.04em}
+  /* ---- 본 화면: 빨간 머리띠 ---- */
+  .top{display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:12px 14px; border-radius:14px; background:var(--red); color:#fff}
   .top h1{flex:1; min-width:0}
-  .note{padding:10px 12px; border-radius:10px; background:var(--amber-soft); color:var(--amber); font-size:13.5px; margin-bottom:12px}
+  .top .badge{background:#fff; color:var(--red)}
+  .top .btn{background:transparent; color:#fff; border-color:rgba(255,255,255,.65)}
+  .note{padding:10px 12px; border-radius:10px; background:#fff; color:var(--red-d); border:1px solid var(--line); border-left:4px solid var(--red); font-size:13.5px; margin-bottom:12px}
   .tabs{display:flex; gap:6px; margin-bottom:12px; overflow-x:auto}
   .tabs button{flex:none; border:1px solid var(--line); background:var(--card); border-radius:999px; min-height:38px; padding:0 14px; cursor:pointer; font-weight:600}
-  .tabs button.on{background:var(--text); color:#fff; border-color:var(--text)}
+  .tabs button.on{background:var(--red); color:#fff; border-color:var(--red)}
   .dnav{display:grid; grid-template-columns:40px 1fr 40px; gap:8px; align-items:center}
   .dnav .btn{padding:0; min-width:40px}
   .dnav b{font-size:17px; text-align:center; white-space:nowrap}
@@ -65,26 +76,26 @@
   .dtools input[type=date]{flex:1}
   .search{display:flex; gap:8px; margin-top:8px}
   .search input{flex:1}
-  .sum{margin:14px 0 2px; font-size:13.5px; color:var(--sub); font-weight:600}
-  .res{display:grid; grid-template-columns:74px minmax(0,1fr) auto; gap:2px 10px; padding:11px 0; border-top:1px solid var(--line); align-items:baseline}
-  .res .t{font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums}
+  .sum{margin:14px 0 2px; font-size:13.5px; color:var(--red-d); font-weight:700}
+  .res{display:grid; grid-template-columns:86px minmax(0,1fr) auto; gap:2px 10px; padding:11px 0; border-top:1px solid var(--line); align-items:baseline}
+  .res .t{font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--red)}
   .res .n{font-weight:700; min-width:0; overflow-wrap:anywhere}
   .res .p{white-space:nowrap; font-weight:600}
   .res .s{grid-column:2 / 4; color:var(--sub); font-size:13.5px; overflow-wrap:anywhere}
   .res.gone{opacity:.55}
   .tag{display:inline-block; padding:0 7px; border-radius:999px; font-size:11.5px; font-weight:700; border:1px solid var(--line); margin-left:6px; vertical-align:2px; white-space:nowrap}
-  .tag.sos{background:var(--rust-soft); color:var(--rust); border-color:var(--rust)}
+  .tag.sos{background:var(--red-soft); color:var(--red); border-color:var(--red)}
   .empty{color:var(--sub); padding:18px 0; text-align:center}
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   label.f{display:block; min-width:0} label.f span{display:block; font-size:12.5px; color:var(--sub); font-weight:600; margin-bottom:4px}
   .print-h{display:none}
   @media (max-width:560px){
     .grid{grid-template-columns:1fr}
-    .res{grid-template-columns:64px minmax(0,1fr) auto}
+    .res{grid-template-columns:82px minmax(0,1fr) auto; gap:2px 8px}   /* 오후 12:00 이 이름에 붙지 않게(10-06) */
     .top .btn{padding:0 12px; font-size:13.5px}
   }
   @media print{
-    .noprint{display:none !important} body{background:#fff} .wrap{padding:0} .card{border:none; padding:0}
+    .noprint{display:none !important} html{border:0} body{background:#fff} body:before{display:none} .wrap{padding:0} .card{border:none; padding:0}
     .print-h{display:block; font-size:18px; margin:0 0 8px} .res{break-inside:avoid}
   }
 </style>
@@ -140,8 +151,8 @@
 
   function startHtml(){
     var n = sosOpen().length;
-    return '<div class="start"><span class="badge">비상</span><h1>한옥반점 예약 비상 페이지</h1>' +
-      '<p class="muted" style="margin:6px 0 0">예약 시스템이 열리지 않을 때, <b>백업 파일</b>로 예약을 봅니다.</p>' +
+    return '<div class="start"><div class="start-h"><span class="sig" aria-hidden="true">!</span><h1>한옥반점 예약 비상 페이지</h1>' +
+      '<p>예약 시스템이 열리지 않을 때, 백업 파일로 예약을 봅니다.</p></div><div class="start-b">' +
       '<label class="pick" id="pick"><input type="file" id="l-file" accept=".json,.txt,application/json,text/plain" multiple>' +
         '<b>백업 파일 고르기</b><span class="muted">여기를 누르거나 파일을 끌어다 놓으세요</span></label>' +
       (S.picked.length ? '<ul class="files">' + S.picked.map(function(f){ return '<li>· ' + esc(f.name) + ' <i>' + Math.max(1, Math.round(f.size / 1024)) + 'KB</i></li>'; }).join("") + '</ul>' : '') +
@@ -150,7 +161,7 @@
       '<div class="err" id="l-err">' + esc(S.err) + '</div>' +
       '<div class="help"><b>어떤 파일?</b> <b>backup-날짜.json</b> 파일 하나(예: backup-2026-10-06.json) — 매일 백업(GitHub hanok-backup 의 sos 폴더)이나 개발자 페이지의 \'백업 내려받기\' 로 받은 것. 이 페이지의 \'내보내기\' 로 받은 파일도 됩니다.<br>' +
         '파일에는 손님 이름·전화번호가 들어 있습니다. 쓰고 나면 기기에서 지워 주세요.</div>' +
-      '<div class="row" style="margin-top:18px"><button class="btn" id="only-sos">백업 없이 비상 접수만' + (n ? ' (' + n + ')' : '') + '</button><a class="btn" href="../">예약 시스템으로</a></div></div>';
+      '<div class="row" style="margin-top:18px"><button class="btn" id="only-sos">백업 없이 비상 접수만' + (n ? ' (' + n + ')' : '') + '</button><a class="btn" href="../">예약 시스템으로</a></div></div></div>';
   }
   function bindStart(){
     var inp = document.getElementById("l-file"), pick = document.getElementById("pick");
