@@ -249,6 +249,21 @@ async function loadReqs(){
   render();
 }
 const isDone = r => r.status === "답변 완료" || r.status === "끝";
+/* 개발자 공지(10-06 재아) — 가게 화면 '개발자에게 → 개발자 공지' 에 보임. 따로 표 없이 dev_requests 에 by = "dev-notice", 상태 '끝' 으로 넣음
+   (개발자 계정도 가게 계정이라 staff_all 정책으로 넣고 지울 수 있음. 급함이 아니라 텔레그램 알림은 안 감) */
+const isNotice = r => r.by === "dev-notice";
+async function noticeAdd(){
+  const t = (document.getElementById("nt-t") || {}).value || "", b = (document.getElementById("nt-b") || {}).value || "";
+  if(!t.trim()){ toast("공지 제목을 적어 주세요"); return; }
+  try{
+    await api("/rest/v1/dev_requests", { method:"POST", body:{ id:"dq_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), store:"hanok", title:t.trim(), body:b.trim(), urgent:false, status:"끝", images:[], by:"dev-notice" }, prefer:"return=minimal" });
+    toast("공지를 올렸습니다"); await loadReqs();
+  }catch(e){ toast("올리지 못했습니다 — " + e.message); }
+}
+function noticeHtml(r){
+  return `<div class="card req"><div class="req-h"><b>${esc(r.title)}</b> <span class="tag green">공지</span> <span class="muted">${esc(kst(r.created_at))}</span></div>
+    ${r.body ? `<div class="body">${esc(r.body)}</div>` : ""}<div class="row-btns"><button class="btn sm danger" onclick="reqDel('${esc(r.id)}')">삭제</button></div></div>`;
+}
 function reqHtml(r){
   const imgs = (r.images || []).filter(Boolean);
   return `<div class="card req${r.urgent && !isDone(r) ? " urgent" : ""}">
@@ -282,11 +297,18 @@ async function reqDel(id){
 }
 function tabReq(){
   if(!S.reqs) return '<p class="spin">불러오는 중…</p>';
-  const open = S.reqs.filter(r => !isDone(r)), list = S.reqFilter === "open" ? open.slice().sort((a, b) => (b.urgent - a.urgent) || b.created_at.localeCompare(a.created_at)) : S.reqs;
-  return `<div class="bar"><button class="chip${S.reqFilter === "open" ? " on" : ""}" onclick="S.reqFilter='open'; render()">답 안 한 것 ${open.length}</button>
-    <button class="chip${S.reqFilter === "all" ? " on" : ""}" onclick="S.reqFilter='all'; render()">전체 ${S.reqs.length}</button>
-    <span style="flex:1"></span><button class="btn sm" onclick="loadReqs()">새로고침</button></div>
-    ${list.length ? list.map(reqHtml).join("") : `<p class="empty">${S.reqFilter === "open" ? "답할 글이 없습니다" : "받은 글이 없습니다"}</p>`}`;
+  const reqs = S.reqs.filter(r => !isNotice(r)), notices = S.reqs.filter(isNotice);
+  const open = reqs.filter(r => !isDone(r)), list = S.reqFilter === "open" ? open.slice().sort((a, b) => (b.urgent - a.urgent) || b.created_at.localeCompare(a.created_at)) : reqs;
+  const bar = `<div class="bar"><button class="chip${S.reqFilter === "open" ? " on" : ""}" onclick="S.reqFilter='open'; render()">답 안 한 것 ${open.length}</button>
+    <button class="chip${S.reqFilter === "all" ? " on" : ""}" onclick="S.reqFilter='all'; render()">전체 ${reqs.length}</button>
+    <button class="chip${S.reqFilter === "notice" ? " on" : ""}" onclick="S.reqFilter='notice'; render()">공지 ${notices.length}</button>
+    <span style="flex:1"></span><button class="btn sm" onclick="loadReqs()">새로고침</button></div>`;
+  if(S.reqFilter === "notice") return bar + `<div class="card"><h3 style="margin:0 0 8px">새 공지</h3>
+      <input id="nt-t" type="text" placeholder="제목 — 예: 10월 7일 업데이트" style="width:100%; margin-bottom:8px">
+      <textarea id="nt-b" rows="5" placeholder="바뀐 점·안내" style="width:100%"></textarea>
+      <div class="row-btns"><button class="btn sm primary" onclick="noticeAdd()">공지 올리기</button></div></div>
+    ${notices.length ? notices.map(noticeHtml).join("") : `<p class="empty">올린 공지가 없습니다</p>`}`;
+  return bar + (list.length ? list.map(reqHtml).join("") : `<p class="empty">${S.reqFilter === "open" ? "답할 글이 없습니다" : "받은 글이 없습니다"}</p>`);
 }
 
 /* ---------- 점검 ---------- */
