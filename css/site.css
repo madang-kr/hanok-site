@@ -65,7 +65,7 @@ body .nav.solid, body:not([data-page=home]) .nav{background:rgba(14,13,12,.97); 
 html.shot .hero{height:900px}
 .slide{position:absolute; inset:0; background-size:cover; background-position:center; opacity:0; transition:opacity 1.6s ease}
 .slide.on{opacity:1}
-.slide:after{content:""; position:absolute; inset:0; background:linear-gradient(rgba(0,0,0,.4), rgba(0,0,0,.2) 40%, rgba(0,0,0,.6))}
+.slide:after{content:""; position:absolute; inset:0; background:linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.45) 40%, rgba(0,0,0,.7))}   /* 10-06 고화질 원본(밝음)으로 바꾸며 짙게 — 옛 사진은 미리 어둡게 처리돼 있어 .4/.2/.6 이면 됐음 */
 .hero-t{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 var(--gut); color:#fff}
 .hero-t h1{font-size:60px; font-weight:700; letter-spacing:.01em; line-height:1.18; color:#fff; text-shadow:0 2px 30px rgba(0,0,0,.35)}
 .hero-t p{margin:24px 0 0; font-size:15px; letter-spacing:.04em; color:rgba(255,255,255,.75)}

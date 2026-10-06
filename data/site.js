@@ -3,7 +3,7 @@
    서버(site_versions, 예약 시스템 '홈페이지 관리' 에서 적용한 것)에 값이 있으면 그걸로 덮어씁니다(js/content.js).
    → 서버가 죽어도 사이트는 이 기본값으로 뜹니다. 여기 고치면 '초기값' 이 바뀌는 것이고, 실제 보이는 건 서버 값이 우선입니다.
 
-   사진: img/ 의 파일명("bg1.jpg") 또는 전체 주소("https://…" — 관리 화면에서 올린 것).
+   사진: img/ 의 파일명("room-jojo.webp") 또는 전체 주소("https://…" — 관리 화면에서 올린 것).
    글 안의 **굵게** 는 굵은 글씨, 줄바꿈은 그대로 줄바꿈. 가격은 화면에 안 씁니다(메뉴판 PDF 에서만) — 나중을 위해 남겨 둠. */
 window.SITE_DEFAULT = {
   info: {
@@ -64,31 +64,31 @@ window.SITE_DEFAULT = {
   ],
 
   /* 공간 — 룸 이름·인원은 예약 시스템 설정과 같게. 사진은 10-06 재아가 공간별로 짝지어 준 것
-     (bg1 조조 · bg3 유비 · bg4 동탁 · bg6 초선·주유·공명 같은 방 모양 · bg7 1층 홀 · bg2 저층 홀 · 장비·관우 같은 방 모양 · 여포).
-     전엔 사진과 방 이름이 엇갈려 있었음(조조 사진이 관우·동탁에 붙는 식) */
+     — 10-06 고화질 원본으로 바꿈(img/room-*.webp · hall-*.webp, 옛 bg1~7.jpg 는 어둡게 줄인 저화질이라 지움).
+     초선·주유·공명, 장비·관우는 같은 방 모양이라 사진 한 장을 같이 씀. 전엔 사진과 방 이름이 엇갈려 있었음 */
   rooms: [
-    { name: "조조", cap: "4인 (최대 6인)", img: "bg1.jpg", floor: "1층" },
-    { name: "유비", cap: "8인 (최대 9인)", img: "bg3.jpg", floor: "1층" },
+    { name: "조조", cap: "4인 (최대 6인)", img: "room-jojo.webp", floor: "1층" },
+    { name: "유비", cap: "8인 (최대 9인)", img: "room-yubi.webp", floor: "1층" },
     { name: "장비", cap: "6인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "관우와 합쳐 12 ~ 14인" },
     { name: "관우", cap: "6인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "장비와 합쳐 12 ~ 14인" },
-    { name: "공명", cap: "6인 (최대 7인)", img: "bg6.jpg", floor: "저층", join: "주유·초선과 합쳐 18 ~ 21인" },
-    { name: "주유", cap: "6인 (최대 7인)", img: "bg6.jpg", floor: "저층" },
-    { name: "초선", cap: "6인 (최대 7인)", img: "bg6.jpg", floor: "저층" },
-    { name: "동탁", cap: "12인 (최대 14인)", img: "bg4.jpg", floor: "저층" }
+    { name: "공명", cap: "6인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층", join: "주유·초선과 합쳐 18 ~ 21인" },
+    { name: "주유", cap: "6인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층" },
+    { name: "초선", cap: "6인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층" },
+    { name: "동탁", cap: "12인 (최대 14인)", img: "room-dongtak.webp", floor: "저층" }
   ],
   halls: [
-    { name: "1층 테이블", cap: "테이블 6 · 18석", img: "bg7.jpg" },
-    { name: "저층 테이블", cap: "테이블 6 · 20석", img: "bg2.jpg" },
-    { name: "여포 (파셜룸)", cap: "4인 (최대 5인) · 저층", img: "room-yeopo.webp" }
+    { name: "1층 테이블", cap: "테이블 6 · 18석", img: "hall-1f.webp" },
+    { name: "저층 테이블", cap: "테이블 6 · 20석", img: "hall-low.webp" },
+    { name: "여포", cap: "4인 (최대 5인) · 저층", img: "room-yeopo.webp" }   /* 파셜룸이라는 건 가게만 알면 됨 — 손님에겐 저층 테이블 하나(10-06 재아) */
   ],
 
   /* ---------- 장별 글·사진 ---------- */
   home: {
-    heroSlides: ["hanok.jpg", "bg5.jpg", "bg1.jpg"],
+    heroSlides: ["hanok.jpg", "room-jangbi-gwanu.webp", "room-jojo.webp"],
     heroTitle: "한옥에서 즐기는 중식",
     heroSub: "경기 성남시 분당구 새마을로51번길 2",
     intro: {
-      img: "bg7.jpg", imgAlt: "1층 테이블",
+      img: "hall-1f.webp", imgAlt: "1층 테이블",
       title: "한옥을 지어\n문을 열었습니다",
       paras: [
         "2020년 분당 새마을로에 한옥을 새로 지어 문을 열었습니다. 나무로 기둥을 세우고 기와를 올렸습니다. 창호를 지난 빛이 부드럽고, 문을 닫으면 방이 조용해집니다.",
@@ -97,15 +97,15 @@ window.SITE_DEFAULT = {
       ],
       more: "이야기 전체"
     },
-    menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "bg1.jpg", imgAlt: "조조 룸의 원탁", more: "차림 전체" },
+    menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "room-jojo.webp", imgAlt: "조조 룸의 원탁", more: "차림 전체" },
     spaceSec: { title: "공간", lead: "나무와 창호가 만드는 조용한 자리. 문을 닫으면 방 하나가 온전히 손님의 것이 됩니다", more: "공간 전체",
-      tiles: [ { img: "bg2.jpg", alt: "저층 테이블", wide: true }, { img: "bg3.jpg", alt: "유비 룸" }, { img: "bg1.jpg", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ] },
+      tiles: [ { img: "hall-low.webp", alt: "저층 테이블", wide: true }, { img: "room-yubi.webp", alt: "유비 룸" }, { img: "room-jojo.webp", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ] },
     infoSec: { visitMore: "오시는 길 전체", telNote: "예약과 문의는 언제든 편하게 전화 주세요" },
-    band: { img: "bg6.jpg", title: "예약", lines: ["원하시는 날짜와 인원을 선택해 예약해 주세요."], button: "예약하기" }
+    band: { img: "room-chosun-juyu-gongmyeong.webp", title: "예약", lines: ["원하시는 날짜와 인원을 선택해 예약해 주세요."], button: "예약하기" }
   },
 
   about: {
-    head: { img: "bg7.jpg", title: "이야기", sub: "한옥을 지어 중식당을 열기까지." },
+    head: { img: "hall-1f.webp", title: "이야기", sub: "한옥을 지어 중식당을 열기까지." },
     greeting: {
       title: "인사말", by: "대표 김지아",
       paras: [
@@ -130,17 +130,17 @@ window.SITE_DEFAULT = {
         "방은 여덟 곳입니다. 중문을 떼면 두 방이 하나가 되어 스무 명 남짓한 모임도 한 자리에서 나눌 수 있습니다. 상을 물리고 자리를 넓히는 일이 한옥에서는 어렵지 않습니다.",
         "주방만은 중식에 맞췄습니다. 센 불을 쓰는 화구를 들이고 배기를 따로 냈습니다. 사천의 매운 향과 광둥의 담백함을 함께 냅니다. 옆집 안집과는 한 가족이 함께 운영합니다."
       ],
-      pics: [ { img: "bg1.jpg", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ]
+      pics: [ { img: "room-jojo.webp", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ]
     }
   },
 
   space: {
-    head: { img: "bg4.jpg", title: "공간", sub: "창호를 지난 빛과 나무 기둥 사이, 문을 닫으면 조용해지는 방. 가족 모임·상견례·비즈니스 자리는 프라이빗 룸에서, 가벼운 식사는 테이블에서 편히 쉬어 가십시오." },
+    head: { img: "room-dongtak.webp", title: "공간", sub: "창호를 지난 빛과 나무 기둥 사이, 문을 닫으면 조용해지는 방. 가족 모임·상견례·비즈니스 자리는 프라이빗 룸에서, 가벼운 식사는 테이블에서 편히 쉬어 가십시오." },
     roomsTitle: "룸", hallsTitle: "테이블"
   },
 
   menuPage: {
-    head: { img: "bg1.jpg", title: "차림", sub: "고객님의 소중한 시간을 위해 정성을 담아 조리합니다. 만두는 매일 아침 빚고, 튀김은 주문을 받은 뒤에 합니다." },
+    head: { img: "room-jojo.webp", title: "차림", sub: "고객님의 소중한 시간을 위해 정성을 담아 조리합니다. 만두는 매일 아침 빚고, 튀김은 주문을 받은 뒤에 합니다." },
     pdfLabel: "메뉴판 PDF",
     chefBand: { who: "총주방장 박수일 · 중식 경력 35년", quote: "\"정성을 담습니다. 최고만을 대접하기 위해.\"", img: "chef.webp" },
     courses: { title: "저녁 코스", sub: "종일 주문 가능" },
@@ -149,7 +149,7 @@ window.SITE_DEFAULT = {
   },
 
   /* 소식 장 머리. 글 자체는 서버 site_posts 표(예약 시스템 → 홈페이지 관리 → 소식)에서 옵니다 — 여기 기본값은 머리글뿐 */
-  news: { head: { img: "bg2.jpg", title: "소식", sub: "한옥반점의 소식을 전해드립니다." } },
+  news: { head: { img: "hall-low.webp", title: "소식", sub: "한옥반점의 소식을 전해드립니다." } },
   visit: {
     head: { img: "hanok.jpg", title: "오시는 길", sub: "서현동과 율동공원을 잇는 새마을로 골목 초입에 위치하고 있습니다." },
     hoursTitle: "영업시간", mapCaption: "약도는 실제 축척과 다를 수 있습니다.",
