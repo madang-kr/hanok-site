@@ -7,54 +7,85 @@
 <title>비상 — 한옥반점</title>
 <link rel="icon" href="/favicon.ico?v=2" sizes="any">
 <!-- ============================================================
-     SOS 비상 페이지 (2026-09-29 재아)
+     SOS 비상 페이지 (2026-09-29 재아, 10-06 다시 짬)
      서버(Supabase)나 인터넷이 끊겨 예약 시스템이 안 열릴 때 임시로 버티는 한 장.
-     · 이 기기에 저장된 예약(예약 시스템이 켜질 때마다 저장하는 캐시 hanok.cache.v1.*)을 날짜별로 보기·검색·인쇄
-     · 비상 접수: 새 예약을 이 기기에만 적어 둠(hanok.sos.v1) → 서버가 돌아오면 예약 시스템이 "넣을까요?" 하고 옮김(14j-sos.js)
-     · 백업 파일 받기: 저장된 예약 + 비상 접수를 파일 하나로
-     · 백업 파일로 열기(09-29 재아): 매일 백업(GitHub hanok-backup 의 reservations.json · stores.json)이나 여기서 받은 백업 파일을
-       올리거나 붙여 넣으면 그걸로 봄 — 한 번도 로그인 안 한 기기(노트북 등)에서도. 파일을 가진 사람만 열 수 있으니 PIN 은 안 물음
-     · 서버에 아무것도 보내지 않음. 직원 PIN 은 이 기기에 저장된 확인값(오프라인 잠금 해제와 같은 것)으로만 확인
-     · 인터넷이 없어도 열리게 sw.js 가 이 장을 기기에 저장(예약 시스템을 한 번 연 기기는 미리 받아 둠)
+     · 예약은 **백업 JSON 파일로만** 엽니다(10-06 재아: '이 기기 저장본' 과 '백업 파일' 두 길이 있어 헷갈렸음 — 기기마다 저장 시점이
+       달라 같은 날 예약이 기기마다 다르게 보였음). 매일 백업(GitHub hanok-backup 의 data/reservations.json · stores.json · backup-at.txt)을
+       한꺼번에 고르거나, 이 페이지에서 받은 비상 백업 파일 하나. 파일을 가진 사람만 열 수 있으니 PIN 은 안 물음
+     · 비상 접수: 새 예약을 이 기기에만 적어 둠(localStorage hanok.sos.v1) → 서버가 돌아오면 예약 시스템이 "넣을까요?" 하고 옮김(14j-sos.js).
+       저장 이름·모양을 바꾸면 그쪽이 못 읽으니 그대로 둘 것. 백업 파일 없이도 접수만은 할 수 있음
+     · 내보내기: 연 백업 + 비상 접수를 파일 하나로(다른 기기로 옮길 때), 오늘부터 목록 CSV
+     · 서버에 아무것도 보내지 않음. 인터넷이 없어도 열리게 sw.js 가 이 장을 기기에 저장(페이지를 고치면 sw.js 의 VER 을 올림)
      구형 기기도 열리게 ?. ?? 같은 새 문법은 쓰지 않음
      ============================================================ -->
 <style>
-  :root{--bg:#F4F3F0; --card:#fff; --text:#1D1B18; --sub:#6B665E; --line:#E3DFD8; --rust:#B0553F; --rust-soft:#F8E9E4; --pine:#3E6B55; --amber:#9A6A12; --amber-soft:#FBF1DC}
+  :root{--bg:#F4F3F0; --card:#fff; --text:#1D1B18; --sub:#6B665E; --line:#E3DFD8; --rust:#B0553F; --rust-soft:#F8E9E4; --amber:#8A5E0E; --amber-soft:#FBF1DC}
   *{box-sizing:border-box}
-  html,body{margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  html,body{margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif; -webkit-text-size-adjust:100%}
   button,input,select,textarea{font:inherit; color:inherit}
-  .wrap{max-width:860px; margin:0 auto; padding:16px}
-  .top{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px}
-  .top h1{margin:0; font-size:20px}
-  .badge{display:inline-block; padding:2px 10px; border-radius:999px; background:var(--rust); color:#fff; font-size:12px; font-weight:700}
-  .note{padding:10px 12px; border-radius:10px; background:var(--amber-soft); color:var(--amber); font-size:13.5px; margin-bottom:12px}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px}
-  .tabs{display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap}
-  .tabs button, .btn{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 16px; cursor:pointer; font-weight:600}
-  .tabs button.on, .btn.primary{background:var(--text); color:#fff; border-color:var(--text)}
+  a{color:inherit}
+  .wrap{max-width:860px; margin:0 auto; padding:16px 16px 40px}
+  h1{margin:0; font-size:20px; line-height:1.3}
+  .muted{color:var(--sub); font-size:13.5px}
+  .err{color:var(--rust); font-size:13.5px; font-weight:600; min-height:20px; margin-top:10px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px}
+  .btn{display:inline-flex; align-items:center; justify-content:center; min-height:40px; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:0 16px; cursor:pointer; font-weight:600; white-space:nowrap; text-decoration:none}
+  .btn.primary{background:var(--text); color:#fff; border-color:var(--text)}
   .btn.danger{color:var(--rust); border-color:var(--rust)}
+  .btn.sm{min-height:32px; padding:0 12px; font-size:13.5px}
   .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  .row input{flex:1 1 200px; width:auto}
-  .dnav{display:flex; align-items:center; gap:8px; margin-bottom:10px}
-  .dnav b{font-size:17px; min-width:150px; text-align:center}
-  input[type=text], input[type=tel], input[type=date], input[type=time], input[type=number], select, textarea{border:1px solid var(--line); border-radius:10px; padding:9px 11px; background:#fff; width:100%}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-  @media (max-width:560px){ .grid{grid-template-columns:1fr} }
-  label.f{display:block} label.f span{display:block; font-size:12.5px; color:var(--sub); font-weight:600; margin-bottom:4px}
-  .res{display:grid; grid-template-columns:64px 1fr auto; gap:4px 10px; padding:10px 0; border-top:1px solid var(--line)}
-  .res:first-child{border-top:none}
-  .res .t{font-weight:700}
-  .res .n{font-weight:700}
-  .res .s{grid-column:2 / 4; color:var(--sub); font-size:13.5px}
-  .tag{display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--line); margin-left:6px}
+  input[type=text], input[type=tel], input[type=date], input[type=time], input[type=number], select, textarea{border:1px solid var(--line); border-radius:10px; padding:9px 11px; background:#fff; width:100%; min-width:0}
+  /* ---- 첫 화면: 백업 파일 고르기 하나 ---- */
+  .start{max-width:460px; margin:8vh auto 0}
+  .start .badge{margin-bottom:10px}
+  .pick{display:block; margin:16px 0 0; border:2px dashed #CFC9BF; border-radius:14px; background:#FBFAF8; padding:24px 16px; text-align:center; cursor:pointer}
+  .pick.over{border-color:var(--text); background:#fff}
+  .pick b{display:block; font-size:16px; margin-bottom:4px}
+  .pick input{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}   /* 기본 파일 칸은 기기마다 모양이 달라 숨기고 이 상자가 대신 */
+  .files{margin:10px 0 0; padding:0; list-style:none; font-size:13.5px}
+  .files li{display:flex; gap:6px; padding:3px 0}
+  .files li i{font-style:normal; color:var(--sub)}
+  details{margin-top:12px} summary{cursor:pointer; color:var(--sub); font-size:13.5px}
+  details textarea{margin-top:8px}
+  .help{margin-top:20px; font-size:13px; color:var(--sub); line-height:1.6}
+  .help b{color:var(--text)}
+  .badge{display:inline-block; padding:2px 10px; border-radius:999px; background:var(--rust); color:#fff; font-size:12px; font-weight:700}
+  /* ---- 본 화면 ---- */
+  .top{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .top h1{flex:1; min-width:0}
+  .note{padding:10px 12px; border-radius:10px; background:var(--amber-soft); color:var(--amber); font-size:13.5px; margin-bottom:12px}
+  .tabs{display:flex; gap:6px; margin-bottom:12px; overflow-x:auto}
+  .tabs button{flex:none; border:1px solid var(--line); background:var(--card); border-radius:999px; min-height:38px; padding:0 14px; cursor:pointer; font-weight:600}
+  .tabs button.on{background:var(--text); color:#fff; border-color:var(--text)}
+  .dnav{display:grid; grid-template-columns:40px 1fr 40px; gap:8px; align-items:center}
+  .dnav .btn{padding:0; min-width:40px}
+  .dnav b{font-size:17px; text-align:center; white-space:nowrap}
+  .dtools{display:flex; gap:8px; margin-top:10px}
+  .dtools input[type=date]{flex:1}
+  .search{display:flex; gap:8px; margin-top:8px}
+  .search input{flex:1}
+  .sum{margin:14px 0 2px; font-size:13.5px; color:var(--sub); font-weight:600}
+  .res{display:grid; grid-template-columns:74px minmax(0,1fr) auto; gap:2px 10px; padding:11px 0; border-top:1px solid var(--line); align-items:baseline}
+  .res .t{font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums}
+  .res .n{font-weight:700; min-width:0; overflow-wrap:anywhere}
+  .res .p{white-space:nowrap; font-weight:600}
+  .res .s{grid-column:2 / 4; color:var(--sub); font-size:13.5px; overflow-wrap:anywhere}
+  .res.gone{opacity:.55}
+  .tag{display:inline-block; padding:0 7px; border-radius:999px; font-size:11.5px; font-weight:700; border:1px solid var(--line); margin-left:6px; vertical-align:2px; white-space:nowrap}
   .tag.sos{background:var(--rust-soft); color:var(--rust); border-color:var(--rust)}
-  .tag.gone{color:var(--sub)}
   .empty{color:var(--sub); padding:18px 0; text-align:center}
-  .lock{max-width:340px; margin:12vh auto 0; text-align:center}
-  .lock input{text-align:center; font-size:24px; letter-spacing:.3em; margin:14px 0}
-  .err{color:var(--rust); font-size:13.5px; min-height:20px}
-  .muted{color:var(--sub); font-size:13px}
-  @media print{ .noprint{display:none !important} body{background:#fff} .card{border:none; padding:0} }
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  label.f{display:block; min-width:0} label.f span{display:block; font-size:12.5px; color:var(--sub); font-weight:600; margin-bottom:4px}
+  .print-h{display:none}
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr}
+    .res{grid-template-columns:64px minmax(0,1fr) auto}
+    .top .btn{padding:0 12px; font-size:13.5px}
+  }
+  @media print{
+    .noprint{display:none !important} body{background:#fff} .wrap{padding:0} .card{border:none; padding:0}
+    .print-h{display:block; font-size:18px; margin:0 0 8px} .res{break-inside:avoid}
+  }
 </style>
 </head>
 <body>
@@ -62,9 +93,9 @@
 <script>
 (function(){
   "use strict";
-  var SOS_KEY = "hanok.sos.v1";
+  var SOS_KEY = "hanok.sos.v1";   /* 예약 시스템 14j-sos.js 가 이 이름으로 읽어 옮김 — 바꾸지 말 것 */
   var app = document.getElementById("app");
-  var S = { ok:false, tab:"list", date:"", q:"", cache:null, tag:"", err:"" };
+  var S = { ok:false, onlySos:false, tab:"list", date:"", q:"", cache:null, fileSos:null, err:"", picked:[] };
 
   function pad(n){ return (n < 10 ? "0" : "") + n; }
   function ymd(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
@@ -72,59 +103,114 @@
   function shift(ds, n){ var d = new Date(ds + "T00:00:00"); d.setDate(d.getDate() + n); return ymd(d); }
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function dlabel(ds){ var d = new Date(ds + "T00:00:00"); return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + "일월화수목금토"[d.getDay()] + ")"; }
-  function hm(t){ if(!t) return ""; var p = t.split(":"), h = +p[0]; return (h < 12 ? "오전 " : "오후 ") + (h % 12 || 12) + ":" + p[1]; }
+  function hm(t){ if(!t) return ""; var p = String(t).split(":"), h = +p[0]; return (h < 12 ? "오전 " : "오후 ") + (h % 12 || 12) + ":" + p[1]; }
   function fmtPhone(p){ var d = String(p || "").replace(/\D/g, ""); if(d.length === 11) return d.slice(0, 3) + "-" + d.slice(3, 7) + "-" + d.slice(7); if(d.length === 10) return d.slice(0, 3) + "-" + d.slice(3, 6) + "-" + d.slice(6); return String(p || ""); }   /* 백업 파일은 숫자만 */
-  function strHash(str){ var h = 5381, i; for(i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }   /* 예약 시스템 02-supabase.js 와 같은 계산 */
+  function fmtAt(s){ var d = s ? new Date(s) : null; if(!d || isNaN(d.getTime())) return "알 수 없음"; return (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + pad(d.getHours()) + ":" + pad(d.getMinutes()); }
 
-  /* 이 기기에 저장된 예약 캐시 — 서버가 여러 개였던 기기면 가장 최근 것 */
-  function findCache(){
-    var best = null, i, k;
-    for(i = 0; i < localStorage.length; i++){
-      k = localStorage.key(i);
-      if(k.indexOf("hanok.cache.v1") !== 0) continue;
-      try{ var c = JSON.parse(localStorage.getItem(k)); if(c && c.data && (!best || (c.at || "") > (best.c.at || ""))) best = { k:k, c:c }; }catch(e){}
-    }
-    return best;
-  }
   function sosList(){ try{ return JSON.parse(localStorage.getItem(SOS_KEY) || "[]") || []; }catch(e){ return []; } }
   function sosSave(list){ localStorage.setItem(SOS_KEY, JSON.stringify(list)); }
-  function store(){ var d = S.cache && S.cache.c.data; return d && (d.hanok || d[Object.keys(d)[0]]) || null; }
-  function seatName(id){ var st = store(); if(!id || !st) return ""; var r = (st.settings.rooms || []).filter(function(x){ return x.id === id; })[0]; return r ? r.name + (r.type === "room" ? " 룸" : "") : ""; }
-
-  /* ---------- 잠금: 직원 PIN(이 기기의 확인값으로만) ---------- */
-  function unlock(pin){
-    var best = findCache();
-    if(!best){ S.err = "이 기기에는 저장된 예약이 없습니다. 예약 시스템에 한 번이라도 로그인했던 기기에서 여세요."; return render(); }
-    var tag = best.k.slice("hanok.cache.v1".length);   /* ".jgjrpzjbvptgvrgreibe" */
-    var want = localStorage.getItem("hanok.pinh.v1" + tag);
-    var url = "https://" + tag.replace(/^\./, "") + ".supabase.co";
-    if(!want || want !== strHash(pin + "|" + url)){ S.err = want ? "PIN 이 맞지 않습니다." : "이 기기에 PIN 확인값이 없습니다. 예약 시스템에 한 번 로그인한 뒤 다시 여세요."; return render(); }
-    S.ok = true; S.cache = best; S.tag = tag; S.date = today(); S.err = ""; render();
+  function sosOpen(){ return sosList().filter(function(x){ return !x.imported; }); }
+  function store(){ var d = S.cache && S.cache.data; return d && (d.hanok || d[Object.keys(d)[0]]) || null; }
+  /* 좌석 이름: 룸은 '조조 룸', 숫자 이름 테이블은 '22번 테이블', 그 밖의 테이블(여포 등)은 이름 그대로 */
+  function seatName(id){
+    var st = store(); if(!id || !st) return "";
+    var r = ((st.settings || {}).rooms || []).filter(function(x){ return x.id === id; })[0]; if(!r) return "";
+    if(r.type === "room") return r.name + " 룸";
+    return /^\d/.test(r.name) ? r.name + "번 테이블" : r.name;
+  }
+  function seatOf(r){
+    if(r.roomId) return seatName(r.roomId) + ((r.extraIds || []).length ? " 외 " + r.extraIds.length : "");
+    if(r.tentativeRoomId){ var t = seatName(r.tentativeRoomId); if(t) return t + "(잠정)"; }
+    var p = String(r.seatPref || ""); return p.indexOf("room") === 0 ? "룸(미정)" : p.indexOf("table") === 0 ? (p.split(":")[1] || "") + " 테이블(미정)" : "";
   }
 
   /* ---------- 화면 ---------- */
   function render(){
-    if(!S.ok){
-      app.innerHTML = '<div class="lock"><h1>비상 페이지</h1><p class="muted">예약 시스템이 열리지 않을 때 이 기기에 저장된 예약을 봅니다.</p>' +
-        '<input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN">' +
-        '<div class="err">' + esc(S.err) + '</div><button class="btn primary" id="go" style="width:100%">열기</button>' +
-        '<div class="card" style="margin-top:26px; text-align:left"><b>또는 백업 파일로 열기</b><p class="muted" style="margin:4px 0 10px">매일 백업의 reservations.json · stores.json, 또는 여기서 받은 백업 파일</p>' + loadBoxHtml() + '</div>' +
-        '<p class="muted" style="margin-top:18px"><a href="../">예약 시스템으로</a></p></div>';
-      bindLoad();
-      var p = document.getElementById("pin");
-      document.getElementById("go").onclick = function(){ unlock(p.value.replace(/\D/g, "")); };
-      p.onkeydown = function(e){ if(e.key === "Enter") unlock(p.value.replace(/\D/g, "")); };
-      p.focus(); return;
-    }
-    var at = S.cache.c.at ? new Date(S.cache.c.at) : null;
-    var head = '<div class="top noprint"><span class="badge">비상</span><h1>한옥반점 예약 (' + (S.cache.k === "backup" ? "백업 파일" : "이 기기 저장본") + ')</h1><span style="flex:1"></span><a class="btn" href="../">예약 시스템</a></div>' +
-      '<div class="note noprint">' + (S.cache.k === "backup" ? "백업 시각" : "마지막 저장") + ': <b>' + (at ? at.getFullYear() + ". " + (at.getMonth() + 1) + ". " + at.getDate() + ". " + pad(at.getHours()) + ":" + pad(at.getMinutes()) : "알 수 없음") + '</b> — 그 뒤에 다른 기기에서 바뀐 예약은 여기 없습니다. 새 예약은 \'비상 접수\' 에 적어 두세요.</div>' +
-      '<div class="tabs noprint">' + tab("list", "예약 보기") + tab("add", "비상 접수 (" + sosList().filter(function(x){ return !x.imported; }).length + ")") + tab("backup", "백업") + '</div>';
-    app.innerHTML = head + (S.tab === "list" ? listHtml() : S.tab === "add" ? addHtml() : backupHtml());
+    if(!S.ok && !S.onlySos){ app.innerHTML = startHtml(); bindStart(); return; }
+    var head = '<div class="top noprint"><span class="badge">비상</span><h1>한옥반점 예약</h1><a class="btn sm" href="../">예약 시스템</a></div>' +
+      (S.ok ? '<div class="note noprint">백업 시각 <b>' + esc(fmtAt(S.cache.at)) + '</b> — 그 뒤에 들어온·바뀐 예약은 여기 없습니다. 새 예약은 \'비상 접수\' 에 적어 두세요.</div>'
+            : '<div class="note noprint">백업 파일 없이 열었습니다 — 비상 접수만 됩니다. <a href="#" id="to-start">백업 파일 열기</a></div>') +
+      '<div class="tabs noprint">' + (S.ok ? tab("list", "예약 보기") : "") + tab("add", "비상 접수 " + sosOpen().length) + (S.ok ? tab("out", "내보내기") : "") + '</div>';
+    if(!S.ok && S.tab !== "add") S.tab = "add";
+    app.innerHTML = head + (S.tab === "list" ? listHtml() : S.tab === "add" ? addHtml() : outHtml());
     bind();
   }
   function tab(k, label){ return '<button data-tab="' + k + '" class="' + (S.tab === k ? "on" : "") + '">' + esc(label) + '</button>'; }
 
+  function startHtml(){
+    var n = sosOpen().length;
+    return '<div class="start"><span class="badge">비상</span><h1>한옥반점 예약 비상 페이지</h1>' +
+      '<p class="muted" style="margin:6px 0 0">예약 시스템이 열리지 않을 때, <b>백업 파일</b>로 예약을 봅니다.</p>' +
+      '<label class="pick" id="pick"><input type="file" id="l-file" accept=".json,.txt,application/json,text/plain" multiple>' +
+        '<b>백업 파일 고르기</b><span class="muted">여기를 누르거나 파일을 끌어다 놓으세요</span></label>' +
+      (S.picked.length ? '<ul class="files">' + S.picked.map(function(f){ return '<li>· ' + esc(f.name) + ' <i>' + Math.max(1, Math.round(f.size / 1024)) + 'KB</i></li>'; }).join("") + '</ul>' : '') +
+      '<details><summary>파일 대신 내용을 붙여 넣기</summary><textarea id="l-paste" rows="4" placeholder="reservations.json 내용을 여기에 붙여 넣으세요"></textarea>' +
+        '<button class="btn primary" id="l-paste-go" style="margin-top:8px">붙여 넣은 내용으로 열기</button></details>' +
+      '<div class="err" id="l-err">' + esc(S.err) + '</div>' +
+      '<div class="help"><b>어떤 파일?</b> 매일 백업의 <b>reservations.json · stores.json · backup-at.txt</b> 세 개를 한꺼번에 고르세요(stores.json 이 있어야 좌석 이름이 나옵니다). 이 페이지의 \'내보내기\' 로 받은 비상 백업 파일이면 그 하나만.<br>' +
+        '파일에는 손님 이름·전화번호가 들어 있습니다. 쓰고 나면 기기에서 지워 주세요.</div>' +
+      '<div class="row" style="margin-top:18px"><button class="btn" id="only-sos">백업 없이 비상 접수만' + (n ? ' (' + n + ')' : '') + '</button><a class="btn" href="../">예약 시스템으로</a></div></div>';
+  }
+  function bindStart(){
+    var inp = document.getElementById("l-file"), pick = document.getElementById("pick");
+    inp.onchange = function(){ readFiles(Array.prototype.slice.call(inp.files || [])); };
+    /* 끌어다 놓기(PC) */
+    pick.ondragover = function(e){ e.preventDefault(); pick.className = "pick over"; };
+    pick.ondragleave = function(){ pick.className = "pick"; };
+    pick.ondrop = function(e){ e.preventDefault(); pick.className = "pick"; readFiles(Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || [])); };
+    document.getElementById("l-paste-go").onclick = function(){ var t = document.getElementById("l-paste").value; if(!t.trim()){ S.err = "붙여 넣은 내용이 없습니다."; return render(); } loadTexts([{ name:"붙여 넣은 내용", text:t }]); };
+    document.getElementById("only-sos").onclick = function(){ S.onlySos = true; S.tab = "add"; S.date = today(); render(); };
+  }
+  function readFiles(files){
+    if(!files.length) return;
+    S.picked = files.map(function(f){ return { name:f.name, size:f.size }; });
+    var texts = [], left = files.length;
+    files.forEach(function(file){
+      var r = new FileReader();
+      r.onload = function(){ texts.push({ name:file.name, text:String(r.result || "") }); if(--left === 0) loadTexts(texts); };
+      r.onerror = function(){ if(--left === 0) loadTexts(texts); };
+      r.readAsText(file);
+    });
+  }
+
+  /* ---------- 백업 읽기 ---------- */
+  /* 서버 행(reservations.json) → 예약 시스템 모양. 모양이 이상한 줄·지운 줄은 버림 */
+  function rowToRes(row){
+    if(!row || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.date)) || !/^\d{2}:\d{2}$/.test(String(row.time)) || row.deleted_at) return null;
+    var r = {}, k, d = row.data || {};
+    for(k in d) if(Object.prototype.hasOwnProperty.call(d, k)) r[k] = d[k];
+    r.id = String(row.id || ""); r.date = row.date; r.time = row.time; r.status = row.status || "확정"; r.name = String(row.name || "");
+    r.phone = String(row.phone || ""); r.people = parseInt(row.people, 10) || 0; r.roomId = row.room_id || null;
+    r._upd = row.updated_at || "";
+    return r;
+  }
+  function loadTexts(texts){
+    var res = null, settings = null, name = "", at = "", sos = null, cache = null, bad = [];
+    texts.forEach(function(t){
+      var s0 = t.text.replace(/^﻿/, "").trim();
+      /* backup-at.txt — "2026-10-06T09:00:00Z 전체" 처럼 시각 뒤에 글이 붙음(10-06: 전엔 시각만 기대해 이 파일을 버렸음) */
+      var m = s0.match(/^(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)(\s|$)/); if(m && s0.charAt(0) !== "[" && s0.charAt(0) !== "{"){ at = m[1]; return; }
+      var o; try{ o = JSON.parse(s0); }catch(e){ bad.push(t.name); return; }
+      if(o && o.kind === "hanok-sos-backup" && o.data){ cache = o.data; at = at || o.cacheAt || o.at || ""; sos = o.sos || null; return; }   /* 이 페이지의 내보내기 */
+      if(Array.isArray(o) && o.length && o[0].settings && o[0].key){ var h = o.filter(function(x){ return x.key === "hanok"; })[0] || o[0]; settings = h.settings || {}; name = h.name || ""; return; }   /* stores.json */
+      if(Array.isArray(o) && (!o.length || (o[0].date && o[0].time))){ res = (res || []).concat(o.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean)); return; }   /* reservations.json */
+      bad.push(t.name);
+    });
+    if(!cache && !res){
+      S.err = bad.length ? "읽을 수 없는 파일입니다: " + bad.join(", ") + " — reservations.json 이 있어야 합니다." : "reservations.json 이 없습니다. 세 파일을 한꺼번에 고르세요.";
+      return render();
+    }
+    if(!cache){
+      var last = ""; res.forEach(function(r){ if((r._upd || "") > last) last = r._upd; });
+      cache = { hanok:{ name:name || "한옥반점", settings:settings || {}, reservations:res } };
+      at = at || last;   /* 백업 시각 파일이 없으면 가장 늦게 고친 예약 시각으로 */
+    }else if(settings && cache.hanok && !(cache.hanok.settings || {}).rooms){ cache.hanok.settings = settings; }
+    S.cache = { at:at, data:cache }; S.fileSos = sos; S.ok = true; S.onlySos = false; S.tab = "list"; S.date = S.date || today(); S.err = "";
+    S.noSeats = !(((store() || {}).settings || {}).rooms || []).length;
+    render();
+  }
+
+  /* ---------- 예약 보기 ---------- */
   function dayRows(ds){
     var st = store(), q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, "");
     var rows = (st ? st.reservations : []).filter(function(r){ return r.date === ds && r.status !== "취소"; }).map(function(r){ return { r:r, sos:false }; })
@@ -133,93 +219,51 @@
     return rows.sort(function(a, b){ return String(a.r.time).localeCompare(String(b.r.time)); });
   }
   function listHtml(){
-    var rows = dayRows(S.date);
+    var rows = dayRows(S.date), teams = 0, ppl = 0;
+    rows.forEach(function(o){ if(o.r.status !== "노쇼"){ teams++; ppl += o.r.people || 0; } });
     var body = rows.length ? rows.map(function(o){
-      var r = o.r, seat = o.sos ? (r.seat === "room" ? "룸" : r.seat === "table" ? "테이블" : "") : (seatName(r.roomId) || seatName(r.tentativeRoomId) || (String(r.seatPref || "").indexOf("room") === 0 ? "룸" : "테이블"));
-      var ppl = (r.people || 0) + "명" + (r.infants ? " (어린이 " + r.infants + ")" : "");
-      return '<div class="res"><span class="t">' + esc(hm(r.time)) + '</span><span class="n">' + esc(r.name) + (o.sos ? '<span class="tag sos">비상 접수</span>' : '') + (r.status === "노쇼" ? '<span class="tag gone">노쇼</span>' : r.status === "방문" ? '<span class="tag gone">방문</span>' : '') + '</span><span>' + esc(ppl) + '</span>' +
+      var r = o.r, seat = o.sos ? (r.seat === "room" ? "룸" : r.seat === "table" ? "테이블" : "") : seatOf(r);
+      var gone = r.status === "노쇼" || r.status === "방문";
+      return '<div class="res' + (gone ? " gone" : "") + '"><span class="t">' + esc(hm(r.time)) + '</span>' +
+        '<span class="n">' + esc(r.name) + (o.sos ? '<span class="tag sos">비상 접수</span>' : '') + (gone ? '<span class="tag">' + esc(r.status) + '</span>' : '') + '</span>' +
+        '<span class="p">' + esc((r.people || 0) + "명" + (r.infants ? " (어린이 " + r.infants + ")" : "")) + '</span>' +
         '<span class="s">' + esc([seat, fmtPhone(r.phone), r.request, r.allergy ? "알러지 " + r.allergy : "", r.memo].filter(Boolean).join(" · ")) + '</span></div>';
-    }).join("") : '<div class="empty">이 날 예약이 없습니다' + (S.q ? " (검색 결과 없음)" : "") + '</div>';
-    return '<div class="card"><div class="dnav noprint"><button class="btn" data-d="-1">‹</button><b>' + esc(dlabel(S.date)) + '</b><button class="btn" data-d="1">›</button><button class="btn" data-today>오늘</button>' +
-      '<input type="date" id="dpick" value="' + S.date + '" style="width:auto"></div>' +
-      '<div class="row noprint" style="margin-bottom:6px"><input type="text" id="q" value="' + esc(S.q) + '" placeholder="이름 또는 전화번호 뒷자리"><button class="btn" id="print">인쇄</button></div>' +
-      '<h2 style="display:none" class="print-only">' + esc(dlabel(S.date)) + '</h2>' + body + '</div>';
+    }).join("") : '<div class="empty">' + (S.q ? "검색 결과가 없습니다" : "이 날 예약이 없습니다") + '</div>';
+    return '<div class="card"><div class="dnav noprint"><button class="btn" data-d="-1" aria-label="전날">‹</button><b>' + esc(dlabel(S.date)) + '</b><button class="btn" data-d="1" aria-label="다음 날">›</button></div>' +
+      '<div class="dtools noprint"><button class="btn sm" data-today>오늘</button><input type="date" id="dpick" value="' + S.date + '"><button class="btn sm" id="print">인쇄</button></div>' +
+      '<div class="search noprint"><input type="text" id="q" value="' + esc(S.q) + '" placeholder="이름 또는 전화번호 뒷자리로 찾기"></div>' +
+      (S.noSeats ? '<p class="muted noprint" style="margin:10px 0 0">stores.json 을 같이 고르지 않아 좌석 이름이 안 나옵니다.</p>' : '') +
+      '<h2 class="print-h">한옥반점 예약 · ' + esc(dlabel(S.date)) + '</h2>' +
+      '<div class="sum">' + (rows.length ? teams + "팀 · " + ppl + "명" : "") + '</div>' + body + '</div>';
   }
+
+  /* ---------- 비상 접수 ---------- */
   function addHtml(){
-    var list = sosList();
-    var mine = list.filter(function(x){ return !x.imported; }).sort(function(a, b){ return (a.date + a.time).localeCompare(b.date + b.time); });
-    return '<div class="card"><div class="grid">' +
-      '<label class="f"><span>날짜</span><input type="date" id="a-date" value="' + S.date + '"></label>' +
+    var mine = sosOpen().sort(function(a, b){ return (a.date + a.time).localeCompare(b.date + b.time); });
+    return '<div class="card"><b>새 예약 적어 두기</b><p class="muted" style="margin:2px 0 12px">이 기기에만 저장됩니다. 서버가 돌아오면 예약 시스템을 연 이 기기에서 "넣을까요?" 하고 옮깁니다.</p><div class="grid">' +
+      '<label class="f"><span>날짜</span><input type="date" id="a-date" value="' + (S.date || today()) + '"></label>' +
       '<label class="f"><span>시각</span><input type="time" id="a-time" step="300" value="18:00"></label>' +
-      '<label class="f"><span>이름</span><input type="text" id="a-name"></label>' +
+      '<label class="f"><span>이름</span><input type="text" id="a-name" maxlength="30"></label>' +
       '<label class="f"><span>전화번호</span><input type="tel" id="a-phone" placeholder="010-0000-0000"></label>' +
       '<label class="f"><span>성인</span><input type="number" id="a-adults" min="1" value="2"></label>' +
       '<label class="f"><span>어린이</span><input type="number" id="a-kids" min="0" value="0"></label>' +
       '<label class="f"><span>자리</span><select id="a-seat"><option value="">선택 안 함</option><option value="table">테이블</option><option value="room">룸</option></select></label>' +
-      '<label class="f"><span>요청사항·메모</span><input type="text" id="a-req"></label>' +
-      '</div><div class="row" style="margin-top:12px"><button class="btn primary" id="a-save">비상 접수 저장</button><span class="muted">이 기기에만 저장됩니다. 서버가 돌아오면 예약 시스템이 옮길지 묻습니다.</span></div></div>' +
+      '<label class="f"><span>요청사항·메모</span><input type="text" id="a-req" maxlength="300"></label>' +
+      '</div><div class="row" style="margin-top:14px"><button class="btn primary" id="a-save">비상 접수 저장</button></div></div>' +
       '<div class="card"><b>아직 옮기지 않은 비상 접수 ' + mine.length + '건</b>' + (mine.length ? mine.map(function(x){
-        return '<div class="res"><span class="t">' + esc(dlabel(x.date).replace(/ \(.\)$/, "")) + '<br>' + esc(hm(x.time)) + '</span><span class="n">' + esc(x.name) + '</span><span><button class="btn danger" data-del="' + esc(x.id) + '">지우기</button></span>' +
-          '<span class="s">' + esc([(x.people || 0) + "명", x.seat === "room" ? "룸" : x.seat === "table" ? "테이블" : "", x.phone, x.request].filter(Boolean).join(" · ")) + '</span></div>';
+        return '<div class="res"><span class="t">' + esc(dlabel(x.date).replace(/ \(.\)$/, "")) + '<br>' + esc(hm(x.time)) + '</span><span class="n">' + esc(x.name) + '</span><span><button class="btn sm danger" data-del="' + esc(x.id) + '">지우기</button></span>' +
+          '<span class="s">' + esc([(x.people || 0) + "명", x.seat === "room" ? "룸" : x.seat === "table" ? "테이블" : "", fmtPhone(x.phone), x.request].filter(Boolean).join(" · ")) + '</span></div>';
       }).join("") : '<div class="empty">없음</div>') + '</div>';
   }
-  function backupHtml(){
+
+  /* ---------- 내보내기 ---------- */
+  function outHtml(){
     var st = store(), n = st ? st.reservations.length : 0;
-    return '<div class="card"><p>이 기기에 저장된 예약 <b>' + n + '건</b>과 비상 접수 <b>' + sosList().length + '건</b>을 파일로 받습니다.</p>' +
-      '<div class="row"><button class="btn primary" id="b-json">백업 파일 받기</button><button class="btn" id="b-csv">오늘부터 예약 목록(엑셀용 CSV)</button></div>' +
-      '<p class="muted" style="margin-top:12px">백업 파일에는 손님 이름·전화번호가 들어 있습니다. 다 쓰면 지워 주세요.</p></div>' +
-      '<div class="card"><b>백업 파일로 보기</b><p class="muted" style="margin:4px 0 10px">매일 백업(GitHub hanok-backup)의 reservations.json · stores.json 을 올리거나, 파일 내용을 복사해 붙여 넣으세요. 여기서 받은 백업 파일도 됩니다.</p>' + loadBoxHtml() +
-      (S.cache.k === "backup" && S.devCache ? '<div class="row" style="margin-top:10px"><button class="btn" id="b-back">이 기기 저장본으로 돌아가기</button></div>' : '') + '</div>';
-  }
-  /* ---------- 백업 파일 올리기·붙여넣기 ---------- */
-  function loadBoxHtml(){
-    return '<div class="row"><input type="file" id="l-file" accept=".json,.txt,application/json" multiple style="flex:1 1 220px"></div>' +
-      '<textarea id="l-paste" rows="4" placeholder="또는 파일 내용을 여기에 붙여 넣기 (reservations.json 등)" style="margin-top:8px"></textarea>' +
-      '<div class="err" id="l-err"></div><button class="btn primary" id="l-go">백업으로 열기</button>';
-  }
-  function bindLoad(){
-    var go = document.getElementById("l-go"); if(!go) return;
-    go.onclick = function(){
-      var f = document.getElementById("l-file"), txt = document.getElementById("l-paste").value, files = f && f.files ? Array.prototype.slice.call(f.files) : [];
-      var texts = []; if(txt.trim()) texts.push({ name:"붙여넣기", text:txt });
-      if(!files.length) return loadTexts(texts);
-      var left = files.length;
-      files.forEach(function(file){ var r = new FileReader(); r.onload = function(){ texts.push({ name:file.name, text:String(r.result || "") }); if(--left === 0) loadTexts(texts); }; r.onerror = function(){ if(--left === 0) loadTexts(texts); }; r.readAsText(file); });
-    };
-  }
-  /* 서버 행(reservations.json) → 예약 시스템 모양. 모양이 이상한 줄은 버림 */
-  function rowToRes(row){
-    if(!row || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.date)) || !/^\d{2}:\d{2}$/.test(String(row.time)) || row.deleted_at) return null;
-    var r = {}, k, d = row.data || {};
-    for(k in d) if(Object.prototype.hasOwnProperty.call(d, k)) r[k] = d[k];
-    r.id = String(row.id || ""); r.date = row.date; r.time = row.time; r.status = row.status || "확정"; r.name = String(row.name || "");
-    r.phone = String(row.phone || ""); r.people = parseInt(row.people, 10) || 0; r.roomId = row.room_id || null;
-    r._upd = row.updated_at || "";   /* 백업 시각을 모를 때 가장 늦게 고친 예약 시각으로 */
-    return r;
-  }
-  function loadTexts(texts){
-    var err = document.getElementById("l-err");
-    if(!texts.length){ if(err) err.textContent = "파일을 고르거나 내용을 붙여 넣으세요."; return; }
-    var res = null, settings = null, name = "", at = "", sos = null, cache = null, bad = [];
-    texts.forEach(function(t){
-      var s0 = t.text.trim();
-      if(/^\d{4}-\d{2}-\d{2}T[\d:]+Z?$/.test(s0)){ at = s0; return; }   /* backup-at.txt */
-      var o; try{ o = JSON.parse(s0); }catch(e){ bad.push(t.name); return; }
-      if(o && o.kind === "hanok-sos-backup" && o.data){ cache = o.data; at = at || o.cacheAt || o.at || ""; sos = o.sos || null; return; }
-      if(o && o.data && (o.data.hanok || o.at)){ cache = o.data; at = at || o.at || ""; return; }   /* 기기 캐시 모양 */
-      if(Array.isArray(o) && o.length && o[0].settings && o[0].key){ var h = o.filter(function(x){ return x.key === "hanok"; })[0] || o[0]; settings = h.settings || {}; name = h.name || ""; return; }   /* stores.json */
-      if(Array.isArray(o) && (!o.length || (o[0].date && o[0].time))){ res = (res || []).concat(o.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean)); return; }   /* reservations.json */
-      bad.push(t.name);
-    });
-    if(!cache && !res){ if(err) err.textContent = bad.length ? "읽을 수 없는 파일: " + bad.join(", ") + " — reservations.json 이 있어야 합니다." : "reservations.json 이 없습니다."; return; }
-    if(!cache){
-      var last = ""; res.forEach(function(r){ var u = r._upd || r.updatedAt || ""; if(u > last) last = u; });
-      cache = { hanok:{ name:name || "한옥반점", settings:settings || {}, reservations:res } };
-      at = at || last;
-    }else if(settings && cache.hanok && !(cache.hanok.settings || {}).rooms){ cache.hanok.settings = settings; }
-    if(S.ok && S.cache && S.cache.k !== "backup") S.devCache = S.cache;
-    S.cache = { k:"backup", c:{ at:at, data:cache } }; S.fileSos = sos; S.ok = true; S.tab = "list"; S.date = S.date || today(); S.err = "";
-    render();
+    return '<div class="card"><b>다른 기기로 옮기기</b><p class="muted" style="margin:2px 0 12px">연 백업(예약 ' + n + '건)과 이 기기의 비상 접수 ' + sosOpen().length + '건을 파일 하나로 받습니다. 다른 기기의 비상 페이지에서 이 파일 하나만 고르면 됩니다.</p>' +
+      '<button class="btn primary" id="b-json">비상 백업 파일 받기</button></div>' +
+      '<div class="card"><b>엑셀로 보기</b><p class="muted" style="margin:2px 0 12px">오늘부터의 예약과 비상 접수를 표(CSV)로 받습니다.</p><button class="btn" id="b-csv">예약 목록 받기 (CSV)</button></div>' +
+      '<p class="muted">받은 파일에는 손님 이름·전화번호가 들어 있습니다. 다 쓰면 지워 주세요.</p>' +
+      '<div class="row" style="margin-top:12px"><button class="btn" id="reopen">다른 백업 파일 열기</button></div>';
   }
 
   /* ---------- 동작 ---------- */
@@ -236,8 +280,9 @@
       var id = b.getAttribute("data-del"); sosSave(sosList().filter(function(x){ return x.id !== id; })); render(); }; });
     var bj = document.getElementById("b-json"); if(bj) bj.onclick = backupJson;
     var bc = document.getElementById("b-csv"); if(bc) bc.onclick = backupCsv;
-    var bb = document.getElementById("b-back"); if(bb) bb.onclick = function(){ S.cache = S.devCache; S.devCache = null; render(); };
-    bindLoad();
+    var back = function(e){ if(e) e.preventDefault(); S.ok = false; S.onlySos = false; S.cache = null; S.fileSos = null; S.picked = []; S.err = ""; render(); };
+    var ro = document.getElementById("reopen"); if(ro) ro.onclick = back;
+    var ts = document.getElementById("to-start"); if(ts) ts.onclick = back;
   }
   function val(id){ var e = document.getElementById(id); return e ? String(e.value || "").trim() : ""; }
   function addSave(){
@@ -252,16 +297,16 @@
   function download(name, text, type){
     var blob = new Blob([text], { type:type }), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 1000);
   }
   function stamp(){ var d = new Date(); return ymd(d) + "_" + pad(d.getHours()) + pad(d.getMinutes()); }
   function backupJson(){
-    download("한옥반점_비상백업_" + stamp() + ".json", JSON.stringify({ kind:"hanok-sos-backup", at:new Date().toISOString(), cacheAt:S.cache.c.at, data:S.cache.c.data, sos:sosList().concat(S.fileSos || []) }), "application/json");
+    download("한옥반점_비상백업_" + stamp() + ".json", JSON.stringify({ kind:"hanok-sos-backup", at:new Date().toISOString(), cacheAt:S.cache.at, data:S.cache.data, sos:sosOpen().concat(S.fileSos || []) }), "application/json");
   }
   function backupCsv(){
     var st = store(), from = today(), cell = function(v){ v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    var rows = (st ? st.reservations : []).filter(function(r){ return r.date >= from && r.status !== "취소"; }).map(function(r){ return [r.date, r.time, r.name, r.phone, r.people, seatName(r.roomId) || seatName(r.tentativeRoomId), r.status, r.request, ""]; })
-      .concat(sosList().filter(function(x){ return !x.imported && x.date >= from; }).map(function(x){ return [x.date, x.time, x.name, x.phone, x.people, x.seat === "room" ? "룸" : x.seat === "table" ? "테이블" : "", "비상 접수", x.request, "비상"]; }))
+    var rows = (st ? st.reservations : []).filter(function(r){ return r.date >= from && r.status !== "취소"; }).map(function(r){ return [r.date, r.time, r.name, fmtPhone(r.phone), r.people, seatOf(r), r.status, r.request, ""]; })
+      .concat(sosOpen().filter(function(x){ return x.date >= from; }).map(function(x){ return [x.date, x.time, x.name, fmtPhone(x.phone), x.people, x.seat === "room" ? "룸" : x.seat === "table" ? "테이블" : "", "비상 접수", x.request, "비상"]; }))
       .sort(function(a, b){ return (a[0] + a[1]).localeCompare(b[0] + b[1]); });
     var head = ["날짜", "시각", "이름", "전화", "인원", "자리", "상태", "요청", "비고"];
     download("한옥반점_예약목록_" + stamp() + ".csv", "﻿" + [head].concat(rows).map(function(r){ return r.map(cell).join(","); }).join("\n"), "text/csv");
