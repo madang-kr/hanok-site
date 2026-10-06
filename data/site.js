@@ -105,7 +105,7 @@ window.SITE_DEFAULT = {
   },
 
   about: {
-    head: { img: "hall-1f.webp", title: "이야기", sub: "한옥을 지어 중식당을 열기까지." },
+    head: { img: "hero-1-night.webp", title: "이야기", sub: "한옥을 지어 중식당을 열기까지." },
     greeting: {
       title: "인사말", by: "대표 김지아",
       paras: [
@@ -135,12 +135,12 @@ window.SITE_DEFAULT = {
   },
 
   space: {
-    head: { img: "room-dongtak.webp", title: "공간", sub: "창호를 지난 빛과 나무 기둥 사이, 문을 닫으면 조용해지는 방. 가족 모임·상견례·비즈니스 자리는 프라이빗 룸에서, 가벼운 식사는 테이블에서 편히 쉬어 가십시오." },
+    head: { img: "head-space-doors.webp", title: "공간", sub: "창호를 지난 빛과 나무 기둥 사이, 문을 닫으면 조용해지는 방. 가족 모임·상견례·비즈니스 자리는 프라이빗 룸에서, 가벼운 식사는 테이블에서 편히 쉬어 가십시오." },
     roomsTitle: "룸", hallsTitle: "테이블"
   },
 
   menuPage: {
-    head: { img: "room-jojo.webp", title: "차림", sub: "고객님의 소중한 시간을 위해 정성을 담아 조리합니다. 만두는 매일 아침 빚고, 튀김은 주문을 받은 뒤에 합니다." },
+    head: { img: "head-menu-dumpling.webp", title: "차림", sub: "고객님의 소중한 시간을 위해 정성을 담아 조리합니다. 만두는 매일 아침 빚고, 튀김은 주문을 받은 뒤에 합니다." },
     pdfLabel: "메뉴판 PDF",
     chefBand: { who: "총주방장 박수일 · 중식 경력 35년", quote: "\"정성을 담습니다. 최고만을 대접하기 위해.\"", img: "chef.webp" },
     courses: { title: "저녁 코스", sub: "종일 주문 가능" },
@@ -149,9 +149,9 @@ window.SITE_DEFAULT = {
   },
 
   /* 소식 장 머리. 글 자체는 서버 site_posts 표(예약 시스템 → 홈페이지 관리 → 소식)에서 옵니다 — 여기 기본값은 머리글뿐 */
-  news: { head: { img: "hall-low.webp", title: "소식", sub: "한옥반점의 소식을 전해드립니다." } },
+  news: { head: { img: "hero-2-day.webp", title: "소식", sub: "한옥반점의 소식을 전해드립니다." } },
   visit: {
-    head: { img: "hanok.jpg", title: "오시는 길", sub: "서현동과 율동공원을 잇는 새마을로 골목 초입에 위치하고 있습니다." },
+    head: { img: "head-visit-sunset.webp", title: "오시는 길", sub: "서현동과 율동공원을 잇는 새마을로 골목 초입에 위치하고 있습니다." },
     hoursTitle: "영업시간", mapCaption: "약도는 실제 축척과 다를 수 있습니다.",
     parkingTitle: "주차",
     parking: [
