@@ -419,7 +419,8 @@ function tabStats(){
 /* ---------- 감사 문자 AI 키(27차) ----------
    키는 서버 금고(Vault)에만. 여기서도 값은 못 봄 — 있는지·언제 바꿨는지·최근 24시간 사용·상한·최근 호출만.
    넣기·상한 바꾸기는 개발자 계정만(서버가 막음). 사장님 화면에는 키 칸이 없음(재아 09-24) */
-/* 사장님 메일 알림(42차, 10-06 재아) — '개발자에게' 에 답을 달면 서버가 사장님 메일로 한 통. 키·주소는 서버 Vault 에만 */
+/* 사장님 메일 알림(42차 초안, 10-06 재아) — '개발자에게' 에 답을 달면 서버가 사장님 메일로 한 통. 키·주소는 서버 Vault 에만.
+   10-06 재아 '나중에' 로 미룸 — 긴급 탭에서 칸을 뺐음(되살리려면 tabEm 에 ${mailCard()} 와 loadTab 에 loadMail). 서버 42차는 아직 안 돌림 */
 async function loadMail(){
   try{ S.mail = await api("/rest/v1/rpc/hanok_mail_status", { method:"POST", body:{} }); }
   catch(e){ S.mail = { error:/hanok_mail_status|404|PGRST202/.test(e.message) ? "서버에 42차가 아직 없습니다(patch_42차_답변메일 먼저 실행)" : e.message }; }
@@ -522,8 +523,6 @@ function tabEm(){
       <button class="btn" id="bk" onclick="backup()">백업 내려받기</button></div>
     <div class="card em"><div class="tx"><h3>알림 시험 · 용량 점검</h3><p>텔레그램이 오는지 시험하거나, 매일 10시 용량 점검을 지금 한 번 돌립니다(70% 넘으면 그때 알림).</p></div>
       <button class="btn" onclick="act('telegram_test')">텔레그램 시험</button><button class="btn" onclick="act('usage_check')">용량 점검 지금</button></div>
-    <h2 class="sec">사장님 메일 알림</h2>
-    ${mailCard()}
     <h2 class="sec">감사 문자 AI</h2>
     ${aiCard()}
     <h2 class="sec">바로가기</h2>
@@ -536,7 +535,7 @@ function tabEm(){
 }
 
 /* ---------- 틀 ---------- */
-function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); if(S.tab === "em" && !S.mail) loadMail(); }
+function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); }
 function go(t){ S.tab = t; loadTab(); render(); }
 function tabSet(){ return ""; }   /* 내용은 #setwrap 의 창 */
 function render(){
