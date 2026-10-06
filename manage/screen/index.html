@@ -10112,7 +10112,7 @@ function hrRecView(){
   var head = hrPeriodHead(title, "근무 기록", "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
   var dash = '<span class="muted">—</span>';
   var h_ = function(v){ return v ? hrRound(v) + 'h' : dash; }, d_ = function(v){ return v ? v + '일' : dash; };
-  /* 10-06 재아: '정규 시간 외'·'다른 시간' 은 뺌(필요 없을 듯), 합계 줄도 뺌 */
+  /* 10-06 재아: '정규 시간 외'·'다른 시간' 은 뺌(필요 없을 듯), 합계 줄도 뺌. 맨 끝 '합계' 열 = 그 직원의 근무 기록 표를 여는 단추 */
   var cells = function(t){ return '<td class="hl"><b>' + hrRound(t.hours) + 'h</b></td><td>' + t.days + '일</td><td>' + h_(t.hol) + '</td>' +
       '<td>' + (t.abs ? '<span class="rust">' + t.abs + '일</span>' : dash) + '</td><td>' + d_(t.off) + '</td>'; };
   var rowHtml = function(s){
@@ -10120,7 +10120,7 @@ function hrRecView(){
     return '<tr' + (s.active === false ? ' class="gone"' : '') + '><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.role || "") + (s.active === false ? " · 퇴사" : "") + '</small></button></td>' + cells(t) + '<td><button class="btn sm" onclick="hrRecOpen(\'' + s.id + '\')">보기</button></td></tr>';
   };
   var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><td colspan="7">' + esc(g.role) + '</td></tr>' + g.list.map(rowHtml).join(""); }).join("");
-  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay hr-rec"><thead><tr><th>직원</th><th class="hl">총 근무</th><th>근무일</th><th>휴일</th><th>결근</th><th>휴무</th><th>근무 기록</th></tr></thead><tbody>' + trs + '</tbody></table></div>';
+  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay hr-rec"><thead><tr><th>직원</th><th class="hl">총 근무</th><th>근무일</th><th>휴일</th><th>결근</th><th>휴무</th><th>합계</th></tr></thead><tbody>' + trs + '</tbody></table></div>';
 }
 function hrRecOpen(id){ HR.slip = { id:id, month:HR.month, kind:"rec" }; render(); }
 /* 직원 한 명의 한 달 근무 기록 — 급여계산서와 같은 줄 모양(hrSlipHtml·사진·인쇄가 그대로 씀). 메모는 넣지 않음(계산서와 같게) */
