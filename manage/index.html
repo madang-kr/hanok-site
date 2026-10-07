@@ -571,6 +571,9 @@ body.notoday .card{box-shadow:none}
 .more-menu svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7; flex:none; color:var(--text-2)}
 /* 메뉴 바깥을 누르면 닫히게 하는 투명 막. 상단바(z30) 안에 있으므로 본문 전체를 덮습니다 */
 .more-veil{position:fixed; top:0; left:0; right:0; bottom:0; z-index:29}
+/* 홈페이지 예약 꺼짐(10-07 재아) — PC 상단바는 단추 옆 글, 폰은 아이콘에 사선 */
+.b-reqs-off{display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px; background:var(--rust-soft, #F8E9E4); color:var(--rust); border:1px solid var(--rust); font-size:12.5px; font-weight:700; white-space:nowrap}
+.tvbtn.b-reqs.off{opacity:.55}
 /* ============================================================
    5. 대시보드
    ============================================================ */
@@ -1100,9 +1103,6 @@ button.bday.sel .b{background:rgba(255,255,255,.22); color:#fff}
 .seat-main button.on{background:var(--text); border-color:var(--text); color:#fff}
 .seat-main button.warned:not(.on){color:var(--rust); border-color:var(--rust-line); background:var(--rust-soft)}
 .seat-detail-toggle{margin-top:var(--s16)!important; text-align:center!important}
-.seat-join-divider{display:flex; align-items:center; gap:var(--s12); margin:var(--s16) 0 var(--s8); color:var(--text-3); font-size:var(--fs-label)}
-.seat-join-divider:before,.seat-join-divider:after{content:""; height:1px; background:var(--border); flex:1}
-.seat-join-divider span{white-space:nowrap}
 .sgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); gap:var(--s8); margin-top:var(--s8)}
 .sgrid.hall{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .sgrid.any{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
@@ -1351,6 +1351,9 @@ body.same-modal .modal, body.same-modal .overlay.modal-ov{animation:none}
 .hcell.outside:hover{background:var(--surface-2)}
 .hcell.brk{opacity:.45; background:var(--surface-2)}
 .hcell.brk.on{opacity:1}
+/* 10-07 재아: 좌석 단계의 '룸 합침'·'붙이기' 를 한 번 더 접는 단추 · 합침 칸 사이 점 */
+.seat-sub-toggle{margin-top:var(--s12)}
+.sgrid-dot{grid-column:1 / -1; text-align:center; color:var(--text-3); font-size:20px; font-weight:700; line-height:12px; height:12px}   /* 중문 합침 줄과 공간 나누는 합침 줄 사이 */
 /* ============================================================
    7. 설정
    ============================================================ */
@@ -1465,7 +1468,7 @@ body.same-modal .modal, body.same-modal .overlay.modal-ov{animation:none}
 .za-v{text-align:center; min-width:96px} .za-v b{display:block; font-size:var(--fs-num)} .za-v small{color:var(--text-3)}
 .sess-h2{display:flex; align-items:baseline; gap:var(--s8); margin:var(--s12) 0 var(--s8); font-size:var(--fs-body)}
 .hgrid.sess{grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:var(--s4); margin-bottom:var(--s8)}
-.hcell.big{height:auto; min-height:66px; padding:var(--s4) 2px}
+.hcell.big{height:auto; min-height:52px; padding:var(--s4) 2px}   /* 10-07: 빈 안내 줄을 빼며 66 → 52 */
 .hcell.big .hh{font-size:var(--fs-title); font-weight:700} .hcell.big .ap{order:-1; font-size:var(--fs-label); color:var(--text-3)}
 .hcell.big .hn{font-size:var(--fs-label); color:var(--text-2); margin-top:2px; white-space:nowrap}
 .hcell.big.busy .hn{color:var(--rust)} .hcell.big.on .hn{color:inherit}
@@ -2011,7 +2014,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 .receipt{width:360px; max-width:100%; margin:0 auto; background:#fff; color:#1B1A18; font-size:13px; line-height:1.5; padding:22px 20px 18px; box-shadow:0 8px 28px rgba(0,0,0,.12); border-radius:4px}
 .rc-h1{text-align:center; font-size:20px; font-weight:800; letter-spacing:.3em; text-indent:.3em} .rc-sub{text-align:center; color:#555; font-size:12px; margin:2px 0 8px}
 .rc-dash{border-top:1px dashed #999; margin:8px 0} .rc-sec{font-weight:700; margin:8px 0 2px; font-size:12px; color:#555; letter-spacing:.05em}
-.rc-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:2px 0} .rc-row span{min-width:0} .rc-row small{display:block; color:#888; font-size:10.5px} .rc-row b{white-space:nowrap; font-weight:600}
+.rc-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:2px 0} .rc-row span{min-width:0} .rc-row small{display:block; color:#888; font-size:10.5px} .rc-row b{white-space:normal; text-align:right; font-weight:600}   /* 긴 글(정규 근무 등)은 줄바꿈 — 10-07 */
 .rc-tot{border-top:1px solid #333; margin-top:4px; padding-top:5px} .rc-tot b{font-weight:800} .rc-tot.big{font-size:16px; padding:8px 0 4px} .rc-tot.big b{font-size:20px}
 .rc-log{font-size:11.5px; padding:1px 0} .rc-log span:first-child{flex:0 0 58px; color:#555} .rc-log .g{flex:1} .rc-log small{flex:0 1 auto; text-align:right}
 .rc-note{color:#888; font-size:10.5px; text-align:center; margin-top:2px}
@@ -2258,6 +2261,7 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .hr-hist-h{align-items:center}
 .hr-grid td.hr-nobody{padding:var(--s24) var(--s12); text-align:center; color:var(--text-3); font-size:var(--fs-sub); background:var(--surface)}
 @media (max-width:520px){ .hr-namerow{grid-template-columns:minmax(0, 1fr) minmax(0, 1fr)} .hr-namerow > :last-child{grid-column:1 / -1} .hr-pininfo{grid-template-columns:1fr} .hr-hist-h{flex-wrap:wrap} }
+.own-it.soon{opacity:.55}   /* 준비 중(10-07) */
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -3734,6 +3738,7 @@ async function enterStore(){
   var d = await loadFromServer();
   DATA = assembleData(d);
   AUTHED = true; OFFLINE = null; LOAD_ERROR = null; LAST_REFRESH = Date.now();
+  setTimeout(function(){ if(typeof autoVisitPast === "function") autoVisitPast(); }, 1500);   /* 지난 영업일 확정 → 방문(10-07) */
   /* 로그인 직후: 홈페이지 예약 끌어오기 + 남은 자리 한 번 올리기(11c) */
   setTimeout(function(){ try{ if(typeof pullRequests === "function"){ pullRequests().then(function(n){ if(n) render(); }); publishAvail(true); } if(typeof gsLoadMemos === "function") gsLoadMemos(); }catch(e){} }, 800);   /* 손님 메모(15차)도 한 번 */
   cacheSave();
@@ -6138,10 +6143,10 @@ function renderStoreCore(){
           <button class="tvbtn icon b-cal ${view.date===todayStr()?'':'dot'}" onclick="openCal()" title="날짜" aria-label="날짜 선택">${ICON.cal}</button>
           <button class="tvbtn icon b-refresh" onclick="manualRefresh()" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
           <button class="tvbtn icon b-search" onclick="openSearch()" title="예약 검색" aria-label="예약 검색">${ICON.search}</button>
-          <button class="tvbtn icon b-reqs ${reqPending().length?'has':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` ${reqPending().length}건`:""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>` : `
+          <button class="tvbtn icon b-reqs ${reqPending().length?'has':''} ${SITE_BOOKING_OFF?'off':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` ${reqPending().length}건`:""}${SITE_BOOKING_OFF?" · 비활성화":""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>` : `
           ${view.date===todayStr() ? "" : `<button class="tvbtn b-today" onclick="goToday()">오늘</button>`}
           <button class="tvbtn icon b-refresh" onclick="manualRefresh()" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
-          <button class="tvbtn icon b-reqs ${reqPending().length?'has':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` · 대기 ${reqPending().length}건`:""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>   <!-- 09-20: 아이콘 + 강조색, 대기 있으면 불빛 -->
+          <button class="tvbtn icon b-reqs ${reqPending().length?'has':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` · 대기 ${reqPending().length}건`:""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>${SITE_BOOKING_OFF?`<span class="b-reqs-off" title="홈페이지에서 새 예약을 받지 않는 중 — 그 전에 들어온 예약은 그대로">현재 홈페이지 예약 비활성화 상태입니다</span>`:""}   <!-- 09-20: 아이콘 + 강조색, 대기 있으면 불빛 · 10-07 꺼짐 표시 -->
           <button class="tvbtn b-search" onclick="openSearch()" title="단축키 /">/ 검색</button>   <!-- 09-25 재아: 단축키가 보이게('＋ 등록' 과 같은 식) -->
           <button class="tvbtn accent b-add" onclick="openWizard()" title="단축키 +">＋ 등록</button>`}
           ${view.tab==="settings" ? "" : `
@@ -7250,14 +7255,11 @@ function tlPartOf(date){
   return now < p.dinner.o ? "lunch" : "dinner";
 }
 function tlSetPart(part){ view.tlPart = part; view.tlPartDate = view.date; render(); }
-/* 해·달 토글(09-20 재아): 둘 다 켜지면 종일. 하나는 늘 켜져 있어야 하므로 켜진 하나를 또 누르면 둘 다 켜짐(=종일) */
+/* 해·달(10-07 재아): 둘 다 꺼져 있으면 종일, 켜지는 건 늘 하나만. 해 → 점심, 해가 켜진 채 달 → 저녁(종일 아님), 켜진 것을 또 누르면 꺼져서 종일.
+   (09-20 판은 둘 다 켜져야 종일이라, 무엇이 켜진 건지 헷갈렸음) */
 function tlToggle(which){
   const cur = tlPartOf(view.date);
-  let next;
-  if(cur === "day") next = which === "lunch" ? "dinner" : "lunch";          /* 종일에서 해를 끄면 저녁만, 달을 끄면 점심만 */
-  else if(cur === which) next = "day";                                      /* 켜진 하나를 또 누르면 둘 다 켜짐 */
-  else next = "day";                                                        /* 꺼진 쪽을 켜면 둘 다 켜짐 */
-  tlSetPart(next);
+  tlSetPart(cur === which ? "day" : which);
 }
 function renderTimeline(date, compact){
   const s = store(), st = s.settings;
@@ -7456,8 +7458,8 @@ function renderTimeline(date, compact){
           return outN ? `<button class="tag rust tl-daynote tl-outbtn" onclick="openPick('closed')">${dh.closed ? "휴무일" : "영업시간 밖"} 예약 ${outN}건</button>` : ""; })()}
         ${dh.closed ? `<span class="tag rust tl-daynote">휴무${dh.note && dh.note !== "임시 휴무" ? ` · ${esc(dh.note)}` : ""}</span>` : dh.custom ? `<span class="tag amber tl-daynote">임시 영업 ${esc(dh.open)}~${esc(dh.close)}${dh.note && dh.note !== "임시 운영시간" ? ` · ${esc(dh.note)}` : ""}</span>` : ""}   <!-- 빗금만 있어 직원이 모르고 받던 것(09-25) -->
         ${dh.closed ? "" : `<span class="tl-part ${part==="day"?"all":""}" role="group" aria-label="시간대">
-          <button class="pt ${part!=="dinner"?"on":""}" onclick="tlToggle('lunch')" title="점심">${ICON.sun}</button>
-          <button class="pt ${part!=="lunch"?"on":""}" onclick="tlToggle('dinner')" title="저녁">${ICON.moon}</button>
+          <button class="pt ${part==="lunch"?"on":""}" onclick="tlToggle('lunch')" title="점심만 (다시 누르면 종일)">${ICON.sun}</button>
+          <button class="pt ${part==="dinner"?"on":""}" onclick="tlToggle('dinner')" title="저녁만 (다시 누르면 종일)">${ICON.moon}</button>
         </span>`}
       </div>
       <div class="tl-legends">
@@ -8055,9 +8057,20 @@ const rowToReq = function(x){
            status:x.status, reason:x.reason||"", resId:x.res_id||null, expiresAt:x.expires_at };
 };
 function phoneFmtReq(p){ return phoneNorm(p); }   /* 번호 모양 규칙은 한 곳(phoneFmt)에서만 */
+/* 홈페이지 예약이 꺼져 있는지(10-07 재아) — 지금 홈페이지에 나간 판(site_versions 의 적용된 최신)의 online.enabled.
+   꺼도 그 전에 들어온 접수·대기 예약은 그대로 — 상단 '홈페이지 예약' 단추 옆에 '비활성화' 를 띄워 알게만 함. 1분마다(pullRequests 와 같이) */
+var SITE_BOOKING_OFF = false;
+async function siteBookingLoad(key){
+  try{
+    const v = await sb("/rest/v1/site_versions?store=eq." + key + "&apply_at=lte." + encodeURIComponent(new Date().toISOString()) + "&select=on:data->online->enabled&order=apply_at.desc&limit=1");
+    const off = !!(v && v[0] && v[0].on === false);
+    if(off !== SITE_BOOKING_OFF){ SITE_BOOKING_OFF = off; render(); }
+  }catch(e){}
+}
 async function pullRequests(){
   if(!supaOn() || !SESSION || OFFLINE || !AUTHED || !view.storeKey) return;
   const key = view.storeKey || "hanok";
+  siteBookingLoad(key);
   let rows;
   try{ rows = await sb("/rest/v1/requests?store=eq." + key + "&status=eq.%EB%8C%80%EA%B8%B0&select=*&order=created_at"); }
   catch(e){ console.error("홈페이지 예약 읽기 실패", e.message); return; }
@@ -9708,6 +9721,9 @@ function hrNight(sps){
 }
 function hrAdjList(staffId, month){ var a = (HR && HR.cfg && HR.cfg.adj) || {}; return ((a[month] || {})[staffId] || []).filter(function(x){ return Number(x.amount) > 0; }); }
 function hrRound(h){ return Math.round(h * 10) / 10; }
+/* 10-07 재아: '4.5h' 말고 '4h 30m' — 분 단위 근무도 있어서. 표·주간표는 h·m, 근무 기록 영수증은 '시간·분' */
+function hrHM(h){ var t = Math.round(Number(h || 0) * 60), hh = Math.floor(t / 60), mm = t % 60; return mm ? (hh ? hh + "h " + mm + "m" : mm + "m") : hh + "h"; }
+function hrHMk(h){ var t = Math.round(Number(h || 0) * 60), hh = Math.floor(t / 60), mm = t % 60; return mm ? (hh ? hh + "시간 " + mm + "분" : mm + "분") : hh + "시간"; }
 function hrWon(n){ return Math.round(Number(n || 0)).toLocaleString("ko-KR") + "원"; }
 /* 상시 근로자 5인 이상인지 — 근로기준법 시행령 7조의2 방식(재아 09-20: "그날 몇 명 나왔느냐가 아니라 어떻게 세느냐").
    한 달(여기서는 그 급여 달) 동안 날마다 나온 사람 수를 전부 더해 영업일 수로 나눈 평균이 5 이상이면 5인 이상.
@@ -10107,13 +10123,13 @@ function hrWeekView(){
       /* 안 찍은 정규 근무일: 지난 날은 빨간 '정규', 오늘 이후는 검정 '정규' — 빗금은 화려하다는 평(재아 09-20)이라 글자만 */
       var cls = "hc" + (a ? " " + ({"정규":"reg","변형":"alt","결근":"abs","휴무":"off","연차":"leave"}[a.status]) : (duty ? (past ? " due" : " due-future") : "")) + (d === today ? " today" : "");
       /* 10-06 재아: 지난 정규 근무일을 안 찍었으면 칸 자체를 빨갛게(무엇이든 꼭 채워야 하는 칸) — 글자는 뺌. 앞날은 검정 '정규' 그대로 */
-      var sub = sps.length ? hrRound(h) + "h" : (a ? "" : (duty ? "정규" : ""));   /* 빨간 칸에도 '정규' 를 써 둠(10-06 재아 — 알아보게) */
+      var sub = sps.length ? hrHM(h) : (a ? "" : (duty ? "정규" : ""));   /* 빨간 칸에도 '정규' 를 써 둠(10-06 재아 — 알아보게) */
       return '<td class="' + cls + '" onclick="hrCell(\'' + s.id + '\',\'' + d + '\')"><span class="m">' + (a ? hrMark(a.status) : "") + '</span><small>' + esc(sub) + '</small>' +
         (hrPro() && a && Number(a.rate) > 1 ? '<i class="r">' + a.rate + 'x</i>' : '') + (a && a.memo ? '<i class="dot" title="' + esc(a.memo) + '"></i>' : '') + '</td>';
     }).join("");
     return '<tr' + (s.active === false ? ' class="gone"' : '') + '><th class="hr-name"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.nick && s.name !== s.nick ? s.name + " · " : "") + esc(s.role || "") + (s.active === false && s.end_date ? " · " + s.end_date.slice(5).replace("-", "/") + " 퇴사" : "") + '</small></button></th>' + tds +
       /* 줄마다 하나씩(연장·야간·주휴·결근) — 한 줄에 '·' 로 이으면 좁은 칸에서 낱말 중간이 잘려 깨져 보였음(재아 09-20) */
-      '<td class="hr-sum"><b>' + hrRound(wk.hours) + 'h</b><small>' + wk.days + '일 근무' + (!hrPro() && wk.absent ? '<span class="rust">(결근 ' + wk.absent + '일)</span>' : '') + '</small>' + (!hrPro() ? '</td></tr>' : '') + (!hrPro() ? '' : (wk.ot ? '<small>연장 ' + hrRound(wk.ot) + 'h</small>' : '') + (wk.night ? '<small>야간 ' + hrRound(wk.night) + 'h</small>' : '') + (wk.weeklyPay ? '<small>주휴 ' + hrRound(wk.weeklyPay) + 'h</small>' : '') + (wk.absent ? '<small class="rust">결근 ' + wk.absent + '</small>' : '') + '</td></tr>');
+      '<td class="hr-sum"><b>' + hrHM(wk.hours) + '</b>' + (!hrPro() ? (wk.absent ? '<small class="rust">결근 ' + wk.absent + '일</small>' : '') + '</td></tr>' : '<small>' + wk.days + '일 근무</small>') + (!hrPro() ? '' : (wk.ot ? '<small>연장 ' + hrRound(wk.ot) + 'h</small>' : '') + (wk.night ? '<small>야간 ' + hrRound(wk.night) + 'h</small>' : '') + (wk.weeklyPay ? '<small>주휴 ' + hrRound(wk.weeklyPay) + 'h</small>' : '') + (wk.absent ? '<small class="rust">결근 ' + wk.absent + '</small>' : '') + '</td></tr>');
   };
   var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><th class="hr-name">' + esc(g.role) + '</th><td colspan="8"></td></tr>' + g.list.map(rowHtml).join(""); }).join("");
   if(!list.length) trs = '<tr><td colspan="9" class="hr-nobody">' + (HR.retired ? "퇴사한 직원이 없습니다." : "재직 중인 직원이 없습니다.") + '</td></tr>';
@@ -10166,9 +10182,9 @@ function hrRecView(){
   var list = HR.staff.filter(function(s){ return s.active !== false || !s.end_date || s.end_date >= m + "-01"; });
   var head = hrPeriodHead(title, "근무 기록", "hrMoveMonth(-1)", "hrMoveMonth(0)", "hrMoveMonth(1)", m === monthStr());
   var dash = '<span class="muted">—</span>';
-  var h_ = function(v){ return v ? hrRound(v) + 'h' : dash; }, d_ = function(v){ return v ? v + '일' : dash; };
+  var h_ = function(v){ return v ? hrHM(v) : dash; }, d_ = function(v){ return v ? v + '일' : dash; };
   /* 10-06 재아: '정규 시간 외'·'다른 시간' 은 뺌(필요 없을 듯), 합계 줄도 뺌. 맨 끝 '합계' 열 = 그 직원의 근무 기록 표를 여는 단추 */
-  var cells = function(t){ return '<td class="hl"><b>' + hrRound(t.hours) + 'h</b></td><td>' + t.days + '일</td><td>' + h_(t.hol) + '</td>' +
+  var cells = function(t){ return '<td class="hl"><b>' + hrHM(t.hours) + '</b></td><td>' + t.days + '일</td><td>' + h_(t.hol) + '</td>' +
       '<td>' + (t.abs ? '<span class="rust">' + t.abs + '일</span>' : dash) + '</td><td>' + d_(t.off) + '</td>'; };
   var rowHtml = function(s){
     var t = hrRecCalc(s, m);
@@ -10184,16 +10200,22 @@ function hrRecData(s, m){
   var st = store(), shop = (st && st.name) || "한옥반점", L = [];
   L.push({k:"h1", a:shop}); L.push({k:"sub", a:title + " 근무 기록"}); L.push({k:"dash"});
   L.push({k:"row", a:"직원", b:hrLabel(s) + (s.nick && s.name !== s.nick ? " (" + s.name + ")" : "") + (s.role ? " · " + s.role : "")});
-  L.push({k:"row", a:"정규 근무", b:hrSchedText(s, hrMonthEnd(m))});
+  /* 정규 근무는 행(요일 묶음 · 시간)마다 한 줄 — 한 줄에 다 쓰면 '월·화·수·목·금 …' 이 넘쳐 깨졌음(10-07 재아) */
+  var sc = hrSchedAt(s, hrMonthEnd(m)), sl = [];
+  (sc.rows || []).forEach(function(r){ var dt = hrDaysText(r.days || []); if(!dt) return; (r.spans || []).forEach(function(sp){ if(sp && sp.start && sp.end) sl.push(dt + " " + hrSpanText(sp)); }); });
+  if(!sl.length) sl.push("정규 근무 없음");
+  sl.forEach(function(x, i){ L.push({k:"row", a:i ? "" : "정규 근무", b:x}); });
   L.push({k:"dash"}); L.push({k:"sec", a:"요약"});
-  L.push({k:"tot", a:"총 근무", b:t.hours + "시간"});
+  L.push({k:"tot", a:"총 근무", b:hrHMk(t.hours)});
   L.push({k:"row", a:"근무일", b:t.days + "일"});
-  if(t.hol) L.push({k:"row", a:"휴일", b:t.hol + "시간"});
+  if(t.hol) L.push({k:"row", a:"휴일", b:hrHMk(t.hol)});
   L.push({k:"row", a:"결근", b:t.abs + "일"});
   L.push({k:"row", a:"휴무", b:t.off + "일"});
   L.push({k:"dash"});
-  t.log.forEach(function(l){ var dt = new Date(l.date + "T00:00:00");
-    L.push({k:"log", a:(dt.getMonth() + 1) + "/" + dt.getDate() + "(" + HR_DAYS[dt.getDay()] + ")", b:HR_STATUS[l.status] + " " + (l.spans.length ? l.spans.map(function(sp){ return minToHM(sp.s0) + "-" + minToHM(sp.e0 % 1440); }).join("+") + " " + hrRound(l.hours) + "h" : (l.status === "변형" ? "다른 시간" : l.status)) + (hrIsHol(l.date) && l.hours ? " · 휴일" : ""), n:""}); });
+  /* 하루에 두 번 일한 날은 '+' 로 잇지 않고 두 줄(10-07 재아). 시간은 구간마다 */
+  t.log.forEach(function(l){ var dt = new Date(l.date + "T00:00:00"), day = (dt.getMonth() + 1) + "/" + dt.getDate() + "(" + HR_DAYS[dt.getDay()] + ")", hol = hrIsHol(l.date) && l.hours ? " · 휴일" : "";
+    if(!l.spans.length){ L.push({k:"log", a:day, b:HR_STATUS[l.status] + " " + (l.status === "변형" ? "다른 시간" : l.status), n:""}); return; }
+    l.spans.forEach(function(sp, i){ L.push({k:"log", a:i ? "" : day, b:(i ? "  " : HR_STATUS[l.status] + " ") + minToHM(sp.s0) + "-" + minToHM(sp.e0 % 1440) + " " + hrHM(sp.hours) + (i === l.spans.length - 1 ? hol : ""), n:""}); }); });
   if(!t.log.length) L.push({k:"note", a:"찍힌 근무가 없습니다"});
   L.push({k:"dash"}); L.push({k:"note", a:"발행 " + todayStr() + " · " + shop});
   return { lines:L, title:title, t:t, shop:shop };
@@ -10793,6 +10815,20 @@ async function cdMark(id, st){
 }
 /* '노쇼 처리 완료' 를 되돌려 목록을 다시 봄 — 서버 기록(_cd.noshow)을 지움 */
 function cdNsReopen(){ var d = (view.form && view.form.date) || bizToday(), st = store().settings, c = Object.assign({}, cdStep(d)); delete c.noshow; st._cd = c; mirrorDraft("_cd"); saveData(); render(); }
+/* 매일 아침 자동 방문 처리(10-07 재아: 퇴근하기를 빼고, 감사 문자도 보류라) — 영업일이 지난(새벽 4시 기준) '확정' 예약을 '방문' 으로.
+   켜 둔 가게 기기가 들어올 때와 10분마다 한 번씩. 여러 기기가 같이 해도 결과가 같아 충돌로 안 침. 노쇼였던 손님은 나중에 그 예약을 열어 '노쇼' 로 바꾸면 됨 */
+function autoVisitPast(){
+  try{
+    if(!AUTHED || !view.storeKey || view.display || OFFLINE || !DATA || !store()) return 0;
+    var today = bizToday(), left = store().reservations.filter(function(r){ return r.status === "확정" && r.date < today; });
+    if(!left.length) return 0;
+    left.forEach(function(r){ r.status = "방문"; touch(r); });
+    logEvent("상태 변경", "지난 영업일 확정 " + left.length + "건 자동 방문 처리");
+    render();
+    return left.length;
+  }catch(e){ return 0; }
+}
+setInterval(autoVisitPast, 10 * 60000);
 /* 퇴근 때: 남은 '확정'(오늘과 그 전) → 전부 '방문'. 방문은 변동으로 안 셈(markRes 와 같게) */
 function cdVisitAll(day){
   var left = cdLeft(day); if(!left.length) return 0;
@@ -10991,8 +11027,9 @@ function sheetOwner(){
   return '<div class="own-section"><h2>사장님</h2><div class="own-grid">' +
     item("openStaffPage()", ICON.staff, "워크시프트", "직원 근무표 · 급여") +
     item("openGuestsPage()", ICON.users, "손님 관리", "단골·메모 · 노쇼 관리") +
-    item("openMessagesPage()", ICON.sms, "문자 관리", SMS_READY ? "감사 문자 · 직접 보내기 · 기록" : "문자 서비스 등록 전입니다") +
-    item("openCloseDay()", ICON.home, "퇴근하기", st._closedDay === bizToday() ? "오늘 퇴근 완료" : "노쇼 처리 · 근무 · 감사 문자 차례로") +
+    /* 10-07 재아: 문자 관리는 '준비 중' 으로 닫아 둠(문자 서비스 등록 전) · 퇴근하기는 뺌 — 방문 처리는 매일 아침 자동(autoVisitPast) */
+    (SMS_READY ? item("openMessagesPage()", ICON.sms, "문자 관리", "감사 문자 · 직접 보내기 · 기록")
+               : '<button class="own-it soon" onclick="smsBlocked()">' + ICON.sms + '<b>문자 관리 <span class="own-beta">준비 중</span></b><small>문자 서비스 등록 뒤 열립니다</small></button>') +
     /* '현장 손님 등록'(openWalkIn)은 10-06 재아 결정으로 메뉴에서 뺌 — 누님_질문 28 답을 들은 뒤 이 줄을 되살리면 다시 보임(아래 코드는 그대로 둠) */
     /* 10-06 재아: '사장님' 과 '관리' 를 한 묶음으로 · '개발자에게' 만 여백을 두고 아래에 */
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
@@ -11465,13 +11502,14 @@ function sheetDevReq(){
       '<span class="dq-p">' + (!nt && r.reply ? '<i>답변</i> ' + esc(r.reply).slice(0, 90) : esc(r.body || "").split("\n")[0].slice(0, 90)) + '</span></span>' +
       '<span class="dq-r"><span class="dq-when">' + esc(fmtWhen(r.created_at)) + '</span>' + (nt ? '<span class="tag sm blue">공지</span>' : dqStatusTag(r.status)) + '</span></button>';
   };
-  var top = '<div class="dq-top"><button class="btn primary" onclick="dqNew()">글 쓰기</button>' +
+  /* 개발자 공지 안에서는 '글 쓰기' 를 숨김(10-07 재아 — 공지에 글을 쓰는 줄 헷갈림) */
+  var top = '<div class="dq-top">' + (sec === "notice" ? '' : '<button class="btn primary" onclick="dqNew()">글 쓰기</button>') +
     (sec ? '<button class="btn ghost dq-back" onclick="DQ.sec=\'\'; render()">‹ ' + DQ_SECS[sec] + '</button>' : '') + '</div>';
   var err = DQ.err ? '<p class="f-note rust">불러오지 못했습니다: ' + esc(DQ.err) + '</p>' : '';
   var body;
   if(!sec){
     var card = function(k, sub){ var n = L[k].length;
-      return '<button class="dq-sec' + (k === "open" && L.open.some(function(r){ return r.urgent; }) ? ' urgent' : '') + '" onclick="DQ.sec=\'' + k + '\'; render()"><b>' + DQ_SECS[k] + '</b><span class="dq-n">' + n + '<small>건</small></span><small>' + sub + '</small></button>'; };
+      return '<button class="dq-sec" onclick="DQ.sec=\'' + k + '\'; render()"><b>' + DQ_SECS[k] + '</b><span class="dq-n">' + n + '<small>건</small></span><small>' + sub + '</small></button>'; };
     var lastN = L.notice[0];
     body = '<div class="dq-secs">' +
       card("notice", lastN ? esc(lastN.title) : "아직 공지가 없습니다") +
@@ -11483,10 +11521,13 @@ function sheetDevReq(){
   }
   return top + err + body + (DQ.draft ? dqFormHtml() : DQ.open ? dqDetailHtml() : "");
 }
-/* 10-03 재아: 설정(운영시간·좌석·코스 …)은 사장님 메뉴에서 빠지고 재아가 바꿈 → '설정 변경' 종류 추가.
-   서버 표에 종류 칸이 없어서(서버는 안 건드림) 제목 앞에 '[설정 변경] 운영시간 · …' 으로 적어 둠 — 개발자 페이지에도 그대로 보임 */
-var DQ_AREAS = ["운영시간", "예약 규칙", "좌석", "코스·세트", "예약경로", "문자", "디스플레이", "홈페이지", "메뉴판", "기타"];
-function dqKind(k){ if(!DQ.draft) return; DQ.draft.kind = k; DQ.draft.urgent = (k === "urgent"); render(); }
+/* 10-03 재아: 설정(운영시간·좌석·코스 …)은 사장님 메뉴에서 빠지고 재아가 바꿈 → '설정 변경' 종류. 서버 표에 종류 칸이 없어 제목 앞에 '[설정 변경]' */
+/* 설정 변경 글의 기본 양식(10-07 재아: '무엇을 바꿀까요' 단추 대신 질문 양식 — 지워도 되고 무시해도 됨) */
+var DQ_SET_TPL = "■ 무엇을 바꿀까요?\n\n\n■ 언제부터 적용할까요?\n\n\n■ 어떻게 바꿀까요?\n\n";
+function dqKind(k){ if(!DQ.draft) return; var d = DQ.draft;
+  if(k === "setting" && !d.body.trim()) d.body = DQ_SET_TPL;
+  else if(k !== "setting" && d.body === DQ_SET_TPL) d.body = "";
+  d.kind = k; d.urgent = (k === "urgent"); render(); }
 function dqNew(){ DQ.draft = { title:"", body:"", urgent:false, kind:"ask", area:"", images:[] }; render(); setTimeout(function(){ var el = document.getElementById("dq-title"); if(el) el.focus(); }, 50); }
 function dqSet(k, v){ if(DQ.draft) DQ.draft[k] = v; }
 function dqFormHtml(){
@@ -11498,12 +11539,10 @@ function dqFormHtml(){
       '<button class="' + (d.kind === "ask" ? "on" : "") + '" onclick="dqKind(\'ask\')">요청·문의</button>' +
       '<button class="' + (d.kind === "setting" ? "on" : "") + '" onclick="dqKind(\'setting\')">설정 변경</button>' +
       '<button class="' + (d.kind === "urgent" ? "on rust" : "") + '" onclick="dqKind(\'urgent\')">오류·긴급</button></div>' +
-      '<span class="f-note' + (d.urgent ? ' rust' : '') + '">' + (d.kind === "urgent" ? '기능 결함, 시스템 오류, 오늘·내일 급한 휴무·영업시간 변경 등' : d.kind === "setting" ? '운영시간·좌석·코스 등을 바꿔 달라는 요청 — 오늘·내일 일이면 오류·긴급으로' : '개선 요청, 시스템 문의 등') + '</span></div>' +
-    (d.kind === "setting" ?
-      '<div class="f"><div class="lb">무엇을 바꿀까요</div><div class="seg" style="flex-wrap:wrap">' + DQ_AREAS.map(function(a){ return '<button class="' + (d.area === a ? "on" : "") + '" onclick="DQ.draft.area=\'' + a + '\'; render()">' + a + '</button>'; }).join("") + '</div></div>' +
-      '<label class="f big"><div class="lb">바꿀 내용</div><textarea rows="5" placeholder="예) 다음 주 월요일부터 일요일 영업시간을 11시~21시로" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' :
-      '<label class="f"><div class="lb">제목</div><input id="dq-title" type="text" value="' + esc(d.title) + '" oninput="dqSet(\'title\', this.value)"></label>' +
-      '<label class="f big"><div class="lb">내용</div><textarea rows="6" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>') +
+      '<span class="f-note' + (d.urgent ? ' rust' : '') + '">' + (d.kind === "urgent" ? '기능 결함, 시스템 오류, 오늘·내일 급한 휴무·영업시간 변경 등' : d.kind === "setting" ? '' : '개선 요청, 시스템 문의 등') + '</span></div>' +
+    /* 10-07 재아: 설정 변경도 제목 칸을 둠 · '무엇을 바꿀까요' 단추는 뺌(기본 양식으로) */
+    '<label class="f"><div class="lb">제목</div><input id="dq-title" type="text" value="' + esc(d.title) + '" placeholder="' + (d.kind === "setting" ? "예: 다음 주 영업시간 변경" : "") + '" oninput="dqSet(\'title\', this.value)"></label>' +
+    '<label class="f big"><div class="lb">내용</div><textarea rows="' + (d.kind === "setting" ? 10 : 6) + '" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' +
     /* 사진 첨부 단추는 '화면 사진(선택)' 오른쪽, 여러 장 한 번에(09-25 재아) */
     '<div class="f"><div class="dq-photo-h"><div class="lb">화면 사진(선택)</div><button class="btn sm" onclick="saPickFile(\'image\', function(u){ DQ.draft.images.push(u); render(); }, true)">사진 첨부</button></div>' +
       (d.images.length ? '<div class="dq-imgs">' + d.images.map(function(u, i){ return '<span class="dq-img"><img src="' + esc(u) + '" alt=""><button class="x" onclick="DQ.draft.images.splice(' + i + ',1); render()" aria-label="빼기">×</button></span>'; }).join("") + '</div>' : '') + '</div>' +
@@ -11512,10 +11551,10 @@ function dqFormHtml(){
 async function dqSend(){
   var d = DQ.draft; if(!d) return;
   var isSet = d.kind === "setting";
-  if(isSet){ if(!d.area){ await uiAlert("무엇을 바꿀지 골라 주세요", "", "warn"); return; } if(!d.body.trim()){ await uiAlert("바꿀 내용을 적어 주세요", "", "warn"); return; } }
-  else if(!d.title.trim()){ await uiAlert("제목을 적어 주세요", "", "warn"); return; }
+  if(!d.title.trim()){ await uiAlert("제목을 적어 주세요", "", "warn"); return; }
+  if(isSet && (!d.body.trim() || d.body === DQ_SET_TPL)){ await uiAlert("바꿀 내용을 적어 주세요", "", "warn"); return; }
   try{
-    var title = isSet ? "[설정 변경] " + d.area : d.title.trim();
+    var title = isSet ? "[설정 변경] " + d.title.trim() : d.title.trim();   /* 서버 표에 종류 칸이 없어 제목 앞에 붙임(10-03) */
     var row = { id:newId("dq"), store:view.storeKey || "hanok", title:title, body:d.body.trim(), urgent:!!d.urgent, images:d.images, by:sessionBy() };
     await sb("/rest/v1/dev_requests", { method:"POST", body:row, prefer:"return=minimal" });
     logEvent("개발자에게", (d.urgent ? "긴급 " : "") + row.title);
@@ -14092,7 +14131,8 @@ function searchResults(){
   var hits = searchResHits(q);
   return hits.length ? hits.map(srRow).join("") : '<div class="empty">찾은 예약이 없습니다.</div>';
 }
-function toggleSearchGuest(){ view.searchGuest = !view.searchGuest; view.searchOpen = null; render(); setTimeout(function(){ var el = document.getElementById("search-q"); if(el){ el.focus(); var n = el.value.length; el.setSelectionRange(n, n); } }, 20); }
+/* 예약 ↔ 손님 검색을 바꾸면 입력칸을 비움(10-07 재아 — 찾는 대상이 달라 앞 글자가 남으면 헷갈림) */
+function toggleSearchGuest(){ view.searchGuest = !view.searchGuest; view.searchOpen = null; view.searchQ = ""; render(); setTimeout(function(){ var el = document.getElementById("search-q"); if(el) el.focus(); }, 20); }
 function sheetSearch(){
   var q = view.searchQ || "", guest = !!view.searchGuest;
   return sheetHead(guest ? "손님 검색" : "예약 검색") +
@@ -14596,14 +14636,14 @@ function timeGrid(ctx){
       const bad = (people && freeRooms===0 && (!tf || tf.state==="none"));
       cells.push(`<button class="hcell big ${curSlot===t?'on':''} ${gone?'gone':''} ${bad?'busy':''}" onclick="${ctx.pick}(${t})">
         <span class="hh">${hm(hmS).replace(/^(오전|오후) /,"")}</span><span class="ap">${t<720?"오전":"오후"}</span>
-        <span class="hn">${people?`룸 ${freeRooms} · ${tTxt}`:"&nbsp;"}</span>
-      </button>`);
+        ${people?`<span class="hn">룸 ${freeRooms} · ${tTxt}</span>`:""}
+      </button>`);   /* 10-07 재아: 인원은 다음 단계라 이 줄은 거의 비어 있었음 — 인원을 알 때(되돌아왔을 때)만. 안 되는 시각은 아래 '접수 시간 밖' 칸이 알려 줌 */
     }
     /* 접수 마감이 30분 단위가 아니면(예 19:50) 그 마지막 시각 칸을 하나 더 — 전화로 "몇 시까지 되나요" 에 바로 답하게(재아) */
     if(last % 30 !== 0 && !(cut != null && last >= cut)){
       const hmL = minToHM(last), goneL = isPastDate || (isToday && last <= nowM);
       cells.push(`<button class="hcell big last ${curT===last?'on':''} ${goneL?'gone':''}" onclick="${ctx.pick}(${last})">
-        <span class="hh">${hm(hmL).replace(/^(오전|오후) /,"")}</span><span class="ap">${last<720?"오전":"오후"}</span><span class="hn">&nbsp;</span></button>`);
+        <span class="hh">${hm(hmL).replace(/^(오전|오후) /,"")}</span><span class="ap">${last<720?"오전":"오후"}</span></button>`);
     }
     return `<div class="sess-h2"><b>${esc(se.name)}</b></div><div class="hgrid sess">${cells.join("")}</div>`;
   }).join("");
@@ -14912,7 +14952,8 @@ function wzStepSeat(){
     const over = total > seatsMax(ids), under = adults < seatsMin(ids, WZ.date);
     /* 2명이 2인석에 — 좁아서 손님이 싫어합니다. 고르는 단계부터 알립니다(8차-Y 재아). 규칙은 누님 질문 1번 대기 */
     const two = ids.length === 1 && isTable(x) && total > 0 && total <= 2 && (x.seats||4) <= 2;
-    const txt = blocked ? "사용 중지" : state==="free" ? (over?"인원 초과":under?"인원 부족":two?"2인석 (좁음)":"") : "이용 불가";
+    /* 10-07 재아: '인원 부족' 같은 글은 칸에 안 띄움 — 안 되는 칸은 어둡게만, 누르면 왜 안 되는지 창이 뜸 */
+    const txt = "";
     const cls = blocked ? "blocked" : state!=="free" ? state : (over||under||two ? "warn" : "free");
     const bad = blocked || state!=="free" || over || under || two;
     const mv = statuses.reduce((a,r)=>a+(r.movable?r.movable.length:0),0);
@@ -14933,10 +14974,9 @@ function wzStepSeat(){
     const joins = joinsAt(WZ.date);   /* 인원이 안 맞아도 다 보여 주고 '인원 부족/초과' 로 표시(재아: 합침이 안 보였음) */
     const doorJoins = joins.filter(j=>!j.split), splitJoins = joins.filter(j=>j.split);
     body = `<div class="sgrid">${rooms.map(r=>cell([r.id], r)).join("")}</div>` +
-      (joins.length ? `<div class="lbl" style="margin-top:16px">룸 합침 <span class="lbl-note">중문 탈거 · 자동 배정 안 됨</span></div>
-        <div class="sgrid">${doorJoins.map(j=>cell(j.ids, {id:j.id, name:"", note:j.note}, "join")).join("")}</div>
-        ${doorJoins.length&&splitJoins.length?`<div class="seat-join-divider"><span>공간을 나눠 쓰는 조합</span></div>`:""}
-        ${splitJoins.length?`<div class="sgrid">${splitJoins.map(j=>cell(j.ids, {id:j.id, name:"", note:j.note}, "join jsplit")).join("")}</div>`:""}` : "");   /* 'split' 은 TV 화면 전체 틀(.split, 높이 100dvh)이 쓰는 이름이라 jsplit — 겹치면 칸이 화면 높이만큼 늘어남 */
+      /* 10-07 재아: 룸 합침은 한 번 더 접어 둠(특이한 경우라) · 중문 합침과 공간을 나눠 쓰는 합침을 한 묶음으로, 사이에 점 하나 */
+      (joins.length ? `<button class="wz-adv seat-sub-toggle ${WZ.joinOpen||(WZ.seatJoin&&joins.some(j=>j.id===WZ.seatJoin))?'on':''}" onclick="WZ.joinOpen=!WZ.joinOpen; render()">${WZ.joinOpen||(WZ.seatJoin&&joins.some(j=>j.id===WZ.seatJoin))?"▲":"▼"} 룸 합침 <span class="lbl-note">중문 탈거 · 자동 배정 안 됨</span></button>
+        ${WZ.joinOpen||(WZ.seatJoin&&joins.some(j=>j.id===WZ.seatJoin)) ? `<div class="sgrid">${doorJoins.map(j=>cell(j.ids, {id:j.id, name:"", note:j.note}, "join")).join("")}${doorJoins.length&&splitJoins.length?`<span class="sgrid-dot" aria-hidden="true">·</span>`:""}${splitJoins.map(j=>cell(j.ids, {id:j.id, name:"", note:j.note}, "join jsplit")).join("")}</div>` : ""}` : "");   /* 'split' 은 TV 화면 전체 틀(.split, 높이 100dvh)이 쓰는 이름이라 jsplit — 겹치면 칸이 화면 높이만큼 늘어남 */
   }else{
     /* 테이블은 층만 고릅니다 — 어느 테이블에 앉을지는 그날 현장에서. 남은 자리는 같은 시간대 겹치는 손님 수로 */
     const floors = tableFloors();
@@ -14959,8 +14999,9 @@ function wzStepSeat(){
       <button class="wz-adv ${WZ.tableAdv?'on':''}" onclick="WZ.tableAdv=!WZ.tableAdv; render()">${WZ.tableAdv?"▲":"▼"} 특정 테이블 지정</button>
       ${WZ.tableAdv ? floors.map(fl=>{ const cb = tableCombos(fl, total); return `<div class="lbl" style="margin-top:10px">${esc(floorLabel(fl))}</div>
         <div class="sgrid tables">${floorTables(fl).map(t=>cell([t.id], t)).join("")}</div>
-        ${cb.length ? `<div class="lbl" style="margin-top:10px">${esc(fl || "")} 붙이기 <span class="lbl-note">룸 합침처럼 골라 둘 수 있음</span></div>
-        <div class="sgrid tables">${cb.map(ids=>{ const k = "tj:" + ids.join(","); return cell(ids, {id:k, name:"", type:"table", capacity:seatsMax(ids)}, "join"); }).join("")}</div>` : ""}`; }).join("") : ""}`;
+        ${cb.length ? (()=>{ const fk = "tj:" + (fl || ""), open = (WZ.tjOpen||{})[fk] || (WZ.seatJoin && /^tj:/.test(WZ.seatJoin) && cb.some(ids=>"tj:" + ids.join(",") === WZ.seatJoin));
+          return `<button class="wz-adv seat-sub-toggle ${open?'on':''}" onclick="WZ.tjOpen=WZ.tjOpen||{}; WZ.tjOpen['${jsq(fk)}']=!WZ.tjOpen['${jsq(fk)}']; render()">${open?"▲":"▼"} ${esc(fl || "")} 붙이기</button>
+        ${open ? `<div class="sgrid tables">${cb.map(ids=>{ const k = "tj:" + ids.join(","); return cell(ids, {id:k, name:"", type:"table", capacity:seatsMax(ids)}, "join"); }).join("")}</div>` : ""}`; })() : ""}`; }).join("") : ""}`;   /* 10-07 재아: 붙이기 조합도 룸 합침처럼 한 번 더 접음 */
   }
   return `
     ${(()=>{ if(!WZ.time) return `<div class="seat-main"><button class="${kind==='room'?'on':''}" onclick="wzSeatKind('room')">룸 예약</button><button class="${kind==='table'?'on':''}" onclick="wzSeatKind('table')">테이블 예약</button></div>`;
@@ -15219,8 +15260,9 @@ function wzDone(){
   const dow = WD_KO[d.getDay()];
   const [h,m] = r.time.split(":").map(Number);
   const ap = h<12?"오전":"오후", h12 = h%12===0?12:h%12;
-  const seat = r.roomId ? resSeatLabel(r)
-             : seatText(r);
+  /* 10-07 재아: 자리를 안 정한 예약은 '룸'·'1층 테이블' 처럼만(잠정 방 이름은 혼선 — 아래 작게만) */
+  const seat = r.roomId ? resSeatLabel(r) : seatLabel(r.seatPref || "any");
+  const tent = !r.roomId && r.tentativeRoomId ? seatLabelIds([r.tentativeRoomId].concat(r.tentativeExtra || [])) : "";
   return `
     <div class="wz done">
       <div class="done-box">
@@ -15230,7 +15272,7 @@ function wzDone(){
           <b>${esc(seat)}</b> 좌석,
           <b>${esc(r.name)}</b>${tierTag(r)}${groupTag(r)} 손님<br>예약이 접수됐습니다
         </p>
-        <div class="done-sub">${pplText(r)}${r.phone?` · ${esc(r.phone)}`:""}
+        <div class="done-sub">${pplText(r)}${r.phone?` · ${esc(r.phone)}`:""}${tent?`<br><small class="muted">잠정 자리 ${esc(tent)} (바뀔 수 있음)</small>`:""}
           ${r.menuType?`<br>식사: ${esc(r.menuType)}${r.courses&&Object.keys(r.courses).length?` (${esc(courseSummary(r.courses))})`:""}`:""}
           ${r.allergy?`<br>알러지: ${esc(r.allergy)}`:""}${r.request?`<br>요청: ${esc(r.request)}`:""}</div>
         <div class="done-btns">
@@ -15482,7 +15524,7 @@ function seatLabel(seat){
   if(seat==="any") return "좌석 상관없음";
   if(seat==="hall-any" || seat==="table-any") return "테이블 (층 상관없음)";
   if(/^table:/.test(seat||"")) return floorLabel(seat.slice(6));
-  if(seat==="room-any") return "룸 중 아무곳";
+  if(seat==="room-any") return "룸";   /* 10-07 재아: '룸 중 아무곳' → '룸'(방을 안 정한 경우가 더 많음) */
   const j = allJoinsEver().find(g=>g.id===seat);   /* 예정으로 생기는 합침도(09-25) */
   if(j) return j.ids.map(id=>{ const x = seatById(id); return x ? x.name : "?"; }).join("+") + " 룸";
   const r = seatById(seat);
@@ -16129,7 +16171,7 @@ function renderTvGrid(){
 function tvName(n){ var s = maskName(n); return s.indexOf("*") < 0 ? esc(s) : '<span class="tvm">' + esc(s.replace(/\s+/g, "")) + '</span>'; }
 
 /* 화면이 처음 그려질 때 예정 설정을 흡수합니다(불러온 직후) */
-setTimeout(function(){ try{ if(AUTHED && DATA && view.storeKey){ absorbScheduled(); if(typeof pullRequests === "function"){ pullRequests().then(function(n){ if(n) render(); }); publishAvail(true); } if(typeof gsLoadMemos === "function") gsLoadMemos(); } }catch(e){} }, 1500);
+setTimeout(function(){ try{ if(AUTHED && DATA && view.storeKey){ absorbScheduled(); if(typeof autoVisitPast === "function") autoVisitPast(); if(typeof pullRequests === "function"){ pullRequests().then(function(n){ if(n) render(); }); publishAvail(true); } if(typeof gsLoadMemos === "function") gsLoadMemos(); } }catch(e){} }, 1500);
 
 /* 시트·마법사 어디서든: Enter = 그 창의 확인·등록 단추(data-enter 가 있으면 그것, 없으면 .btn.primary 하나뿐일 때만),
    Esc = 닫기. 여러 줄 입력(textarea) 안에서 Enter 는 줄바꿈이라 건드리지 않습니다. '이전' 은 일부러 안 묶습니다(재아) */
