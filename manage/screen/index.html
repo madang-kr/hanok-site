@@ -6133,7 +6133,7 @@ function renderStoreCore(){
   const stt = shopState(s.settings);
   /* 8차-O(재아): 네이버 가져오기·빠른 입력은 팝업 시트가 아니라 화면 전체로 (view.form.page) */
   const pageForm = !!(view.form && view.form.page);
-  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:(DEV_EMBED ? "설정" : "사장님"), messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:(typeof DQ !== "undefined" && DQ && DQ.sec && DQ_SECS[DQ.sec]) || "개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
+  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:(view.form.only === "posts" ? "소식 올리기" : view.form.only === "notices" ? "팝업 올리기" : "홈페이지 관리"), staff:"워크시프트", guests:"손님 관리", owner:(DEV_EMBED ? "설정" : "사장님"), messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:(typeof DQ !== "undefined" && DQ && DQ.sec && DQ_SECS[DQ.sec]) || "개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
   const body = pageForm ? `<div class="page-wrap${view.form.wide ? " wide" : ""}">${renderSheet()}</div>` : (view.tab==="settings" ? renderSettings : renderDash)();
 
   return `
@@ -8825,16 +8825,22 @@ function saRoot(){
   if(p === location.pathname) p = location.pathname.replace(/[^\/]*$/, "") + "../";   /* manage 가 없는 경로(파일로 열었을 때) */
   SA_ROOT = p; return p;
 }
-async function openSiteAdmin(){
+/* only: "posts"(소식) · "notices"(팝업) — 사장님 메뉴에서 그 탭 하나만 여는 길(10-09 재아: 홈페이지 관리 전체는 개발자 화면에만, 소식·팝업 올리기만 사장님께).
+   탭 줄을 숨기고 다른 탭으로 못 감. 서버 권한은 그대로(직원도 원래 소식·팝업 저장 가능) */
+async function openSiteAdmin(only){
   if(!supaOn()){ await uiAlert("서버 설정이 없는 빌드입니다", "홈페이지 관리는 서버가 있어야 합니다.", "warn"); return; }
-  if(!await adminGate("홈페이지 관리 열기")) return;
-  view.form = {type:"site", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""};   /* 사장님 페이지에서 열었으면 닫을 때 거기로(09-20) */
+  var what = only === "posts" ? "소식 올리기" : only === "notices" ? "팝업 올리기" : "홈페이지 관리";
+  if(!await adminGate(what + " 열기")) return;
+  view.form = {type:"site", page:true, only:only || "", back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""};   /* 사장님 페이지에서 열었으면 닫을 때 거기로(09-20) */
+  if(only && SA){ SA.tab = only; SA.open = null; }
   /* 나갈 때 적용 안 한 수정은 버리므로(saLeaveGuard, 09-25) 보통은 서버에서 새로 읽음. 서버 저장이 아직 안 끝났을 때만 그대로 둠 */
   if(SA && !SA.err && !SA.loading && saDirty()){ render(); return; }
-  if(!SA || SA.err) SA = {loading:true, tab:"online"}; else SA.loading = true;
+  if(!SA || SA.err) SA = {loading:true, tab:only || "online"}; else SA.loading = true;
   render();
   await saLoad();
+  if(only && SA) SA.tab = only;
   render();
+
 }
 /* 서버에서 초안·적용판·판 목록·기본값을 한 번에 */
 async function saLoad(){
@@ -9084,7 +9090,8 @@ function saLeaveGuard(){
 function saResetServerDraft(){
   try{ var nt = deepClone(SA.draft.notices || []), o = saBaseObj(); o.notices = nt; SA.draft = o; saSave(true); }catch(e){}
 }
-function saTab(t){ SA.tab = t; SA.open = null; saSpTidy(); render(); }
+function saOnly(){ return (view.form && view.form.type === "site" && view.form.only) || ""; }
+function saTab(t){ if(saOnly()) t = saOnly(); SA.tab = t; SA.open = null; saSpTidy(); render(); }
 /* 배열 항목 추가·삭제·이동 */
 function saArrAdd(path, item){ var a = saGet(path) || []; a.push(item); saSet(path, a); render(); }
 async function saArrDel(path, i, what){ if(what && !await uiConfirm(what + " 삭제", "지울까요?", {ok:"삭제", cancel:"취소"})) return; var a = saGet(path) || []; a.splice(i, 1); saSet(path, a); render(); }
@@ -9252,12 +9259,13 @@ function sheetSite(){
   if(!SA || SA.loading) return saHead() + '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
   if(SA.err) return saHead() + '<div class="alert rust"><span class="ic">!</span><div><div class="a-t">불러오지 못했습니다</div><div class="a-s">' + esc(SA.err) + '</div></div></div><div class="btn-row" style="margin-top:12px"><button class="btn" onclick="openSiteAdmin()">다시 시도</button></div>';
   /* 09-24 재아: 적용 기록 탭 삭제. 팝업 공지·소식은 저장하면 바로 올라가는 것들이라 선 뒤에 따로 — 그 두 탭에서는 위의 적용 띠를 숨김 */
+  if(saOnly()) SA.tab = saOnly();
   var TABS = [["online","홈페이지 예약"],["hours","영업시간·연락처"],["texts","글"],["menu","차림"],["images","사진"],["notices","팝업"],["posts","소식"]];
   var body = ({online:saTabOnline, notices:saTabNotices, posts:saTabPosts, hours:saTabHours, texts:saTabTexts, menu:saTabMenu, images:saTabImages}[SA.tab] || saTabOnline)();   /* posts 는 14c */
   var instant = SA.tab === "posts" || SA.tab === "notices";
   return saHead() +
     (instant ? '<div class="sa-top2 sa-top-post"><span>' + (SA.tab === "posts" ? '소식은 <b>게시</b>' : '팝업은 <b>저장</b>') + '을 누르면 바로 홈페이지에 반영됩니다.</span></div>' : saTopHtml()) +
-    '<div class="sa-tabs">' + TABS.map(function(t){ return (t[0] === "notices" ? '<i class="sa-tab-sep"></i>' : '') + '<button class="' + (SA.tab === t[0] ? "on" : "") + '" onclick="saTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join("") + '</div>' +
+    (saOnly() ? '' : '<div class="sa-tabs">' + TABS.map(function(t){ return (t[0] === "notices" ? '<i class="sa-tab-sep"></i>' : '') + '<button class="' + (SA.tab === t[0] ? "on" : "") + '" onclick="saTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join("") + '</div>') +
     '<div class="sa-body">' + body + '</div>' +
     (view.saPreview ? saPreviewHtml() : "") + (view.saApply ? saApplyHtml() : "");
 }
@@ -11190,6 +11198,9 @@ function sheetOwner(){
     /* 10-06 재아: '사장님' 과 '관리' 를 한 묶음으로 · '개발자에게' 만 여백을 두고 아래에 */
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
     item("openSlip()", ICON.print, "수기 예약지", "전화 예약을 손으로 적는 종이") +
+    /* 10-09 재아: 홈페이지 관리 전체는 개발자 화면에만 두고, 사장님께는 소식·팝업 올리기만(그 탭 하나만 열림) */
+    item("openSiteAdmin('posts')", ICON.edit, "소식 올리기", "홈페이지 소식 글") +
+    item("openSiteAdmin('notices')", ICON.site, "팝업 올리기", "홈페이지 첫 화면 팝업") +
     item("openOwnerSetting('admin')", ICON.key, "보안", "PIN · 2차 PIN") +
     '</div></div><div class="own-section own-dev"><div class="own-grid">' +
     item("openDevPage()", ICON.sos, "개발자에게", "공지 · 요청 · 답변") +
