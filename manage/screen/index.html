@@ -6983,6 +6983,9 @@ function smsSend(r, kind, offset, resent, st){
    실제 서비스라면 서버가 할 일입니다. 여기서는 화면이 열려 있을 때만 돕니다.
    지난 날짜는 건드리지 않습니다 — 예시 데이터 수백 건에 기록이 쌓이면 지저분해집니다. */
 function smsTick(){
+  /* 10-09 점검: 문자 서비스가 꺼진 동안(SMS_READY=false)은 돌지 않음 — 켜진 가게 기기마다 따로 '재안내' 흉내 기록을 예약에 붙여서,
+     늦게 붙인 기기에서 예약 충돌 창이 여러 개 떴음(10-08 실서비스 5건). 문자를 붙일 때는 이 일을 서버 한 곳에서 하게 바꿀 것 */
+  if(typeof SMS_READY !== "undefined" && !SMS_READY) return 0;
   var today = todayStr(), n = 0, keys = DATA ? Object.keys(DATA) : [], k, i;
   for(k = 0; k < keys.length; k++){
     var s = DATA[keys[k]];
