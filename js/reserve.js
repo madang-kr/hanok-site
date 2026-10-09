@@ -118,6 +118,8 @@
       if(r.ok){ if(window.hanokHit) window.hanokHit("ev:예약 접수"); return {ok:true, id:body.id}; }
       let msg = ""; try{ msg = (await r.json()).message || ""; }catch(e){}
       if(/RATE_PHONE/.test(msg)) return {ok:false, msg:"이 번호로 최근 24시간 동안 접수한 예약이 이미 5건입니다. 전화로 문의해 주세요."};
+      /* 43차(10-09): 손님 관리에서 블랙리스트인 번호 — 온라인 접수 대신 유선으로(손님에게 이유는 말하지 않음) */
+      if(/PHONE_ONLY/.test(msg)) return {ok:false, msg:"온라인으로 접수하기 어려운 예약입니다. 유선으로 예약 도와드리겠습니다. (" + INFO.tel + ")"};
       if(/RATE_ALL/.test(msg)) return {ok:false, msg:"지금 접수가 몰려 있습니다. 잠시 뒤 다시 시도해 주세요."};
       return {ok:false, msg:"접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."};
     };

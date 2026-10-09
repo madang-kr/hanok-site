@@ -8100,11 +8100,7 @@ async function pullRequests(){
     const i = REQUESTS.findIndex(r => r.id === q.id);
     if(i < 0){ REQUESTS.push(q); fresh.push(q); } else REQUESTS[i] = q;
   }
-  /* 블랙리스트 손님의 홈페이지 접수는 자동 거절(10-09 재아: '홈페이지 예약이 불가능합니다') — 알림도 안 띄움 */
-  for(const q of REQUESTS.filter(r => r.status === "대기" && typeof custStat === "function" && custStat(r).black)){
-    try{ const rr = await REQ_API.reject(q.id, "예약이 어렵습니다"); if(rr && rr.ok) logEvent("홈페이지 예약 자동 거절", "블랙리스트 · " + q.date + " " + q.time); }catch(e){}
-  }
-  for(let i = fresh.length - 1; i >= 0; i--) if(fresh[i].status !== "대기") fresh.splice(i, 1);
+  /* 블랙리스트 손님은 서버(43차)가 접수 단계에서 '유선 문의' 로 돌림 — 여기서 자동 거절하지 않음(10-09 재아). 그 전에 들어온 것은 경고(reqWarns)만 */
   /* 서버에서 사라진(다른 기기가 처리한) 것은 목록에서 뺌 */
   for(let i = REQUESTS.length - 1; i >= 0; i--) if(REQUESTS[i].status === "대기" && !seen[REQUESTS[i].id]) REQUESTS.splice(i, 1);
   if(REQ_SEEN_INIT){ if(fresh.length) reqNotify(fresh); }
