@@ -2319,7 +2319,7 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .mb-sec-h > input{flex:1; min-width:160px}
 .mb-item{border:1px solid var(--border); border-radius:var(--r-sm); padding:10px 12px; margin-bottom:10px; background:var(--surface)}
 .mb-item-h{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px}
-.mb-item-h b{font-size:14px}
+.mb-item-h b{font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}   /* 띄어쓰기 없는 아주 긴 이름이 화면을 가로로 밀던 것(10-09 단추 점검) */
 .mb-tools{display:inline-flex; gap:4px; flex:none}
 .ibtn2{width:34px; height:34px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); font:inherit; font-size:15px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:0}
 .ibtn2:disabled{opacity:.35; cursor:default}
