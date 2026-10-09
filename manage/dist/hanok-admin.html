@@ -10024,7 +10024,7 @@ function hrSchedMissing(hist){
     var h = hist[i], name = hist.length > 1 ? (h.from ? pkShort(h.from) + " 부터의 " : (i + 1) + "번째 ") : "";
     var rows = h.rows || [];
     if(!rows.length) continue;   /* 정규 근무 없음(단기·일일 알바) — 10-09 재아 */
-    if(!h.from) return name + "적용 시작일을 넣어 주세요.";
+    if(!h.from && i > 0) return name + "적용 시작일을 넣어 주세요.";   /* 첫 기간은 비어 있으면 '처음부터'(입사일 없는 기존 직원도 저장되게, 10-09 점검) */
     for(var r = 0; r < rows.length; r++){
       var sp = rows[r].spans[0] || {}, tag = name + (rows.length > 1 ? (r + 1) + "번째 행" : "근무 시간") + " — ";
       if(!rows[r].days.some(Boolean)) return tag + "요일을 골라 주세요.";
@@ -10043,25 +10043,30 @@ function hrSchedOverlap(hist){
   }); });
   return msg;
 }
-async function hrStaffSave(){
-  var e = HR.edit; if(!e) return;
+/* opt.quick: 퇴사·퇴사 취소 — 필수 칸·정규 근무 검사 없이 상태만 바꿔 저장(10-09: 전화번호 없는 기존 직원이 퇴사도 안 됐음). 성공하면 true */
+async function hrStaffSave(opt){
+  opt = opt || {};
+  var e = HR.edit; if(!e) return false;
   /* 10-09 재아: 별칭(선택 — 비우면 성명)·메모·정규 근무 빼고는 필수 */
+  /* 필수 검사는 새 직원을 추가할 때만 — 기존 직원(처음 넣은 10명은 전화번호·입사일이 비어 있음)은 성명만 있으면 저장(10-09 점검) */
   var need = [];
-  if(!(e.name || "").trim()) need.push("성명");
-  if(!(e.phone || "").trim()) need.push("전화번호");
-  if(!(e.role || "").trim()) need.push("역할");
-  if(!e.start_date) need.push("입사일");
-  if(need.length){ await uiAlert("필수 항목을 채워 주세요", need.join(" · ") + (need.some(function(x){ return x !== "성명"; }) ? "\n(전화번호·역할·입사일은 '기타' 탭에 있습니다)" : ""), "warn"); return; }
+  if(!(e.name || "").trim() && !(e.nick || "").trim()) need.push("성명");
+  if(e._new){
+    if(!(e.phone || "").trim()) need.push("전화번호");
+    if(!(e.role || "").trim()) need.push("역할");
+    if(!e.start_date) need.push("입사일");
+  }
+  if(need.length){ await uiAlert("필수 항목을 채워 주세요", need.join(" · ") + (need.some(function(x){ return x !== "성명"; }) ? "\n(전화번호·역할·입사일은 '기타' 탭에 있습니다)" : ""), "warn"); return false; }
   (e.sched_hist || []).forEach(function(h, i){ if(!h.from && (h.rows || []).length && i === 0) h.from = e.start_date; });   /* 첫 근무 기간 시작일이 비면 입사일로 */
   /* 10-06 재아: 새 직원은 PIN 을 꼭 만들게(나중에 따로 '등록' 하는 길은 없앰 — 헷갈려서) */
-  if(e._new && !(e.pinNew || "").trim()){ await uiAlert("PIN을 등록해 주세요", "'PIN 등록' 을 눌러 숫자 4자리를 정해야 저장됩니다.", "warn"); return; }
+  if(e._new && !(e.pinNew || "").trim()){ await uiAlert("PIN을 등록해 주세요", "'PIN 등록' 을 눌러 숫자 4자리를 정해야 저장됩니다.", "warn"); return false; }
   /* 10-06 재아: 다 안 채운 근무 행이 있으면 저장 안 함 — 전엔 요일 없는 행을 말없이 버려서 넣은 근무가 날아갔음 */
-  var miss = hrSchedMissing(e.sched_hist);
-  if(miss){ await uiAlert("정규 근무를 다 채워 주세요", miss, "warn"); if(e.tab !== "sched"){ e.tab = "sched"; render(); } return; }
+  var miss = opt.quick ? "" : hrSchedMissing(e.sched_hist);
+  if(miss){ await uiAlert("정규 근무를 다 채워 주세요", miss, "warn"); if(e.tab !== "sched"){ e.tab = "sched"; render(); } return false; }
   /* 같은 요일에 시간이 겹치는 행 — 막지 않고 알리기만 */
-  var ov = hrSchedOverlap(e.sched_hist);
-  if(ov && !await uiConfirm("시간이 겹칩니다", ov + "\n그대로 저장할까요?", {ok:"그대로 저장", cancel:"고치기"})) return;
-  if(!await hrPinApply(e, (e.nick || "").trim() || (e.name || "").trim())) return;
+  var ov = opt.quick ? "" : hrSchedOverlap(e.sched_hist);
+  if(ov && !await uiConfirm("시간이 겹칩니다", ov + "\n그대로 저장할까요?", {ok:"그대로 저장", cancel:"고치기"})) return false;
+  if(!opt.quick && !await hrPinApply(e, (e.nick || "").trim() || (e.name || "").trim())) return false;
   /* 줄(요일 묶음)마다 저장 + 옛 모양(days=모든 줄 요일, spans=첫 줄)도 같이 — 옛 판·서버 트리거가 읽을 수 있게 */
   var sh = e.sched_hist.map(function(x){
     var rows = (x.rows || hrSchedRows(x)).map(function(r){ return { days:r.days.slice(), spans:r.spans.filter(function(sp){ return sp.start && sp.end; }).map(function(sp){ return {start:sp.start, end:sp.end, break:Number(sp.break || 0)}; }) }; })
@@ -10080,16 +10085,20 @@ async function hrStaffSave(){
     await sb("/rest/v1/staff?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
     logEvent(e._new ? "직원 추가" : "직원 수정", row.nick || row.name);   /* 퇴사·재직·이름이 바뀌면 서버 트리거가 PIN 도 맞춤(30차) */
     HR.edit = null; HR.loading = true; render(); await hrLoad(); render();
-  }catch(err){ await uiAlert("저장 실패", err.message || String(err), "warn"); }
+    return true;
+  }catch(err){ await uiAlert("저장 실패", err.message || String(err), "warn"); return false; }
 }
 async function hrStaffRetire(){
   var e = HR.edit; if(!e || e._new) return;
   var goOn = e.active === false, endD = e.end_date || todayStr(), ed = new Date(endD + "T00:00:00");
-  /* 10-06 재아 문구. 퇴직 취소도 바로 되지 않고 한 번 묻기 */
+  /* 10-06 재아 문구. 퇴사 취소도 바로 되지 않고 한 번 묻기 */
   if(!goOn && !await uiConfirm("퇴사 처리할까요?", (endD === todayStr() ? "금일(" : "") + (ed.getMonth() + 1) + "월 " + ed.getDate() + "일" + (endD === todayStr() ? ")" : "") + " 기준으로 퇴사처리됩니다.\n퇴사 처리 후엔 PIN이 잠금됩니다.", {ok:"퇴사 처리", cancel:"취소"})) return;
-  if(goOn && !await uiConfirm("퇴직 취소할까요?", "퇴사처리가 취소됩니다.\nPIN 잠금이 해제됩니다.", {ok:"퇴직 취소", cancel:"닫기", tone:"ok"})) return;
+  if(goOn && !await uiConfirm("퇴사 취소할까요?", "퇴사처리가 취소됩니다.\nPIN 잠금이 해제됩니다.", {ok:"퇴사 취소", cancel:"닫기", tone:"ok"})) return;
+  /* 저장이 실패하면 화면 상태를 되돌림 — 전엔 먼저 바꿔 두어, 저장이 막혀도 '퇴사 취소' 가 떴음(10-09 재아) */
+  var was = { active:e.active, end:e.end_date };
   e.active = goOn; if(!goOn && !e.end_date) e.end_date = todayStr(); if(goOn) e.end_date = null;
-  await hrStaffSave();
+  if(!await hrStaffSave({ quick:true })){ if(HR.edit === e){ e.active = was.active; e.end_date = was.end; render(); } return; }
+  showToast(goOn ? "퇴사 취소했습니다" : "퇴사 처리했습니다");
 }
 async function hrShowSeverance(){ var e = HR.edit; if(!e) return; e.sev = { loading:true }; render(); e.sev = await hrSeverance(e) || { none:true }; render(); }
 function hrSetupOpen(){ HR.setup = deepClone(Object.assign({}, HR_DEF, HR.cfg || {})); HR.setup.rates = hrRatesOf(HR.cfg); HR.setup.pensionBase = Object.assign({}, HR_DEF.pensionBase, (HR.cfg || {}).pensionBase || {}); HR.setup.payday = Object.assign({}, HR_DEF.payday, (HR.cfg || {}).payday || {}); render(); }
@@ -10429,7 +10438,7 @@ function hrEditHtml(){
         '<div class="f"><div class="lb">PIN</div><button class="btn hr-pinbtn' + (ready ? '' : ' need') + '" onclick="hrPinPopOpen()">' + (e._new ? (ready ? "PIN 등록됨" : "PIN 등록") : "PIN 관리") + '</button></div></div>'; })() +
     '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + (hrPro() ? tab("pay", "급여·퇴직금") : "") + tab("etc", "기타") + '</div>' +
     '<div class="searchbox hr-edit-body">' + body + '</div>' +
-    '<div class="sheet-actions">' + (e._new ? '' : '<button class="btn ghost ' + (e.active === false ? "" : "danger") + '" onclick="hrStaffRetire()">' + (e.active === false ? "퇴직 취소" : "퇴사") + '</button>') +
+    '<div class="sheet-actions">' + (e._new ? '' : '<button class="btn ghost ' + (e.active === false ? "" : "danger") + '" onclick="hrStaffRetire()">' + (e.active === false ? "퇴사 취소" : "퇴사") + '</button>') +
     '<button class="btn ghost" onclick="HR.edit=null; render()">취소</button><button class="btn primary" data-enter onclick="hrStaffSave()">저장</button></div></div></div>';
 }
 function hrSetupHtml(){
