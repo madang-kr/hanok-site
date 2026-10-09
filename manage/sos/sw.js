@@ -1,8 +1,8 @@
 /* SOS 비상 페이지를 기기에 저장해 두는 서비스 워커(2026-09-29 재아: 인터넷이 완전히 끊겨도 열리게).
    범위는 /manage/sos/ 뿐 — 예약 시스템·홈페이지는 건드리지 않음.
    인터넷이 되면 늘 새로 받고(그리고 저장), 안 되면 저장해 둔 것을 씀. 페이지를 고치면 VER 을 올림 */
-var VER = "sos-v5";   /* 10-06 백업 파일 하나(backup-날짜.json)로 */
-var FILES = ["./", "./index.html", "/favicon.ico?v=2"];
+var VER = "sos-v6";   /* 10-09 열람만 · 서버 상태 · 새 디자인 */
+var FILES = ["./", "./index.html", "/favicon.ico?v=2", "/js/config.js", "/fonts/Pretendard-Regular.woff2", "/fonts/Pretendard-SemiBold.woff2", "/fonts/Pretendard-Bold.woff2"];
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(VER).then(function(c){ return c.addAll(FILES); }).then(function(){ return self.skipWaiting(); }));
 });
@@ -11,6 +11,8 @@ self.addEventListener("activate", function(e){
 });
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
+  /* 다른 주소(예약 서버의 상태 확인)는 저장하지 않음 — 저장해 두면 서버가 죽어도 '정상' 답이 나왔음(10-09) */
+  if(new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(fetch(e.request).then(function(r){
     var copy = r.clone(); caches.open(VER).then(function(c){ c.put(e.request, copy); }); return r;
   }).catch(function(){

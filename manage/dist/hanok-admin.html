@@ -571,9 +571,9 @@ body.notoday .card{box-shadow:none}
 .more-menu svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7; flex:none; color:var(--text-2)}
 /* 메뉴 바깥을 누르면 닫히게 하는 투명 막. 상단바(z30) 안에 있으므로 본문 전체를 덮습니다 */
 .more-veil{position:fixed; top:0; left:0; right:0; bottom:0; z-index:29}
-/* 홈페이지 예약 꺼짐(10-07 재아) — PC 상단바는 단추 옆 글, 폰은 아이콘에 사선 */
-.b-reqs-off{display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px; background:var(--rust-soft, #F8E9E4); color:var(--rust); border:1px solid var(--rust); font-size:12.5px; font-weight:700; white-space:nowrap}
-.tvbtn.b-reqs.off{opacity:.55}
+/* 홈페이지 예약 꺼짐(10-09 재아) — 파란 단추를 빨간 계열로, 안내는 창 안 가운데(.req-off, 06-res) */
+.tvbtn.icon.b-reqs.off{background:#B0553F; border-color:#B0553F}
+.tvbtn.icon.b-reqs.off:hover{background:#97452F}
 /* ============================================================
    5. 대시보드
    ============================================================ */
@@ -664,7 +664,7 @@ body.notoday .card{box-shadow:none}
 .blk b{font-weight:700}
 .blk.tent{background-image:repeating-linear-gradient(-45deg, rgba(255,255,255,.34) 0 4px, transparent 4px 10px); border:1px dashed rgba(255,255,255,.75)}
 .blk.past{background-color:#C7C7CC; color:#3A3833}
-.blk.past.tent{background-color:#F3F1EC; color:#3A3833; border-color:#B9B5AC; background-image:repeating-linear-gradient(-45deg, rgba(0,0,0,.13) 0 4px, transparent 4px 10px)}
+.blk.past.tent{background-color:#F3F1EC; color:#3A3833; border-color:#B9B5AC; background-image:none}   /* 10-09 재아: 지난 예약은 빗금(자리 미정 표시) 뺌 — 이미 지난 것이라 */
 /* 층 머리글 줄('룸', '1층 테이블') — 얇고 회색. 좌석 줄이 20개라 묶음이 없으면 눈이 길을 잃습니다 (8차) */
 .tl-row.floor .blk.multi{align-items:flex-start; padding-top:3px}
 .tl-row.group{min-height:18px; margin-top:var(--s4)}
@@ -835,7 +835,7 @@ button.blk.tent b, .blk.tent b{color:#fff}
 button.blk.tent .jn{color:#3F6C9E}
 button.blk.tent.warned{background-color:#A65A4D; color:#fff; border-color:#8F493D}
 button.blk.tent.warned b{color:#fff}
-button.blk.tent.past, .blk.past.tent{background-color:#F3F1EC; color:var(--text-3); border-color:#B9B5AC}
+button.blk.tent.past, .blk.past.tent{background-color:#F3F1EC; color:var(--text-3); border-color:#B9B5AC; background-image:none; border-style:solid}
 button.blk.tent.past b{color:var(--text-3)}
 button.blk.tent.changed{background-image:linear-gradient(90deg, rgba(61,139,217,.18) 0, rgba(61,139,217,.18) 48%, rgba(61,139,217,0) 56%)}
 button.blk.tent .tier{background:#FFF8E1}
@@ -1354,6 +1354,8 @@ body.same-modal .modal, body.same-modal .overlay.modal-ov{animation:none}
 /* 10-07 재아: 좌석 단계의 '룸 합침'·'붙이기' 를 한 번 더 접는 단추 · 합침 칸 사이 점 */
 .seat-sub-toggle{margin-top:var(--s12)}
 .sgrid-dot{grid-column:1 / -1; text-align:center; color:var(--text-3); font-size:20px; font-weight:700; line-height:12px; height:12px}   /* 중문 합침 줄과 공간 나누는 합침 줄 사이 */
+.req-off{display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; margin:0 0 12px; padding:16px; border:1px solid var(--rust); border-radius:var(--r-md); background:var(--rust-soft, #F8E9E4); color:var(--rust)}
+.req-off b{font-size:var(--fs-body)} .req-off span{font-size:var(--fs-sub); color:var(--text-2)}
 /* ============================================================
    7. 설정
    ============================================================ */
@@ -6146,7 +6148,7 @@ function renderStoreCore(){
           <button class="tvbtn icon b-reqs ${reqPending().length?'has':''} ${SITE_BOOKING_OFF?'off':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` ${reqPending().length}건`:""}${SITE_BOOKING_OFF?" · 비활성화":""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>` : `
           ${view.date===todayStr() ? "" : `<button class="tvbtn b-today" onclick="goToday()">오늘</button>`}
           <button class="tvbtn icon b-refresh" onclick="manualRefresh()" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
-          <button class="tvbtn icon b-reqs ${reqPending().length?'has':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` · 대기 ${reqPending().length}건`:""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>${SITE_BOOKING_OFF?`<span class="b-reqs-off" title="홈페이지에서 새 예약을 받지 않는 중 — 그 전에 들어온 예약은 그대로">현재 홈페이지 예약 비활성화 상태입니다</span>`:""}   <!-- 09-20: 아이콘 + 강조색, 대기 있으면 불빛 · 10-07 꺼짐 표시 -->
+          <button class="tvbtn icon b-reqs ${reqPending().length?'has':''} ${SITE_BOOKING_OFF?'off':''}" onclick="openRequests()" title="홈페이지 예약${reqPending().length?` · 대기 ${reqPending().length}건`:""}${SITE_BOOKING_OFF?" · 비활성화":""}" aria-label="홈페이지 예약">${ICON.inbox}<i class="dot"></i></button>   <!-- 09-20: 아이콘 + 강조색, 대기 있으면 불빛 · 10-09: 홈페이지 예약이 꺼져 있으면 단추가 빨간 계열(.off), 안내는 창 안에 -->
           <button class="tvbtn b-search" onclick="openSearch()" title="단축키 /">/ 검색</button>   <!-- 09-25 재아: 단축키가 보이게('＋ 등록' 과 같은 식) -->
           <button class="tvbtn accent b-add" onclick="openWizard()" title="단축키 +">＋ 등록</button>`}
           ${view.tab==="settings" ? "" : `
@@ -7796,8 +7798,11 @@ function sheetRequests(){
       <span class="s left ${reqLeftClass(q)}" style="white-space:nowrap; text-align:right">${reqLeft(q)}</span>
     </button>`; }).join("")
     : `<div class="empty">확정 대기 중인 예약이 없습니다.</div>`;
+  /* 10-09 재아: 홈페이지 예약을 꺼 둔 동안은 창 안 가운데에 알림(그 전에 들어온 대기 예약은 아래에 그대로) */
+  const off = typeof SITE_BOOKING_OFF !== "undefined" && SITE_BOOKING_OFF;
   return `
     ${sheetHead(`홈페이지 예약 · ${list.length}건`)}
+    ${off ? `<div class="req-off"><b>현재 홈페이지 예약 비활성화 상태입니다</b><span>홈페이지에서 새 예약을 받지 않고 있습니다. 그 전에 들어온 예약은 아래에서 그대로 처리하세요.</span></div>` : ""}
     <div class="card searchbox">${rows}</div>
     <div class="sheet-actions">
       ${supaOn() ? "" : `<button class="btn ghost" onclick="reqSeedDemo()">흉내 예약 넣기</button>`}
