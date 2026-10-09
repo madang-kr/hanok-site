@@ -3663,6 +3663,11 @@ function rowToRes(row){
   rec.tentativeRoomId = okId(rec.tentativeRoomId) ? rec.tentativeRoomId : null;
   rec.tentativeExtra = Array.isArray(rec.tentativeExtra) ? rec.tentativeExtra.filter(okId) : [];
   if(rec.seatPref != null && ["any","room-any","table-any","hall-any"].indexOf(rec.seatPref) < 0 && !/^table:[\w가-힣 -]{0,20}$/.test(String(rec.seatPref))) rec.seatPref = null;
+  /* data 안의 숫자·고르기 값도 모양을 맞춤 — 글자가 섞이면 화면에 그대로 나가거나 합계가 '2'+'3'='23' 이 됐음(10-09 점검) */
+  ["infants", "chairs", "adults"].forEach(function(k){ if(rec[k] != null) rec[k] = Math.max(0, parseInt(rec[k]) || 0); });
+  if(rec.courses && typeof rec.courses === "object" && !Array.isArray(rec.courses)){ var cs = {}; Object.keys(rec.courses).forEach(function(k){ var v = Number(rec.courses[k]); if(isFinite(v) && v > 0) cs[k] = Math.floor(v); }); rec.courses = cs; } else if(rec.courses != null) rec.courses = {};
+  if(rec.menuType != null && ["코스", "코스 상당", "확인 필요", "해당 없음"].indexOf(rec.menuType) < 0) rec.menuType = "확인 필요";
+  if(Array.isArray(rec.sms)) rec.sms = rec.sms.filter(function(m){ return m && typeof m === "object"; }).map(function(m){ if(m.at != null) m.at = String(m.at).replace(/[^0-9TZ:.+-]/g, ""); return m; });
   rec.updatedAt = row.updated_at;                                /* 서버 시각 문자열 그대로 (파싱 금지 — 마이크로초가 잘립니다) */
   if(row.deleted_at) rec.deletedAt = row.deleted_at;
   if(!rec.createdAt && row.created_at) rec.createdAt = row.created_at;
@@ -3862,10 +3867,33 @@ function cacheSave(){
     var out = { at: new Date().toISOString(), data: {} };
     Object.keys(DEFAULT_DATA).forEach(function(k){
       var st = DATA[k]; if(!st) return;
-      out.data[k] = { name:st.name, settings:st.settings, snapshots:st.snapshots, reservations:st.reservations, trash:st.trash };
+      /* 오프라인 때 보는 건 요즘·앞으로 예약 — 1년치를 다 넣으면 하루 30팀 기준 몇 달 만에 브라우저 저장 한도(약 5MB)를 넘어
+         저장이 말없이 실패하고, 정작 연결이 끊겼을 때 볼 것이 없었음(10-09 부하 점검). 지난 60일 + 앞으로 전부, 휴지통은 못 보낸 것만 */
+      var from = shiftDate(todayStr(), -60);
+      var keepTrash = (st.trash || []).filter(function(r){ return JSON.stringify(r) !== SYNC.res[r.id]; });
+      out.data[k] = { name:st.name, settings:st.settings, snapshots:st.snapshots, reservations:(st.reservations || []).filter(function(r){ return r.date >= from || JSON.stringify(r) !== SYNC.res[r.id]; }), trash:keepTrash };
     });
-    localStorage.setItem(CACHE_KEY, JSON.stringify(out));
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(out)); }
+    catch(e1){   /* 그래도 넘치면 앞으로 예약만 */
+      Object.keys(out.data).forEach(function(k){ var t = todayStr(); out.data[k].reservations = out.data[k].reservations.filter(function(r){ return r.date >= t; }); out.data[k].snapshots = {}; });
+      localStorage.setItem(CACHE_KEY, JSON.stringify(out));
+    }
   }catch(e){ console.warn("캐시 저장 실패", e); }
+}
+/* 기기에 저장해 둔 사본도 서버 행처럼 다시 검사 — 같은 주소(홈페이지와 /manage/)라 다른 장의 스크립트·개발자 도구로 고쳐 넣을 수 있어서(10-09 점검).
+   rowToRes 를 한 번 거치게 해 id·날짜·시각·숫자 모양이 틀린 것은 버림 */
+function cacheClean(data){
+  Object.keys(data || {}).forEach(function(k){
+    var st = data[k]; if(!st || typeof st !== "object") return;
+    var re = function(list){ return (Array.isArray(list) ? list : []).map(function(r){
+      if(!r || typeof r !== "object") return null;
+      var row = resToRow(r, k); row.updated_at = r.updatedAt || ""; row.created_at = r.createdAt || ""; if(r.deletedAt) row.deleted_at = r.deletedAt;
+      return rowToRes(row);
+    }).filter(Boolean); };
+    if("reservations" in st) st.reservations = re(st.reservations);
+    if("trash" in st) st.trash = re(st.trash);
+  });
+  return data;
 }
 function cacheLoad(){ try{ return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); }catch(e){ return null; } }
 function uiLoad(){ try{ return JSON.parse(localStorage.getItem(UI_KEY) || "null") || { theme:"hanok" }; }catch(e){ return { theme:"hanok" }; } }
@@ -3949,7 +3977,7 @@ function enterOffline(pin){
     return true;
   }
   var ui = DATA && DATA._ui;
-  DATA = migrate(deepClone(c.data)); DATA._ui = ui || uiLoad(); DATA._logs = DATA._logs || [];
+  DATA = migrate(cacheClean(deepClone(c.data))); DATA._ui = ui || uiLoad(); DATA._logs = DATA._logs || [];
   DATA._readonly = true; READONLY_WHY = "offline";
   OFFLINE = { at: c.at, pin: pin || (OFFLINE && OFFLINE.pin) || "" };
   AUTHED = true; LOAD_ERROR = null;
@@ -4007,7 +4035,7 @@ async function loadPublicOrCache(){
     if(!c || !c.data) throw e;
     if(!c.at || todayStr(new Date(c.at)) !== todayStr()){ Object.keys(c.data).forEach(function(k){ c.data[k].reservations = []; }); }   /* 날짜가 지난 캐시 — 좌석 설정만 쓰고 예약은 비움 */
     var ui = DATA && DATA._ui;
-    DATA = migrate(deepClone(c.data)); DATA._ui = ui || uiLoad(); DATA._readonly = true; READONLY_WHY = "public";
+    DATA = migrate(cacheClean(deepClone(c.data))); DATA._ui = ui || uiLoad(); DATA._readonly = true; READONLY_WHY = "public";
     DISP_FAIL = Math.max(DISP_FAIL, 1);
     console.warn("공개 뷰 실패 — 캐시(" + c.at + ")로 시작", e.message);
   }
@@ -4141,11 +4169,33 @@ function migrateSeats(d){
   });
 }
 /* 저장된 옛 데이터에 새 항목이 없을 때 채워 넣기 */
+/* 설정(직원이 고쳐 서버에 저장)의 id·날짜·숫자 모양을 불러올 때 한 번 맞춤 — id 는 단추 코드 안으로 들어가고 숫자는 화면에 그대로 나가서(10-09 점검).
+   지금 실서비스 id(r1·t23a·j1·chuseok26 …)는 모두 이 모양. 맞지 않는 항목은 버리지 않고 id 만 고침(좌석은 예약이 가리키므로 버리면 안 됨) */
+function settingsSanitize(d){
+  var ID = /^[A-Za-z0-9_-]{1,64}$/, DATE = /^\d{4}-\d{2}-\d{2}$/;
+  var fixId = function(x){ return ID.test(String(x)) ? String(x) : String(x == null ? "" : x).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64) || "x"; };
+  var num = function(o, k){ if(o && o[k] != null && typeof o[k] !== "number"){ var v = Number(o[k]); o[k] = isFinite(v) ? v : 0; } };
+  Object.keys(d).forEach(function(k){
+    var st = d[k] && d[k].settings; if(!st || typeof st !== "object") return;
+    var fixSeats = function(list){ (Array.isArray(list) ? list : []).forEach(function(r){ if(!r || typeof r !== "object") return; r.id = fixId(r.id); ["capacity","seats","minCapacity","minWeekend","min","max"].forEach(function(n){ num(r, n); });
+      if(Array.isArray(r.joinWith)) r.joinWith = r.joinWith.filter(function(x){ return ID.test(String(x)); });
+      if(Array.isArray(r.blocks)) r.blocks.forEach(function(b){ if(b && b.id != null) b.id = fixId(b.id); }); }); };
+    fixSeats(st.rooms);
+    (Array.isArray(st.joins) ? st.joins : []).forEach(function(j){ if(!j) return; j.id = fixId(j.id); num(j, "min"); num(j, "max"); if(Array.isArray(j.ids)) j.ids = j.ids.filter(function(x){ return ID.test(String(x)); }); });
+    (Array.isArray(st.specials) ? st.specials : []).forEach(function(x){ if(x && x.id != null) x.id = fixId(x.id); });
+    (Array.isArray(st.scheduled) ? st.scheduled : []).forEach(function(x){ if(x && x.id != null) x.id = fixId(x.id); if(x && x.values){ fixSeats(x.values.rooms); } });
+    ["holidays", "holidaysOff", "holidaysLegal"].forEach(function(n){ if(Array.isArray(st[n])) st[n] = st[n].filter(function(x){ return DATE.test(String(x)); }); });
+    if(Array.isArray(st.schedules)) st.schedules = st.schedules.filter(function(x){ return x && (!x.from || DATE.test(String(x.from))); });
+    if(Array.isArray(st.overrides)) st.overrides = st.overrides.filter(function(x){ return x && (!x.date || DATE.test(String(x.date))); });
+    ["groupSize","tierVip","tierVvip","tierNoshow","noshowWarnCount","closeGapMin","lastBookingBuffer","breakEntryBuffer","chairDefault"].forEach(function(n){ if(typeof st[n] === "string" && st[n] !== "" && isFinite(Number(st[n]))) st[n] = Number(st[n]); });
+  });
+}
 function migrate(d){
   /* 예정 설정 중 날짜가 된 것은 불러오자마자 흡수(03b). migrate 안이라 매장별로 도는 아래 코드보다 먼저, 전역 store() 가 준비된 뒤에 한 번 더 부릅니다 */
   delete d._auth;   /* 7차: PIN 은 서버(Supabase 계정)에만. 옛 저장본에 평문으로 남아 있던 것을 지웁니다 */
   d._logs = d._logs || [];
   migrateSeats(d);   /* 8차: 홀(zones) → 테이블 개별, 세션, 경로, 합침 */
+  settingsSanitize(d);
   /* tvType(목록형/좌석표)은 기기 설정(_ui)에 있었는데 TV 가 공개 뷰로 읽으려면 매장 설정이어야 합니다 → settings.tvType (7차) */
   if(d._ui && d._ui.tvType && d.hanok && d.hanok.settings && !d.hanok.settings.tvType) d.hanok.settings.tvType = d._ui.tvType;
   for(const k of Object.keys(DEFAULT_DATA)){
@@ -4486,6 +4536,10 @@ function esc(s){
 }
 /* onclick="fn('여기')" 안에 넣는 값. esc 만 하면 HTML 파서가 &#39; 를 ' 로 되돌려 JS 문자열이 끊깁니다 —
    JS 쪽 이스케이프(\')를 먼저 하고 HTML 이스케이프를 겹칩니다 */
+/* 링크 주소 — http(s)·같은 사이트 주소만. 서버 값에 javascript: 같은 것이 들어와도 눌러서 실행되지 않게(10-09 점검) */
+function safeUrl(u){ u = String(u == null ? "" : u).trim(); return /^(https?:\/\/|\/(?!\/)|\.\/|[\w-]+(\/|\.[\w]+))/i.test(u) && !/^javascript:/i.test(u) ? u : "#"; }
+/* 서버 줄 id 모양 — 단추 코드 안으로 들어가므로 이 모양이 아니면 그 줄을 버림(지금 쓰는 id 는 모두 이 모양) */
+function okRowId(r){ return !!r && /^[A-Za-z0-9_-]{1,64}$/.test(String(r.id)); }
 function jsq(s){ return esc(String(s == null ? "" : s).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\r?\n/g," ")); }
 /* 구형 스마트TV 브라우저에는 structuredClone 이 없어 직접 복사합니다 */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -8111,7 +8165,8 @@ async function publishAvail(force){
   AVAIL_BUSY = true;
   try{
     const key = view.storeKey || "hanok", today = todayStr(), rows = [];
-    for(let i = 0; i <= AVAIL_DAYS; i++){ const d = shiftDate(today, i); rows.push({ store:key, date:d, data:availOfDay(d) }); }   /* 오늘(0)부터 — 홈페이지 '당일 예약' 을 켰을 때 쓰임(09-24). 끈 동안은 예약 창이 오늘을 안 고름 */
+    /* 열흘마다 한 번 쉬어 감 — 예약이 많으면 91일 계산이 태블릿에서 몇 초 걸려 그동안 화면이 멈췄음(10-09 부하 점검) */
+    for(let i = 0; i <= AVAIL_DAYS; i++){ const d = shiftDate(today, i); rows.push({ store:key, date:d, data:availOfDay(d) }); if(i % 10 === 9) await new Promise(function(ok){ setTimeout(ok, 0); }); }   /* 오늘(0)부터 — 홈페이지 '당일 예약' 을 켰을 때 쓰임(09-24). 끈 동안은 예약 창이 오늘을 안 고름 */
     await sb("/rest/v1/public_avail?on_conflict=store,date", { method:"POST", body:rows, prefer:"resolution=merge-duplicates,return=minimal" });
     AVAIL_LAST = Date.now(); AVAIL_DIRTY = false;
   }catch(e){ console.error("남은 자리 올리기 실패", e.message); }
@@ -9186,7 +9241,7 @@ function saUpRow(o){
   return '<div class="sa-up">' +
     (o.thumb ? '<div class="sa-thumb">' + (v ? '<img src="' + esc(saImg(v)) + '" alt="" onerror="this.parentNode.classList.add(\'bad\')">' : '') + '</div>' : '') +
     '<span class="sa-up-name' + (v ? '' : ' muted') + '" title="' + esc(name) + '">' + esc(v ? name : (o.empty || "없음")) + '</span>' +
-    (v && o.open ? '<a class="btn sm ghost" href="' + esc(o.href || (o.kind === "image" ? saImg(v) : v)) + '" target="_blank" rel="noopener">열기</a>' : '') +
+    (v && o.open ? '<a class="btn sm ghost" href="' + esc(safeUrl(o.href || (o.kind === "image" ? saImg(v) : v))) + '" target="_blank" rel="noopener">열기</a>' : '') +
     '<button type="button" class="btn sm" onclick="saPickFile(\'' + o.kind + '\', function(u, n){ ' + o.pick + ' })">' + (v ? "바꾸기" : "올리기") + '</button>' +
     (v && o.clear ? (o.clearText ? '<button type="button" class="btn sm ghost danger" onclick="' + o.clear + '">' + esc(o.clearText) + '</button>' : '<button type="button" class="sa-x" onclick="' + o.clear + '" aria-label="빼기">×</button>') : '') +   /* clearText: × 대신 글자 단추(디스플레이 설정 '삭제', 09-25) */
   '</div>';
@@ -9560,7 +9615,7 @@ async function saPostsLoad(){
   SA.postsLoading = true; render();
   try{
     var key = view.storeKey || "hanok";
-    SA.posts = await sb("/rest/v1/site_posts?store=eq." + key + "&status=neq.%EC%82%AD%EC%A0%9C&select=id,title,body,date,images,files,pinned,status,updated_at,by&order=pinned.desc,date.desc,created_at.desc&limit=300");
+    SA.posts = ((await sb("/rest/v1/site_posts?store=eq." + key + "&status=neq.%EC%82%AD%EC%A0%9C&select=id,title,body,date,images,files,pinned,status,updated_at,by&order=pinned.desc,date.desc,created_at.desc&limit=300")) || []).filter(okRowId);
     /* 지운 글 — 목록 아래 접어서, 되살리기(09-24 재아: 글이 날아가면 안 됨). 지운 건 status '삭제' 일 뿐 서버에 그대로 있음 */
     SA.postsDel = await sb("/rest/v1/site_posts?store=eq." + key + "&status=eq.%EC%82%AD%EC%A0%9C&select=id,title,date,images,updated_at&order=updated_at.desc&limit=100");
     SA.postsErr = null;
@@ -9703,7 +9758,7 @@ function saPostPreviewHtml(){
     '<div class="np"><div class="np-meta">' + (p.pinned ? '<em>고정</em>' : '') + '<time>' + esc(date) + '</time></div><h2>' + esc(p.title || "(제목 없음)") + '</h2>' +
     '<div class="np-text">' + paras.map(function(x){ return '<p>' + rich(x).replace(/\n/g, "<br>") + '</p>'; }).join("") + '</div>' +
     (imgs.length ? '<div class="np-imgs ' + (imgs.length === 1 ? "one" : "") + '">' + imgs.map(function(u, i){ return '<img src="' + esc(u) + '" alt="" onclick="saPostZoom(' + i + ')">'; }).join("") + '</div>' : '') +
-    (files.length ? '<ul class="np-files">' + files.map(function(f){ return '<li><a href="' + esc(f.url) + '" target="_blank" rel="noopener">↓ ' + esc(f.name || f.url.split("/").pop()) + '</a></li>'; }).join("") + '</ul>' : '') + '</div>' +
+    (files.length ? '<ul class="np-files">' + files.map(function(f){ return '<li><a href="' + esc(safeUrl(f.url)) + '" target="_blank" rel="noopener">↓ ' + esc(f.name || f.url.split("/").pop()) + '</a></li>'; }).join("") + '</ul>' : '') + '</div>' +
     '<div class="sheet-actions"><button class="btn primary" onclick="SA.postPreview=null; render()">닫기</button></div></div></div>';
 }
 /* ---------- 워크시프트 (staff · attendance · hr_settings, 15·17·18차) ----------
@@ -9764,7 +9819,7 @@ function hrCfg(){ var c = (HR && HR.cfg) || {}; return { over5: c.over5 !== fals
 async function hrLoad(){
   var key = view.storeKey || "hanok";
   try{
-    HR.staff = await sb("/rest/v1/staff?store=eq." + key + "&select=*&order=sort,name");
+    HR.staff = ((await sb("/rest/v1/staff?store=eq." + key + "&select=*&order=sort,name")) || []).filter(okRowId);   /* id 가 단추 코드에 들어감(10-09 점검) */
     var cs = await sb("/rest/v1/hr_settings?store=eq." + key + "&select=data"); HR.cfg = cs[0] ? cs[0].data : {};
     if(typeof pinUsersLoad === "function") await pinUsersLoad();   /* 직원마다 PIN 이 있는지(30차) */
     HR.err = null;
@@ -10443,7 +10498,7 @@ function hrSlipHtml(){
   var text = d.lines.map(function(l){ return l.k === "dash" ? "-----------------------------" : l.k === "log" ? (l.a || "      ") + " " + (l.mk != null ? (l.mk || " ") + " " : "") + l.b + (l.n ? " · " + l.n : "") : (l.a || "") + (l.b ? "  " + l.b : "") + (l.n ? " (" + l.n + ")" : ""); }).join("\n");
   return '<div class="overlay" onclick="HR.slip=null; render()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' + (rec ? sheetHeadX("", "HR.slip=null; render()") : sheetHead("급여계산서")) +
     '<div class="searchbox rc-wrap"><div class="receipt">' + html + '</div></div>' +
-    '<div class="sheet-actions"><button class="btn ghost" onclick="hrSlipImage()">사진으로 저장</button><button class="btn ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText(' + JSON.stringify(text).replace(/"/g, "&quot;") + ').then(function(){ showToast(\'복사했습니다\'); })">글로 복사</button><button class="btn ghost" onclick="hrPrintSlip()">인쇄</button>' + (rec ? '' : '<button class="btn primary" onclick="HR.slip=null; render()">닫기</button>') + '</div></div></div>';
+    '<div class="sheet-actions"><button class="btn ghost" onclick="hrSlipImage()">사진으로 저장</button><button class="btn ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText(' + esc(JSON.stringify(text)) + ').then(function(){ showToast(\'복사했습니다\'); })">글로 복사</button><button class="btn ghost" onclick="hrPrintSlip()">인쇄</button>' + (rec ? '' : '<button class="btn primary" onclick="HR.slip=null; render()">닫기</button>') + '</div></div></div>';
 }
 function hrPrintSlip(){
   var el = document.querySelector(".receipt"); if(!el) return;
@@ -10576,7 +10631,7 @@ function hrEditHtml(){
 }
 function hrSetupHtml(){
   var d = HR.setup;
-  var num = function(path, label, note){ var ks = path.split("."), v = ks.length === 2 ? d[ks[0]][ks[1]] : d[ks[0]]; return '<label class="f"><div class="lb">' + label + (note ? ' <span class="lbl-note">' + note + '</span>' : '') + '</div><input type="number" step="0.001" value="' + v + '" oninput="' + (ks.length === 2 ? 'HR.setup.' + ks[0] + '.' + ks[1] : 'HR.setup.' + ks[0]) + '=Number(this.value)"></label>'; };
+  var num = function(path, label, note){ var ks = path.split("."), v = ks.length === 2 ? d[ks[0]][ks[1]] : d[ks[0]]; return '<label class="f"><div class="lb">' + label + (note ? ' <span class="lbl-note">' + note + '</span>' : '') + '</div><input type="number" step="0.001" value="' + (Number(v) || 0) + '" oninput="' + (ks.length === 2 ? 'HR.setup.' + ks[0] + '.' + ks[1] : 'HR.setup.' + ks[0]) + '=Number(this.value)"></label>'; };
   var pro = d.mode === "pro";
   var modeHtml = '<div class="f"><div class="lb">모드</div><div class="seg"><button class="' + (!pro ? "on" : "") + '" onclick="HR.setup.mode=\'basic\'; render()">기본</button><button class="' + (pro ? "on" : "") + '" onclick="HR.setup.mode=\'pro\'; render()">전문가 <span class="beta-t">BETA</span></button></div>' +
     '<div class="f-note">' + (pro ? "주간표 + 급여 계산·임금명세서·연차·퇴직금. 급여 계산은 <b>참고용</b>이니 신고·정산은 세무사·노무사와 확인하세요." : "주간표에 근무를 찍고, '기록' 에서 직원별 근무 시간을 달마다 모아 봅니다. 급여는 계산하지 않습니다.") + '</div></div>';
@@ -10591,7 +10646,7 @@ function hrSetupHtml(){
     '<div class="grid2">' + num("rates.pension", "국민연금") + num("rates.health", "건강보험") + num("rates.care", "장기요양", "건강보험료의 %") + num("rates.employ", "고용보험") + '</div>' +
     '<div class="grid2">' + num("pensionBase.min", "국민연금 기준소득월액 하한", "원 · 해마다 7월") + num("pensionBase.max", "국민연금 기준소득월액 상한", "원") + '</div>' +
     '<div class="f"><div class="lb">급여 지급일 <span class="lbl-note">임금명세서에 — 달마다 다르면 급여 화면에서 그 달만 바꾸기</span></div><div class="grid2"><div class="seg"><button class="' + (d.payday.next ? "on" : "") + '" onclick="HR.setup.payday.next=true; render()">다음 달</button><button class="' + (!d.payday.next ? "on" : "") + '" onclick="HR.setup.payday.next=false; render()">그 달</button></div>' +
-      '<label class="f" style="margin:0"><input type="number" min="1" max="31" value="' + (d.payday.day || 10) + '" oninput="HR.setup.payday.day=Number(this.value)||10"></label></div></div>' +
+      '<label class="f" style="margin:0"><input type="number" min="1" max="31" value="' + (Number(d.payday.day) || 10) + '" oninput="HR.setup.payday.day=Number(this.value)||10"></label></div></div>' +
     '<div class="grid2">' + num("taxRate", "사업소득 원천징수(%)", "3.3 = 소득세 3 + 지방 0.3") + '<div class="f"><div class="lb">야간 시간대</div><div class="grid2"><input type="time" value="' + esc(d.night[0]) + '" onchange="HR.setup.night[0]=this.value"><input type="time" value="' + esc(d.night[1]) + '" onchange="HR.setup.night[1]=this.value"></div></div></div>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="HR.setup=null; render()">취소</button><button class="btn primary" onclick="hrSetupSave()">저장</button></div></div></div>';
 }
@@ -10755,7 +10810,7 @@ async function gsLoadMemos(){
   if(!supaOn() || !SESSION) return;
   try{
     var rows = await sb("/rest/v1/customers?store=eq." + (view.storeKey || "hanok") + "&select=phone,name,memo,tier,visit_adj,black,black_note");
-    CUST = {}; rows.forEach(function(r){ CUST[r.phone] = r; }); CUST_VER++;
+    CUST = {}; rows.forEach(function(r){ if(/^\d{8,15}$/.test(String(r.phone))) CUST[r.phone] = r; }); CUST_VER++;   /* 번호는 숫자만 — 단추 코드에 들어감(10-09 점검) */
     CUST_ERR = "";
   }catch(e){ if(!CUST){ CUST = {}; CUST_ERR = e.message || String(e); } }   /* 한 번도 못 읽었으면 저장을 막음 — 빈 칸으로 덮어 메모·사유가 지워지던 것(10-09 점검) */
 }
@@ -11374,7 +11429,7 @@ async function openThanksPage(){
   render(); await thLoadQueue(); render();
 }
 async function thLoadQueue(){
-  try{ TH.queue = await sb("/rest/v1/thanks_sms?store=eq." + (view.storeKey || "hanok") + "&select=*&order=send_at.desc&limit=200"); }catch(e){ TH.queue = TH.queue || []; }
+  try{ TH.queue = ((await sb("/rest/v1/thanks_sms?store=eq." + (view.storeKey || "hanok") + "&select=*&order=send_at.desc&limit=200")) || []).filter(okRowId); }catch(e){ TH.queue = TH.queue || []; }
 }
 function thQueued(resId){ return (TH.queue || []).find(function(q){ return q.res_id === resId && q.status !== "취소"; }); }
 /* 대상: 그 날짜에 '방문' 인 예약(전화번호 있는 것). 같은 번호가 여러 건이면 한 건만 */
@@ -11789,13 +11844,13 @@ function dqDetailHtml(){
   if(dqIsNotice(r)) return '<div class="overlay" onclick="DQ.open=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead(esc(r.title) + ' <span class="tag sm blue">공지</span>') + '<p class="f-note" style="margin-top:-6px">' + esc(fmtWhen(r.created_at)) + ' · 개발자</p>' +
     (r.body ? '<div class="dq-body">' + esc(r.body).replace(/\n/g, "<br>") + '</div>' : '') +
-    (imgs.length ? '<div class="dq-imgs">' + imgs.map(function(u){ return '<a class="dq-img" href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt=""></a>'; }).join("") + '</div>' : '') +
+    (imgs.length ? '<div class="dq-imgs">' + imgs.map(function(u){ return '<a class="dq-img" href="' + esc(safeUrl(u)) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt=""></a>'; }).join("") + '</div>' : '') +
     '<div class="sheet-actions"><button class="btn primary" onclick="DQ.open=null; render()">닫기</button></div></div></div>';
   return '<div class="overlay" onclick="DQ.open=null; render()"><div class="sheet" onclick="event.stopPropagation()">' +
     sheetHead((r.urgent ? '<span class="rust">' + esc(r.title) + '</span>' : esc(r.title)) + ' ' + dqStatusTag(r.status)) +
     '<p class="f-note" style="margin-top:-6px">' + esc(fmtWhen(r.created_at)) + (r.by ? ' · ' + esc(r.by === "admin" ? "사장님" : "직원") : '') + '</p>' +
     (r.body ? '<div class="dq-body">' + esc(r.body).replace(/\n/g, "<br>") + '</div>' : '') +
-    (imgs.length ? '<div class="dq-imgs">' + imgs.map(function(u){ return '<a class="dq-img" href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt=""></a>'; }).join("") + '</div>' : '') +
+    (imgs.length ? '<div class="dq-imgs">' + imgs.map(function(u){ return '<a class="dq-img" href="' + esc(safeUrl(u)) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt=""></a>'; }).join("") + '</div>' : '') +
     '<div class="subhead">개발자 답변</div>' +
     (r.reply ? '<div class="dq-reply">' + esc(r.reply).replace(/\n/g, "<br>") + (r.replied_at ? '<small>' + esc(fmtWhen(r.replied_at)) + '</small>' : '') + '</div>' : '<p class="muted">아직 답변이 없습니다.</p>') +
     '<div class="sheet-actions"><button class="btn ghost danger" onclick="dqDelete(\'' + jsq(r.id) + '\')">삭제하기</button><button class="btn primary" onclick="DQ.open=null; render()">닫기</button></div></div></div>';
@@ -12531,7 +12586,7 @@ function sheetRes(){
   const f = tmpRes;
   /* 룸 / 테이블 / 합침 묶음. 합침은 대표+extraIds 로 저장되며 select 값은 그룹 id */
   const curJoin = (f.extraIds||[]).length ? joinOf([f.roomId].concat(f.extraIds)) : null;
-  const opt = (v, label, sel) => `<option value="${v}" ${sel?'selected':''}>${label}</option>`;
+  const opt = (v, label, sel) => `<option value="${esc(v)}" ${sel?'selected':''}>${label}</option>`;
   const roomOpts = `<optgroup label="룸">${roomsAt(f.date).filter(isRoom).map(r=>opt(r.id, `${esc(r.name)} · ${roomMin(r, f.date)}~${r.capacity}인`, !curJoin && f.roomId===r.id)).join("")}</optgroup>` +
     `<optgroup label="룸 합침">${joinsAt(f.date).map(j=>opt(j.id, `${esc(seatLabel(j.id))} · ${j.min}~${j.max}인`, !!curJoin && curJoin.id===j.id)).join("")}</optgroup>` +
     `<optgroup label="테이블 (층만)">${opt("table-any", "테이블 · 층 상관없음", !f.roomId && (f.seatPref==="table-any" || f.seatPref==="hall-any"))}${tableFloors().map(fl=>opt("table:"+fl, `${esc(floorLabel(fl))} · 자리 ${floorSeats(fl)}석`, !f.roomId && f.seatPref==="table:"+fl)).join("")}</optgroup>` +
@@ -13137,7 +13192,7 @@ function sheetNum(){
   const quick = [];
   for(let i=f.min; i<=f.max && quick.length<12; i+=step) quick.push(+i.toFixed(1));
   return `
-    ${sheetHead(f.title)}
+    ${sheetHead(esc(f.title))}
     <div class="numbig">
       <button onclick="numAdj(-1)" ${v<=f.min?"disabled":""}>−</button>
       <div class="nv">${v}${f.ctx && f.ctx.unit ? `<small>${esc(f.ctx.unit)}</small>` : ""}</div>
@@ -13716,7 +13771,7 @@ async function delSchedule(from){
    09-25 재아: 설정은 전부 '적용하기' — 이 창도 임시본(draft)에 넣고, 오른쪽 위 '적용하기' 로 반영 */
 function sheetOverride(){
   const st = draft(), y = view.holYear || Number(todayStr().slice(0,4));
-  const ovr = {}; (st.overrides||[]).forEach(o=>{ if(o.date.slice(0,4)===String(y)) ovr[o.date] = o; });
+  const ovr = {}; (st.overrides||[]).forEach(o=>{ if((o.date||"").slice(0,4)===String(y)) ovr[o.date] = o; });
   const hol = {}; holidaysOfYear(y, st).forEach(h=>{ hol[h.date] = h.src; });
   const off = (st.holidaysOff||[]).filter(d=>d.slice(0,4)===String(y));
   const dates = Object.keys(Object.assign({}, ovr, hol)).concat(off).filter((d,i,a)=>a.indexOf(d)===i).sort();
@@ -15435,7 +15490,7 @@ function wzStepExtra(){
     <div class="wz-review">
       <div class="rv"><span>일시</span><b>${WZ.date?dateLabel(WZ.date):"-"} ${WZ.time?hm(WZ.time):""}</b></div>
       <div class="rv"><span>인원</span><b>총 ${WZ.people||0}명${WZ.infants?` (어린이 ${WZ.infants}명 포함)`:""} ${groupTag({people:WZ.people||0})}</b></div>
-      <div class="rv"><span>좌석</span><b>${WZ.seat?(WZ.seatExtra&&WZ.seatExtra.length?seatLabelIds([WZ.seat].concat(WZ.seatExtra)):seatLabel(WZ.seat)):"-"}</b></div>
+      <div class="rv"><span>좌석</span><b>${WZ.seat?esc(WZ.seatExtra&&WZ.seatExtra.length?seatLabelIds([WZ.seat].concat(WZ.seatExtra)):seatLabel(WZ.seat)):"-"}</b></div>
       <div class="rv"><span>예약자</span><b>${esc(WZ.name)||"-"}${tierTag({phone:WZ.phone})}${WZ.phone?` · ${esc(WZ.phone)}`:""}</b></div>
       <div class="rv"><span>식사</span><b>${esc(WZ.menuType||"-")}${WZ.menuType==="코스"&&courseCount()?` · ${esc(courseSummary(WZ.courses))}`:""}</b></div>
     </div>`;
