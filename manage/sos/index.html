@@ -97,6 +97,10 @@
   .res.gone{opacity:.5}
   .tag{display:inline-block; padding:0 6px; border-radius:3px; font-size:11.5px; font-weight:700; border:1px solid var(--line); margin-left:6px; vertical-align:2px; white-space:nowrap}
   .empty{color:var(--sub); padding:20px 0; text-align:center}
+  .tag.vip{color:#8A5E0E; border-color:#D9B66E; background:#FBF3E2} .tag.vvip{color:#fff; background:#B08A3E; border-color:#B08A3E} .tag.grp{color:#2F5BA8; border-color:#AFC4E6; background:#EEF3FB}
+  .search{display:flex; gap:10px; align-items:center} .search input{flex:1}
+  .allsw{flex:none; display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--sub); cursor:pointer}
+  .res .t .dt{display:block; font-size:11.5px; font-weight:600; color:var(--sub)}
   .print-h{display:none}
   /* ---- 작은 창(도움말·안내) ---- */
   .ov{position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(20,18,16,.45); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
@@ -125,7 +129,7 @@
 (function(){
   "use strict";
   var app = document.getElementById("app"), dlg = document.getElementById("dlg");
-  var S = { ok:false, paste:false, date:"", q:"", cache:null, err:"", picked:[] };
+  var S = { ok:false, paste:false, date:"", q:"", all:false, cache:null, err:"", picked:[] };
 
   function pad(n){ return (n < 10 ? "0" : "") + n; }
   function ymd(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
@@ -147,6 +151,24 @@
   function seatOf(r){
     if(r.roomId) return seatName(r.roomId) + ((r.extraIds || []).length ? " 외 " + r.extraIds.length : "");
     var p = String(r.seatPref || ""); return p.indexOf("room") === 0 ? "룸" : p.indexOf("table") === 0 ? ((p.split(":")[1] || "") + " 테이블").trim() : "";   /* 자리를 안 정한 예약은 '룸'·'1층 테이블' 까지만(예약 시스템과 같게) */
+  }
+
+  /* 등급·단체 딱지(10-09 재아) — 예약 시스템과 같은 셈: 전화번호별 (방문 수 − 노쇼 × 기준), 기준값은 백업의 매장 설정.
+     사장님이 손님 관리에서 직접 정한 등급·블랙리스트는 백업 파일에 없어서 자동 등급만 */
+  var TIER = null;
+  function tierIndex(){
+    if(TIER) return TIER;
+    var st = store(), set = (st && st.settings) || {}, ex = set.noshowExcluded || [], idx = {};
+    (st ? st.reservations : []).forEach(function(r){ var d = String(r.phone || "").replace(/\D/g, ""); if(d.length < 8) return; var g = idx[d] || (idx[d] = { v:0, n:0 }); if(r.status === "방문") g.v++; else if(r.status === "노쇼" && ex.indexOf(d) < 0) g.n++; });
+    var vip = Number(set.tierVip) || 2, vvip = Number(set.tierVvip) || 5, ns = set.tierNoshow != null && set.tierNoshow !== "" ? Number(set.tierNoshow) : 5;
+    Object.keys(idx).forEach(function(k){ var g = idx[k], sc = g.v - ns * g.n; g.t = sc >= vvip ? "VVIP" : sc >= vip ? "VIP" : ""; });
+    return (TIER = idx);
+  }
+  function tags(r){
+    var st = store(), set = (st && st.settings) || {}, d = String(r.phone || "").replace(/\D/g, ""), g = d.length >= 8 && tierIndex()[d], out = "";
+    if(g && g.t) out += '<span class="tag ' + (g.t === "VVIP" ? "vvip" : "vip") + '">' + g.t + '</span>';
+    if((r.people || 0) >= (Number(set.groupSize) || 8)) out += '<span class="tag grp">단체</span>';
+    return out;
   }
 
   /* ---------- 서버 상태 ---------- */
@@ -264,7 +286,7 @@
       cache = { hanok:{ name:name || "한옥반점", settings:settings || {}, reservations:res } };
       at = at || last;   /* 백업 시각이 없으면 가장 늦게 고친 예약 시각으로 */
     }else if(settings && cache.hanok && !(cache.hanok.settings || {}).rooms){ cache.hanok.settings = settings; }
-    S.cache = { at:at, data:cache }; S.ok = true; S.date = S.date || today(); S.err = "";
+    S.cache = { at:at, data:cache }; TIER = null; S.ok = true; S.date = S.date || today(); S.err = "";
     S.noSeats = !(((store() || {}).settings || {}).rooms || []).length;
     render();
     /* 10-09 재아: 개인정보 안내는 첫 화면 글 대신, 파일을 연 뒤 한 번 */
@@ -273,18 +295,20 @@
 
   /* ---------- 예약 보기 ---------- */
   function dayRows(ds){
-    var st = store(), q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, "");
-    var rows = (st ? st.reservations : []).filter(function(r){ return r.date === ds && r.status !== "취소"; });
+    var st = store(), q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, ""), all = S.all && q;
+    /* '모든 날짜' 를 켜고 찾으면 날짜와 상관없이 그 손님의 예약 전부(10-09 재아: 손님 검색) — 최근 날짜가 위 */
+    var rows = (st ? st.reservations : []).filter(function(r){ return (all || r.date === ds) && r.status !== "취소"; });
     if(q) rows = rows.filter(function(r){ return String(r.name || "").toLowerCase().indexOf(q) >= 0 || (qd.length >= 2 && String(r.phone || "").replace(/\D/g, "").indexOf(qd) >= 0); });
-    return rows.sort(function(a, b){ return String(a.time).localeCompare(String(b.time)); });
+    return all ? rows.sort(function(a, b){ return (b.date + b.time).localeCompare(a.date + a.time); }) : rows.sort(function(a, b){ return String(a.time).localeCompare(String(b.time)); });
   }
   function listHtml(){
     var rows = dayRows(S.date), teams = 0, ppl = 0;
     rows.forEach(function(r){ if(r.status !== "노쇼"){ teams++; ppl += r.people || 0; } });
     var body = rows.length ? rows.map(function(r){
       var gone = r.status === "노쇼" || r.status === "방문";
-      return '<div class="res' + (gone ? " gone" : "") + '" data-res="' + esc(r.id) + '" role="button" tabindex="0"><span class="t">' + esc(hm(r.time)) + '</span>' +
-        '<span class="n">' + esc(r.name) + (gone ? '<span class="tag">' + esc(r.status) + '</span>' : '') + '</span>' +
+      var allMode = S.all && S.q.trim();
+      return '<div class="res' + (gone ? " gone" : "") + '" data-res="' + esc(r.id) + '" role="button" tabindex="0"><span class="t">' + (allMode ? '<small class="dt">' + esc(dlabel(r.date)) + '</small>' : '') + esc(hm(r.time)) + '</span>' +
+        '<span class="n">' + esc(r.name) + tags(r) + (gone ? '<span class="tag">' + esc(r.status) + '</span>' : '') + '</span>' +
         '<span class="p">' + esc((r.people || 0) + "명" + (r.infants ? " (어린이 " + r.infants + ")" : "")) + '</span>' +
         '<span class="s">' + esc([seatOf(r), fmtPhone(r.phone), r.request, r.allergy ? "알러지 " + r.allergy : "", r.memo].filter(Boolean).join(" · ")) + '</span></div>';
     }).join("") : '<div class="empty">' + (S.q ? "검색 결과가 없습니다" : "이 날 예약이 없습니다") + '</div>';
@@ -295,10 +319,10 @@
         '<button class="btn" data-d="1" aria-label="다음 날">›</button>' +
         '<button class="btn pr" id="print" aria-label="인쇄" title="인쇄"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="1"/><path d="M7 14h10v6H7z"/></svg></button></div>' +
       '<div class="dtools noprint"><input type="date" id="dpick" value="' + S.date + '"></div>' +
-      '<div class="search noprint"><input type="text" id="q" value="' + esc(S.q) + '" placeholder="이름 또는 전화번호로 찾기"></div>' +
+      '<div class="search noprint"><input type="text" id="q" value="' + esc(S.q) + '" placeholder="이름 또는 전화번호로 찾기"><label class="allsw"><button class="sw' + (S.all ? ' on' : '') + '" id="allsw" role="switch" aria-checked="' + S.all + '" aria-label="모든 날짜에서 찾기"></button>모든 날짜</label></div>' +
       (S.noSeats ? '<p class="muted noprint" style="margin:10px 0 0">파일에 매장 설정이 없어 좌석 이름이 안 나옵니다.</p>' : '') +
       '<h2 class="print-h">한옥반점 예약 · ' + esc(dlabel(S.date)) + '</h2>' +
-      '<div class="sum">' + (rows.length ? teams + "팀 · " + ppl + "명" : "") + '</div>' + body + '</div>';
+      '<div class="sum">' + (S.all && S.q.trim() ? "모든 날짜에서 " + rows.length + "건" : rows.length ? teams + "팀 · " + ppl + "명" : "") + '</div>' + body + '</div>';
   }
   function bind(){
     Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(b){ b.onclick = function(){ S.date = shift(S.date, +b.getAttribute("data-d")); render(); }; });
@@ -306,6 +330,7 @@
     var dp = document.getElementById("dpick"); if(dp) dp.onchange = function(){ if(dp.value){ S.date = dp.value; render(); } };
     var q = document.getElementById("q"); if(q){ q.oninput = function(){ S.q = q.value; var pos = q.selectionStart; render(); var q2 = document.getElementById("q"); q2.focus(); try{ q2.setSelectionRange(pos, pos); }catch(e){} }; }
     var pr = document.getElementById("print"); if(pr) pr.onclick = function(){ window.print(); };
+    var as = document.getElementById("allsw"); if(as) as.onclick = function(){ S.all = !S.all; render(); var q3 = document.getElementById("q"); if(q3) q3.focus(); };
     Array.prototype.forEach.call(document.querySelectorAll("[data-res]"), function(el){ el.onclick = function(){ showRes(el.getAttribute("data-res")); }; el.onkeydown = function(e){ if(e.key === "Enter") showRes(el.getAttribute("data-res")); }; });
     var ro = document.getElementById("reopen"); if(ro) ro.onclick = function(e){ e.preventDefault(); S.ok = false; S.cache = null; S.picked = []; S.err = ""; render(); };
   }
@@ -319,7 +344,7 @@
     var row = function(k, v){ return v ? '<tr><th>' + esc(k) + '</th><td>' + esc(v) + '</td></tr>' : ""; };
     var ch = (r.changes || []).slice().reverse().map(function(c){
       return '<li><span class="muted">' + esc(fmtFull(c.at)) + '</span> ' + esc(c.kind || "") + (c.items && c.items.length ? ' — ' + esc(c.items.map(function(x){ return (x.n || "") + (x.a != null || x.b != null ? " " + (x.a == null ? "" : x.a) + " → " + (x.b == null ? "" : x.b) : ""); }).join(", ")) : '') + '</li>'; }).join("");
-    showDlg(r.name + " 님", '<table class="kv">' +
+    showDlg(r.name + " 님", (tags(r) ? '<div style="margin:-4px 0 10px">' + tags(r) + '</div>' : '') + '<table class="kv">' +
       row("일시", dlabel(r.date) + " " + hm(r.time)) +
       row("인원", (r.people || 0) + "명" + (r.infants ? " (어린이 " + r.infants + ")" : "")) +
       row("좌석", seatOf(r) || "미정") +

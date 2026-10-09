@@ -1356,6 +1356,8 @@ body.same-modal .modal, body.same-modal .overlay.modal-ov{animation:none}
 .sgrid-dot{grid-column:1 / -1; text-align:center; color:var(--text-3); font-size:20px; font-weight:700; line-height:12px; height:12px}   /* 중문 합침 줄과 공간 나누는 합침 줄 사이 */
 .req-off{display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; margin:0 0 12px; padding:16px; border:1px solid var(--rust); border-radius:var(--r-md); background:var(--rust-soft, #F8E9E4); color:var(--rust)}
 .req-off b{font-size:var(--fs-body)} .req-off span{font-size:var(--fs-sub); color:var(--text-2)}
+.md-h{position:relative}
+.md-x{position:absolute; top:-6px; right:-6px; width:36px; height:36px; border:0; background:none; font-size:24px; line-height:1; color:var(--text-3); cursor:pointer}   /* 확인 창 오른쪽 위 ×(10-09) */
 /* ============================================================
    7. 설정
    ============================================================ */
@@ -1959,7 +1961,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 .hr-grid tr.hr-grp th{position:sticky; left:0; z-index:4}
 .hr-grid tr.gone td, .hr-grid tr.gone th, .hr-pay tr.gone td{background:#F1F0EE; color:var(--text-3)}
 .hr-grid tr.gone td.hc{opacity:.6}
-.hr-grid thead th.hd{cursor:pointer} .hr-grid thead th.hd:hover b{text-decoration:underline}
+/* 날짜 머리는 누르는 기능이 없어짐(10-06) — 손 모양·밑줄도 뺌(10-09) */
 .hr-grid.week{table-layout:fixed; width:100%} .hr-grid.week th.hr-name, .hr-grid.week td.hr-sum{width:132px} .hr-grid.week th.hr-sum{width:132px} .hr-grid.week td.hc{overflow:hidden}
 .hr-grid .hr-sum small{white-space:nowrap; line-height:1.25}
 .hr-grid .hr-sum small.rust, .hr-grid .hr-sum small .rust{color:var(--rust)}
@@ -1976,7 +1978,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* 손님 */
 .gs-top{display:flex; gap:var(--s8); align-items:center; flex-wrap:wrap; margin-bottom:var(--s12)}
 .gs-top input{flex:0 1 240px; min-width:160px}   /* 좁게(09-25 재아) */
-.gs-top .gs-ns{margin-left:auto}   /* 노쇼 관리는 오른쪽 끝 */
+.gs-top .gs-add{margin-left:auto}   /* 손님 추가 · 노쇼 관리가 오른쪽 끝에 나란히(10-09) */
 .gs-stats{display:flex; gap:var(--s4); margin:0 0 var(--s12)}
 .gs-stats span{flex:1; text-align:center; padding:var(--s8) 0; background:var(--surface-2); border-radius:var(--r-sm); font-size:var(--fs-label); color:var(--text-2)}
 .gs-stats span b{display:block; font-size:var(--fs-head); color:var(--text)} .gs-stats span.rust b{color:var(--rust)}
@@ -2264,6 +2266,11 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .hr-grid td.hr-nobody{padding:var(--s24) var(--s12); text-align:center; color:var(--text-3); font-size:var(--fs-sub); background:var(--surface)}
 @media (max-width:520px){ .hr-namerow{grid-template-columns:minmax(0, 1fr) minmax(0, 1fr)} .hr-namerow > :last-child{grid-column:1 / -1} .hr-pininfo{grid-template-columns:1fr} .hr-hist-h{flex-wrap:wrap} }
 .own-it.soon{opacity:.55}   /* 준비 중(10-07) */
+.rc-log .mk{display:inline-block; width:1.3em; font-style:normal}   /* 근무 기록 영수증 ○△× 칸 — 둘째 줄 글자를 첫 줄과 맞춤(10-09) */
+/* 직원 창 입력칸·단추 높이를 하나로(10-09 재아: 칸마다 높이가 달라 이질감) */
+.hr-edit input[type=text], .hr-edit input[type=tel], .hr-edit input[type=date], .hr-edit input[type=time], .hr-edit .hr-min, .hr-edit .hr-pinbtn, .hr-edit .hr-daybtn{height:44px; min-height:44px; box-sizing:border-box; padding-top:0; padding-bottom:0}
+.hr-pinacts{margin:0 0 var(--s12)}
+.gs-saveclose{flex:2}   /* 저장하고 닫기는 넓게(10-09) */
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -5414,13 +5421,14 @@ function tierFinal(visit, noshow, c){
 }
 function custIndex(){
   var s = store(); if(!s) return {};
-  var tc = tierCfg(), key = RES_VER + "|" + CUST_VER + "|" + s.reservations.length + "|" + (view.storeKey || "") + "|" + tc.vip + "," + tc.vvip + "," + tc.ns;   /* 등급 숫자를 바꾸면 다시 셈 */
+  var exl = (s.settings && s.settings.noshowExcluded) || [];   /* 노쇼 경고를 제외한 번호는 노쇼 횟수로도 안 셈(10-09 재아) */
+  var tc = tierCfg(), key = RES_VER + "|" + CUST_VER + "|" + s.reservations.length + "|" + (view.storeKey || "") + "|" + tc.vip + "," + tc.vvip + "," + tc.ns + "|" + exl.join(",");   /* 등급 숫자를 바꾸면 다시 셈 */
   if(CUST_IDX && CUST_IDX_KEY === key) return CUST_IDX;
   var idx = {};
   s.reservations.forEach(function(r){
     var d = String(r.phone || "").replace(/\D/g, ""); if(d.length < 8) return;
     var g = idx[d] || (idx[d] = { visit:0, noshow:0, total:0 });
-    g.total++; if(r.status === "방문") g.visit++; else if(r.status === "노쇼") g.noshow++;
+    g.total++; if(r.status === "방문") g.visit++; else if(r.status === "노쇼" && exl.indexOf(d) < 0) g.noshow++;
   });
   /* 예약 없이 손님 관리에만 있는 손님(바로 오신 손님의 추가 방문·블랙리스트)도 */
   if(typeof CUST === "object" && CUST) Object.keys(CUST).forEach(function(k){ var c = CUST[k]; if(c && !idx[k] && (Number(c.visit_adj) || c.tier || c.black)) idx[k] = { visit:0, noshow:0, total:0 }; });
@@ -5818,7 +5826,7 @@ function uiConfirm(title, msg, opt){
   opt = opt || {};
   return new Promise(res => {
     modalReplace({mode:"confirm", title, msg, tone:opt.tone||"warn",
-                  ok:opt.ok||"계속", cancel:opt.cancel||"취소", res});
+                  ok:opt.ok||"계속", cancel:opt.cancel||"취소", x:!!opt.x, res});   /* x: 취소 단추 대신 오른쪽 위 ×(10-09) */
   });
 }
 function modalAnswer(v){
@@ -5868,13 +5876,13 @@ function renderModal(){
   return `
     <div class="overlay modal-ov" onclick="modalAnswer(${m.mode==="confirm"?"false":"null"})">
       <div class="modal ${m.tone}" role="${m.tone==="warn"?"alertdialog":"dialog"}" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">
-        <div class="md-h" id="modal-title">${esc(m.title)}</div>
+        <div class="md-h" id="modal-title">${esc(m.title)}${m.x?`<button class="md-x" onclick="modalAnswer(false)" aria-label="닫기">×</button>`:""}</div>
         <div class="md-b">${lines}${m.mode==="pin"?`
           <div class="pdots md">${Array.apply(null, Array(m.digits)).map((_, i)=>`<span class="pdot sm ${i<m.buf.length?'on':''}">${i<m.buf.length?'●':''}</span>`).join("")}</div>
           <div class="pkeys md">${[1,2,3,4,5,6,7,8,9,"clear",0,"back"].map(k=>k==="clear"?`<button class="pkey sub" onclick="pinModalPush('clear')" title="다시 입력">↻</button>`:k==="back"?`<button class="pkey sub" onclick="pinModalPush('back')">←</button>`:`<button class="pkey" onclick="pinModalPush(${k})">${k}</button>`).join("")}</div>
           ${m.keepLabel?`<label class="chk pin-keep"><input type="checkbox" ${m.keep?"checked":""} onchange="MODAL.keep=this.checked"> ${esc(m.keepLabel)}</label>`:""}`:""}${m.mode==="prompt"?`<input id="md-input" type="${m.password?"password":"text"}" value="${esc(m.value||"")}" autofocus style="margin-top:8px; width:100%${m.numeric?"; font-size:24px; letter-spacing:.3em; text-align:center":""}"${m.numeric?' inputmode="numeric" pattern="[0-9]*"':""}${m.maxlen?` maxlength="${m.maxlen}"`:""} onkeydown="if(event.key==='Enter') modalPromptAnswer()">`:""}</div>
         <div class="md-f">
-          ${m.mode==="confirm"||m.mode==="prompt"||m.mode==="choice"||m.mode==="pin"?`<button class="btn" onclick="modalAnswer(${m.mode==="confirm"?"false":"null"})">${esc(m.cancel)}</button>`:""}
+          ${(m.mode==="confirm"&&!m.x)||m.mode==="prompt"||m.mode==="choice"||m.mode==="pin"?`<button class="btn" onclick="modalAnswer(${m.mode==="confirm"?"false":"null"})">${esc(m.cancel)}</button>`:""}
           ${m.mode==="pin" ? "" : m.mode==="choice" ? (m.choices||[]).map(([lb,v],i)=>`<button class="btn ${m.tone==="warn"&&i===0?"danger-fill":"primary"}" onclick="modalAnswer(${esc(JSON.stringify(v))})">${esc(lb)}</button>`).join("") :
           `<button class="btn ${m.tone==="warn"?"danger-fill":"primary"}" onclick="${m.mode==="prompt"?"modalPromptAnswer()":"modalAnswer(true)"}">
             ${m.mode==="confirm"||m.mode==="prompt"?esc(m.ok):"확인"}</button>`}
@@ -6104,7 +6112,7 @@ function renderStoreCore(){
   const stt = shopState(s.settings);
   /* 8차-O(재아): 네이버 가져오기·빠른 입력은 팝업 시트가 아니라 화면 전체로 (view.form.page) */
   const pageForm = !!(view.form && view.form.page);
-  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:(DEV_EMBED ? "설정" : "사장님"), messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:"개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
+  const pageTitle = pageForm ? ({naver:"네이버 예약 가져오기", site:"홈페이지 관리", staff:"워크시프트", guests:"손님 관리", owner:(DEV_EMBED ? "설정" : "사장님"), messages:"문자 관리", thanks:"감사 문자", smslog:"문자 기록", smsfree:"문자 보내기", noshow:"노쇼 관리", rate:"예약률 추이", devreq:(typeof DQ !== "undefined" && DQ && DQ.sec && DQ_SECS[DQ.sec]) || "개발자에게", closeday:"퇴근하기", export:"예약 내보내기", menus:"메뉴판", menu:"메뉴판 편집"}[view.form.type] || "빠른 입력") : "";
   const body = pageForm ? `<div class="page-wrap${view.form.wide ? " wide" : ""}">${renderSheet()}</div>` : (view.tab==="settings" ? renderSettings : renderDash)();
 
   return `
@@ -6112,7 +6120,7 @@ function renderStoreCore(){
       ${pageForm ? `<header class="topbar page ${notodayView()?'notoday':''}"><div class="topbar-in">
         <button class="storename" onclick="goHomeScreen()" title="홈으로"><span class="sn-brand">HANOK</span></button>
         <div class="bar-mid"><span class="bdate static">${pageTitle}</span></div>
-        <div class="bar-right">${view.form.back ? `<button class="tvbtn icon b-pageback" onclick="closeSheet()" title="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로" aria-label="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로 돌아가기">${ICON.back}</button>` : (DEV_EMBED && view.form.type === "owner") ? "" : `<button class="tvbtn icon b-exit" onclick="closeSheet()" title="닫기" aria-label="닫기">✕</button>`}</div>
+        <div class="bar-right">${view.form.type === "devreq" && typeof DQ !== "undefined" && DQ && DQ.sec ? `<button class="tvbtn icon b-pageback" onclick="DQ.sec=''; DQ.open=null; render()" title="개발자에게로" aria-label="개발자에게로 돌아가기">${ICON.back}</button>` : view.form.back ? `<button class="tvbtn icon b-pageback" onclick="closeSheet()" title="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로" aria-label="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로 돌아가기">${ICON.back}</button>` : (DEV_EMBED && view.form.type === "owner") ? "" : `<button class="tvbtn icon b-exit" onclick="closeSheet()" title="닫기" aria-label="닫기">✕</button>`}</div>
       </div></header>` : `<header class="topbar ${notodayView()?'notoday':''} ${isMobile()?'mobile':''} ${view.tab==="settings"?'settings':''}"><div class="topbar-in">
         <!-- 매장 이름 = 예전 맨 왼쪽 버튼의 역할. 대시보드에서는 매장 선택으로, 설정에서는 대시보드로. 아이콘·화살표 없이 글자만(6차-K) -->
         <!-- 8차-P(재아): HANOK 은 홈(대시보드·오늘)으로, 이미 홈이면 새로고침. 매장 나가기·로그아웃은 더보기 -->
@@ -6159,11 +6167,9 @@ function renderStoreCore(){
             <div class="more-menu">
               ${isMobile() && view.date!==todayStr() ? `<button onclick="closeMore(); goToday()">${ICON.cal}<span>오늘로</span></button>` : ``}
               <button onclick="closeMore(); openHours()">${ICON.clock}<span>영업시간</span></button>
-              ${document.fullscreenEnabled ? `<button onclick="closeMore(); toggleFullscreen()">${document.fullscreenElement?ICON.shrink:ICON.expand}<span>${document.fullscreenElement?"전체화면 해제":"전체화면"}</span></button>` : ""}
               <button onclick="closeMore(); openZoomAdj()">${ICON.search}<span>화면 보정</span></button>
               <button onclick="closeMore(); openOwnerPage()">${ICON.staff}<span>사장님</span></button>
               <button onclick="closeMore(); lockNow()">${ICON.exit}<span>로그아웃</span></button>
-              <button onclick="closeMore(); exitApp()">${ICON.power}<span>종료하기</span></button>
             </div>` : ""}
           </div>`}
         </div>
@@ -6537,7 +6543,8 @@ function sheetZoomAdj(){
     <p class="f-note" style="margin-top:-6px">이 기기에서만 크기를 조금 키우거나 줄입니다. 모든 기기 공통 크기는 설정 → 화면 크기.</p>
     <div class="zoomadj"><button class="btn" onclick="setZoomAdj(-5)">− 5</button><div class="za-v"><b>${uiZoom()}%</b><small>공통 ${base}% ${adj>=0?"+":""}${adj}</small></div><button class="btn" onclick="setZoomAdj(5)">＋ 5</button></div>
     <div class="btn-row" style="justify-content:center; margin-top:10px"><button class="btn sm ghost" onclick="setZoomAdj(-(${adj}))">보정 없음(0)</button></div>
-    ${fsAdjHtml()}`;
+    ${fsAdjHtml()}
+    ${document.fullscreenEnabled ? `<div class="btn-row" style="justify-content:center; margin-top:14px"><button class="btn" onclick="toggleFullscreen(); setTimeout(render, 300)">${document.fullscreenElement ? "전체화면 해제" : "전체화면"}</button></div>` : ""}`;   /* 10-09 재아: 더보기에 있던 전체화면을 여기로 */
 }
 /* 09-25 재아: 전체화면 자동은 매장 공통 — 여기서는 이 기기만 반대로. 매장이 켜 두었으면 '끄기', 꺼 두었으면 '켜기' */
 function fsAdjHtml(){
@@ -8093,6 +8100,11 @@ async function pullRequests(){
     const i = REQUESTS.findIndex(r => r.id === q.id);
     if(i < 0){ REQUESTS.push(q); fresh.push(q); } else REQUESTS[i] = q;
   }
+  /* 블랙리스트 손님의 홈페이지 접수는 자동 거절(10-09 재아: '홈페이지 예약이 불가능합니다') — 알림도 안 띄움 */
+  for(const q of REQUESTS.filter(r => r.status === "대기" && typeof custStat === "function" && custStat(r).black)){
+    try{ const rr = await REQ_API.reject(q.id, "예약이 어렵습니다"); if(rr && rr.ok) logEvent("홈페이지 예약 자동 거절", "블랙리스트 · " + q.date + " " + q.time); }catch(e){}
+  }
+  for(let i = fresh.length - 1; i >= 0; i--) if(fresh[i].status !== "대기") fresh.splice(i, 1);
   /* 서버에서 사라진(다른 기기가 처리한) 것은 목록에서 뺌 */
   for(let i = REQUESTS.length - 1; i >= 0; i--) if(REQUESTS[i].status === "대기" && !seen[REQUESTS[i].id]) REQUESTS.splice(i, 1);
   if(REQ_SEEN_INIT){ if(fresh.length) reqNotify(fresh); }
@@ -8349,9 +8361,6 @@ function renderSettings(){
       <button class="btn" onclick="openPinManage()">PIN 관리</button>
       ${supaOn() ? `<button class="btn" onclick="openAdminPw()">2차 PIN 관리</button>` : ""}
     </div>`;   /* 로그·'현재 설정을 기본값으로 저장'·'설정 초기화' 는 10-06 재아 결정으로 뺌(설정은 개발자가 바꾸고, 로그는 개발자 페이지에서) */
-  /* 설명은 제목 옆 ⓘ 로(09-25 재아) */
-  const adminHelp = `<b>PIN(4자리)</b> — 직원이 기기를 열 때 쓰는 번호입니다. 모두 같이 쓰는 공용 PIN 하나에, 직원마다 따로 만들 수도 있습니다. 직원별 PIN 으로 들어오면 로그에 그 사람 이름이 남고, 그만두면 그 PIN 만 지우면 됩니다.<br><br>
-    <b>2차 PIN(6자리)</b> — 사장님만 아는 번호입니다. 이 보안 화면·설정·사장님 메뉴에 들어올 때 쓰고, PIN 을 바꾸거나 추가·삭제할 때 한 번 더 넣습니다. 직원 PIN 과 다르게 정하세요.`;
 
   /* 화면 크기 — 기기마다 적당한 값이 달라 사장님이 직접 고르게 둡니다.
      저장 위치가 settings 가 아니라 DATA._ui 인 이유: 이건 매장 운영 값이 아니라
@@ -8461,7 +8470,7 @@ function renderSettings(){
       policyBody)}
     ${sec("zoom","화면 크기","", zoomBody)}
     ${view.setSec ? "" : `<div class="set-divider">관리</div>`}
-    ${sec("admin","보안","", adminBody, adminHelp)}
+    ${sec("admin","보안","", adminBody)}   <!-- 설명(ⓘ)은 10-09 재아 결정으로 뺌 -->
     </div>
 
     ${dirty ? `<div class="applybar on"><span class="ab-t">저장하지 않은 변경이 있습니다</span></div>` : ""}`;
@@ -9727,7 +9736,7 @@ function hrNight(sps){
 function hrAdjList(staffId, month){ var a = (HR && HR.cfg && HR.cfg.adj) || {}; return ((a[month] || {})[staffId] || []).filter(function(x){ return Number(x.amount) > 0; }); }
 function hrRound(h){ return Math.round(h * 10) / 10; }
 /* 10-07 재아: '4.5h' 말고 '4h 30m' — 분 단위 근무도 있어서. 표·주간표는 h·m, 근무 기록 영수증은 '시간·분' */
-function hrHM(h){ var t = Math.round(Number(h || 0) * 60), hh = Math.floor(t / 60), mm = t % 60; return mm ? (hh ? hh + "h " + mm + "m" : mm + "m") : hh + "h"; }
+function hrHM(h){ return hrHMk(h); }   /* 10-09 재아: 'h m' 말고 어디서나 '시간 분' */
 function hrHMk(h){ var t = Math.round(Number(h || 0) * 60), hh = Math.floor(t / 60), mm = t % 60; return mm ? (hh ? hh + "시간 " + mm + "분" : mm + "분") : hh + "시간"; }
 function hrWon(n){ return Math.round(Number(n || 0)).toLocaleString("ko-KR") + "원"; }
 /* 상시 근로자 5인 이상인지 — 근로기준법 시행령 7조의2 방식(재아 09-20: "그날 몇 명 나왔느냐가 아니라 어떻게 세느냐").
@@ -9866,7 +9875,8 @@ async function hrCell(staffId, date){
   var s = HR.staff.find(function(x){ return x.id === staffId; }); if(!s) return;
   /* 아직 오지 않은 날은 막지 않고 한 번 되묻습니다(재아 09-20: 미래 근무는 미리 알 수 없으니) */
   if(date > todayStr() && !HR.att[staffId + "|" + date]){
-    if(!await uiConfirm("아직 오지 않은 날입니다", dateLabel(date) + " 근무를 미리 찍을까요? 그날 실제와 다르면 다시 고쳐야 합니다.", {ok:"미리 찍기", cancel:"그만"})) return;
+    var ahead = Math.round((new Date(date + "T00:00:00") - new Date(todayStr() + "T00:00:00")) / 864e5);
+    if(!await uiConfirm(ahead + "일 뒤 근무입니다", dateLabel(date) + " 근무를 미리 등록할까요?", {ok:"등록하기", x:true, tone:"ok"})) return;   /* 10-09 재아 문구 · 취소는 오른쪽 위 × */
   }
   var a = HR.att[staffId + "|" + date], c = hrSchedAt(s, date);
   /* 안 찍힌 칸은 상태 비움(기본 안 찍힘, 재아). 다른 시간 칸은 그 날짜 정규 시간표를 미리 넣어 둠 */
@@ -9900,14 +9910,14 @@ async function hrPopDel(){
   }catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
 }
 /* ---------- 직원 편집 ---------- */
-function hrStaffNew(){ HR.edit = { probation:{on:false, to:"", rate:90}, id:newId("stf"), name:"", nick:"", role:"홀", phone:"", pay_type:"hourly", pay:0, tax:"4대보험", weekly_pay:true, absent_deduct:false, sched_hist:[{from:todayStr(), rows:[{days:[false,true,true,true,true,true,true], spans:[{start:"10:00", end:"22:00", break:60}]}]}], pay_hist:[{from:"", pay:0}], start_date:todayStr(), end_date:null, memo:"", active:true, sort:HR.staff.length, _new:true, tab:"sched", pinRole:"staff" }; render(); }
+function hrStaffNew(){ HR.edit = { probation:{on:false, to:"", rate:90}, id:newId("stf"), name:"", nick:"", role:"", phone:"", pay_type:"hourly", pay:0, tax:"4대보험", weekly_pay:true, absent_deduct:false, sched_hist:[{from:"", rows:[]}], pay_hist:[{from:"", pay:0}], start_date:"", end_date:null, memo:"", active:true, sort:HR.staff.length, _new:true, tab:"sched", pinRole:"staff" }; render(); }
 /* 편집할 때는 행 하나에 시간 하나(10-06) — 옛 저장분처럼 한 행에 시간이 여럿이면 같은 요일의 행 여러 개로 펼침 */
 function hrFlatRows(rows){
   var out = [];
   rows.forEach(function(r){ var sp = r.spans && r.spans.length ? r.spans : [{start:"10:00", end:"22:00", break:0}]; sp.forEach(function(x){ out.push({ days:(r.days || [false,false,false,false,false,false,false]).slice(), spans:[{ start:x.start || "", end:x.end || "", break:Number(x.break || 0) }] }); }); });
   return out.length ? out : [{ days:[false,false,false,false,false,false,false], spans:[{start:"10:00", end:"22:00", break:0}] }];
 }
-function hrStaffEdit(id){ var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return; HR.edit = deepClone(s); HR.edit.ext = hrExt(s); HR.edit.probation = Object.assign({on:false, to:"", rate:90}, (s.sched && s.sched.probation) || {}); HR.edit.sched_hist = hrSchedHist(s).map(function(e, k){ return { from:e.from || (k === 0 ? s.start_date || "" : ""), rows:hrFlatRows(hrSchedRows(e)) }; }); HR.dayPick = null; HR.edit.pastOpen = false; HR.edit.pay_hist = hrPayHist(s).map(function(e){ return Object.assign({}, e); }); HR.edit.sev = null; HR.edit.tab = "sched"; var pu = hrPinOf(s.id); HR.edit.pinRole = (pu && pu.role) || "staff"; render(); }
+function hrStaffEdit(id){ var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return; HR.edit = deepClone(s); HR.edit.ext = hrExt(s); HR.edit.probation = Object.assign({on:false, to:"", rate:90}, (s.sched && s.sched.probation) || {}); HR.edit.sched_hist = hrSchedHist(s).map(function(e, k){ return { from:e.from || (k === 0 ? s.start_date || "" : ""), rows:hrFlatRows(hrSchedRows(e)).filter(function(r){ return r.days.some(Boolean); }) }; }); HR.dayPick = null; HR.edit.pastOpen = false; HR.edit.pay_hist = hrPayHist(s).map(function(e){ return Object.assign({}, e); }); HR.edit.sev = null; HR.edit.tab = "sched"; var pu = hrPinOf(s.id); HR.edit.pinRole = (pu && pu.role) || "staff"; render(); }
 function hrEditSet(k, v){ if(HR.edit) HR.edit[k] = v; }
 /* 요일 묶음 글 — 월~금 · 토·일 · 매일 · 월~수 · 월·수·금. 고른 게 없으면 "" */
 function hrDaysText(days){
@@ -9942,7 +9952,7 @@ function hrMinInput(v, set){
    있는 직원: '저장' 을 누르면 바로 서버에(2차 PIN 필요). 새 직원: 여기서 정한 번호를 직원 저장 때 같이 만듦(PIN 없이 새 직원은 저장 안 됨) */
 async function hrPinPopOpen(){
   var e = HR.edit; if(!e) return; var cur = hrPinOf(e.id);
-  HR.pinPop = { last:null, loading:!!cur };
+  HR.pinPop = { last:null, loading:!!cur, roleOpen:false, pinOpen:false };
   if(!e._new){ e.pinNew = ""; e.pinNew2 = ""; e.pinAdm = ""; e.pinRole = (cur && cur.role) || "staff"; }
   render();
   if(!cur) return;
@@ -9954,17 +9964,19 @@ async function hrPinPopOpen(){
   }catch(err){}
   if(HR.pinPop){ HR.pinPop.last = last; HR.pinPop.loading = false; render(); }
 }
+/* 10-09 재아: 평소엔 상태만 — '권한 변경' 을 눌러야 권한을, 'PIN 변경' 을 눌러야 번호 칸을. 2차 PIN 은 칸 대신 '저장' 을 누를 때 창으로 */
 function hrPinPopHtml(){
   var e = HR.edit, cur = hrPinOf(e.id), pp = HR.pinPop, role = e.pinRole || "staff";
-  var state = e._new ? "새 직원 — 저장할 때 만들어집니다" : !cur ? "없음" : cur.active === false ? "잠김(퇴사)" : "사용 중";
+  var state = !cur ? "없음" : cur.active === false ? "잠김(퇴사)" : "사용 중";
   var when = pp.loading ? "확인 중…" : pp.last ? fmtWhen(pp.last) : "—";
+  var roleOpen = e._new || pp.roleOpen, pinOpen = e._new || pp.pinOpen;
   return '<div class="overlay" onclick="HR.pinPop=null; render()"><div class="sheet hr-pinpop" onclick="event.stopPropagation()">' + sheetHeadX(e._new ? "PIN 등록" : "PIN 관리", "HR.pinPop=null; render()") +
-    (e._new ? '' : '<div class="hr-pininfo"><div><small>상태</small><b>' + esc(state) + '</b></div><div><small>권한</small><b>' + esc(cur ? (PIN_ROLE[cur.role || "staff"] || "일반") : "—") + '</b></div><div><small>마지막 PIN 변경</small><b>' + esc(when) + '</b></div></div>') +
-    '<div class="f"><div class="lb">권한</div><div class="seg">' + ["staff", "manager", "owner"].map(function(k){ return '<button class="' + (role === k ? "on" : "") + '" onclick="HR.edit.pinRole=\'' + k + '\'; render()">' + PIN_ROLE[k] + '</button>'; }).join("") + '</div></div>' +
-    '<div class="hr-pin3"><label class="f"><div class="lb">' + (cur ? "새 PIN" : "PIN") + (cur ? ' <span class="lbl-note">비우면 그대로</span>' : '') + '</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
-      '<label class="f"><div class="lb">PIN 확인</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew2 || "") + '" oninput="hrEditSet(\'pinNew2\', this.value)"></label>' +
-      '<label class="f"><div class="lb">2차 PIN 확인</div><input type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••" value="' + esc(e.pinAdm || "") + '" oninput="hrEditSet(\'pinAdm\', this.value)"></label></div>' +
-    '<div class="sheet-actions"><button class="btn primary" data-enter onclick="hrPinPopSave()">' + (e._new ? "적용" : "저장") + '</button></div></div></div>';
+    (e._new ? '' : '<div class="hr-pininfo"><div><small>상태</small><b>' + esc(state) + '</b></div><div><small>권한</small><b>' + esc(cur ? (PIN_ROLE[cur.role || "staff"] || "일반") : "—") + '</b></div><div><small>마지막 PIN 변경</small><b>' + esc(when) + '</b></div></div>' +
+      '<div class="btn-row hr-pinacts">' + (pp.roleOpen ? '' : '<button class="btn" onclick="HR.pinPop.roleOpen=true; render()">권한 변경</button>') + (pp.pinOpen ? '' : '<button class="btn" onclick="HR.pinPop.pinOpen=true; render()">PIN 변경</button>') + '</div>') +
+    (roleOpen ? '<div class="f"><div class="lb">권한</div><div class="seg">' + ["staff", "manager", "owner"].map(function(k){ return '<button class="' + (role === k ? "on" : "") + '" onclick="HR.edit.pinRole=\'' + k + '\'; render()">' + PIN_ROLE[k] + '</button>'; }).join("") + '</div></div>' : '') +
+    (pinOpen ? '<div class="grid2"><label class="f"><div class="lb">' + (cur ? "새 PIN" : "PIN") + '</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew || "") + '" oninput="hrEditSet(\'pinNew\', this.value)"></label>' +
+      '<label class="f"><div class="lb">PIN 확인</div><input type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="' + esc(e.pinNew2 || "") + '" oninput="hrEditSet(\'pinNew2\', this.value)"></label></div>' : '') +
+    (e._new || roleOpen || pinOpen ? '<div class="sheet-actions"><button class="btn primary" data-enter onclick="hrPinPopSave()">' + (e._new ? "적용" : "저장") + '</button></div>' : '') + '</div></div>';
 }
 async function hrPinPopSave(){
   var e = HR.edit; if(!e) return;
@@ -9972,13 +9984,13 @@ async function hrPinPopSave(){
   if(e._new){
     if(!/^\d{4}$/.test(pin)){ await uiAlert("PIN은 숫자 4자리여야 합니다", "", "warn"); return; }
     if(pin !== (e.pinNew2 || "").trim()){ await uiAlert("PIN 확인이 서로 다릅니다", "", "warn"); return; }
-    if(!(e.pinAdm || "").trim()){ await uiAlert("2차 PIN을 넣어 주세요", "", "warn"); return; }
-    HR.pinPop = null; render(); return;   /* 직원 저장 때 같이 만듦 */
+    HR.pinPop = null; render(); return;   /* 직원 저장 때 같이 만듦(그때 2차 PIN 창) */
   }
   var cur = hrPinOf(e.id);
   if(!pin && cur && (e.pinRole || "staff") === (cur.role || "staff")){ await uiAlert("바뀐 것이 없습니다", "", "warn"); return; }
+  e.pinAdm = "";
   if(!await hrPinApply(e, (e.nick || "").trim() || (e.name || "").trim())) return;
-  e.pinNew = ""; e.pinNew2 = ""; e.pinAdm = ""; HR.pinPop = null;
+  e.pinNew = ""; e.pinNew2 = ""; HR.pinPop = null;
   if(typeof pinUsersLoad === "function") await pinUsersLoad();
   render(); showToast("PIN을 저장했습니다");
 }
@@ -9994,7 +10006,10 @@ async function hrPinApply(e, label){
     if(!/^\d{4}$/.test(pin)){ await uiAlert("PIN은 숫자 4자리여야 합니다", "", "warn"); return false; }
     if(pin !== (e.pinNew2 || "").trim()){ await uiAlert("PIN 확인이 서로 다릅니다", "", "warn"); return false; }
   }
-  var tok = await pinAdminTok((e.pinAdm || "").trim(), "직원 PIN " + (cur ? "변경" : "만들기")); if(!tok) return false;   /* 워크시프트에 들어올 때와 따로, PIN 을 만들 때마다 2차 PIN(09-25 재아) */
+  /* 2차 PIN 은 칸이 아니라 지금 창으로 묻기(10-09 재아) */
+  var adm = (e.pinAdm || "").trim();
+  if(!adm){ var pr = await uiPin("직원 PIN " + (cur ? "변경" : "만들기"), "2차 PIN을 입력해주세요.", 6); if(!pr || !pr.code) return false; adm = pr.code; }
+  var tok = await pinAdminTok(adm, "직원 PIN " + (cur ? "변경" : "만들기")); if(!tok) return false;   /* 워크시프트에 들어올 때와 따로, PIN 을 만들 때마다 2차 PIN(09-25 재아) */
   try{
     if(cur && roleChg) await sb("/rest/v1/rpc/hanok_pin_role", { method:"POST", token:tok, body:{ p_id:cur.id, p_role:role } });
     if(cur && pin) await sb("/rest/v1/rpc/hanok_pin_set", { method:"POST", token:tok, body:{ p_id:cur.id, p_pin:pin, p_base:SUPA_CFG.staffEmail } });
@@ -10008,8 +10023,9 @@ async function hrPinApply(e, label){
 function hrSchedMissing(hist){
   for(var i = 0; i < hist.length; i++){
     var h = hist[i], name = hist.length > 1 ? (h.from ? pkShort(h.from) + " 부터의 " : (i + 1) + "번째 ") : "";
-    if(!h.from) return name + "적용 시작일을 넣어 주세요.";
     var rows = h.rows || [];
+    if(!rows.length) continue;   /* 정규 근무 없음(단기·일일 알바) — 10-09 재아 */
+    if(!h.from) return name + "적용 시작일을 넣어 주세요.";
     for(var r = 0; r < rows.length; r++){
       var sp = rows[r].spans[0] || {}, tag = name + (rows.length > 1 ? (r + 1) + "번째 행" : "근무 시간") + " — ";
       if(!rows[r].days.some(Boolean)) return tag + "요일을 골라 주세요.";
@@ -10030,7 +10046,14 @@ function hrSchedOverlap(hist){
 }
 async function hrStaffSave(){
   var e = HR.edit; if(!e) return;
-  if(!(e.name || "").trim() && !(e.nick || "").trim()){ await uiAlert("성명이나 별칭을 적어 주세요", "", "warn"); return; }
+  /* 10-09 재아: 별칭(선택 — 비우면 성명)·메모·정규 근무 빼고는 필수 */
+  var need = [];
+  if(!(e.name || "").trim()) need.push("성명");
+  if(!(e.phone || "").trim()) need.push("전화번호");
+  if(!(e.role || "").trim()) need.push("역할");
+  if(!e.start_date) need.push("입사일");
+  if(need.length){ await uiAlert("필수 항목을 채워 주세요", need.join(" · ") + (need.some(function(x){ return x !== "성명"; }) ? "\n(전화번호·역할·입사일은 '기타' 탭에 있습니다)" : ""), "warn"); return; }
+  (e.sched_hist || []).forEach(function(h, i){ if(!h.from && (h.rows || []).length && i === 0) h.from = e.start_date; });   /* 첫 근무 기간 시작일이 비면 입사일로 */
   /* 10-06 재아: 새 직원은 PIN 을 꼭 만들게(나중에 따로 '등록' 하는 길은 없앰 — 헷갈려서) */
   if(e._new && !(e.pinNew || "").trim()){ await uiAlert("PIN을 등록해 주세요", "'PIN 등록' 을 눌러 숫자 4자리를 정해야 저장됩니다.", "warn"); return; }
   /* 10-06 재아: 다 안 채운 근무 행이 있으면 저장 안 함 — 전엔 요일 없는 행을 말없이 버려서 넣은 근무가 날아갔음 */
@@ -10044,7 +10067,7 @@ async function hrStaffSave(){
   var sh = e.sched_hist.map(function(x){
     var rows = (x.rows || hrSchedRows(x)).map(function(r){ return { days:r.days.slice(), spans:r.spans.filter(function(sp){ return sp.start && sp.end; }).map(function(sp){ return {start:sp.start, end:sp.end, break:Number(sp.break || 0)}; }) }; })
       .filter(function(r){ return r.spans.length; });   /* 빈 행은 위 hrSchedMissing 이 막음 */
-    if(!rows.length) rows = [{ days:[false,false,false,false,false,false,false], spans:[{start:"10:00", end:"22:00", break:0}] }];
+    if(!rows.length) rows = [{ days:[false,false,false,false,false,false,false], spans:[{start:"10:00", end:"22:00", break:0}] }];   /* 정규 근무 없음 — 요일이 하나도 없는 줄 하나로(옛 판이 rows 를 기대해서). 열 때는 빼고 보여 줌 */
     var days = [false,false,false,false,false,false,false]; rows.forEach(function(r){ r.days.forEach(function(on, i){ if(on) days[i] = true; }); });
     return { from:x.from || "", rows:rows, days:days, spans:rows[0].spans };
   }).sort(function(a, b){ return a.from.localeCompare(b.from); });
@@ -10196,7 +10219,7 @@ function hrRecView(){
     return '<tr' + (s.active === false ? ' class="gone"' : '') + '><td class="nm"><button class="hr-nm" onclick="hrStaffEdit(\'' + s.id + '\')"><b>' + esc(hrLabel(s)) + '</b><small>' + esc(s.role || "") + (s.active === false ? " · 퇴사" : "") + '</small></button></td>' + cells(t) + '<td><button class="btn sm" onclick="hrRecOpen(\'' + s.id + '\')">보기</button></td></tr>';
   };
   var trs = hrGroups(list).map(function(g){ return '<tr class="hr-grp"><td colspan="7">' + esc(g.role) + '</td></tr>' + g.list.map(rowHtml).join(""); }).join("");
-  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay hr-rec"><thead><tr><th>직원</th><th class="hl">총 근무</th><th>근무일</th><th>휴일</th><th>결근</th><th>휴무</th><th>합계</th></tr></thead><tbody>' + trs + '</tbody></table></div>';
+  return head + '<div class="card" style="padding:0; overflow:auto"><table class="hr-pay hr-rec"><thead><tr><th>직원</th><th class="hl">총 근무</th><th>근무일</th><th>휴일 근무</th><th>결근</th><th>휴무</th><th>합계</th></tr></thead><tbody>' + trs + '</tbody></table></div>';
 }
 function hrRecOpen(id){ HR.slip = { id:id, month:HR.month, kind:"rec" }; render(); }
 /* 직원 한 명의 한 달 근무 기록 — 급여계산서와 같은 줄 모양(hrSlipHtml·사진·인쇄가 그대로 씀). 메모는 넣지 않음(계산서와 같게) */
@@ -10213,14 +10236,14 @@ function hrRecData(s, m){
   L.push({k:"dash"}); L.push({k:"sec", a:"요약"});
   L.push({k:"tot", a:"총 근무", b:hrHMk(t.hours)});
   L.push({k:"row", a:"근무일", b:t.days + "일"});
-  if(t.hol) L.push({k:"row", a:"휴일", b:hrHMk(t.hol)});
+  if(t.hol) L.push({k:"row", a:"휴일 근무", b:hrHMk(t.hol)});
   L.push({k:"row", a:"결근", b:t.abs + "일"});
   L.push({k:"row", a:"휴무", b:t.off + "일"});
   L.push({k:"dash"});
   /* 하루에 두 번 일한 날은 '+' 로 잇지 않고 두 줄(10-07 재아). 시간은 구간마다 */
   t.log.forEach(function(l){ var dt = new Date(l.date + "T00:00:00"), day = (dt.getMonth() + 1) + "/" + dt.getDate() + "(" + HR_DAYS[dt.getDay()] + ")", hol = hrIsHol(l.date) && l.hours ? " · 휴일" : "";
-    if(!l.spans.length){ L.push({k:"log", a:day, b:HR_STATUS[l.status] + " " + (l.status === "변형" ? "다른 시간" : l.status), n:""}); return; }
-    l.spans.forEach(function(sp, i){ L.push({k:"log", a:i ? "" : day, b:(i ? "  " : HR_STATUS[l.status] + " ") + minToHM(sp.s0) + "-" + minToHM(sp.e0 % 1440) + " " + hrHM(sp.hours) + (i === l.spans.length - 1 ? hol : ""), n:""}); }); });
+    if(!l.spans.length){ L.push({k:"log", a:day, mk:HR_STATUS[l.status], b:(l.status === "변형" ? "다른 시간" : l.status), n:""}); return; }
+    l.spans.forEach(function(sp, i){ L.push({k:"log", a:i ? "" : day, mk:i ? "" : HR_STATUS[l.status], b:minToHM(sp.s0) + "-" + minToHM(sp.e0 % 1440) + " " + hrHM(sp.hours) + (i === l.spans.length - 1 ? hol : ""), n:""}); }); });   /* 기호(mk)는 따로 — 두 번째 줄 글자가 첫 줄 글자와 같은 자리에서 시작(10-09 재아) */
   if(!t.log.length) L.push({k:"note", a:"찍힌 근무가 없습니다"});
   L.push({k:"dash"}); L.push({k:"note", a:"발행 " + todayStr() + " · " + shop});
   return { lines:L, title:title, t:t, shop:shop };
@@ -10273,10 +10296,10 @@ function hrSlipHtml(){
     if(l.k === "sec") return '<div class="rc-sec">' + esc(l.a) + '</div>';
     if(l.k === "note") return '<div class="rc-note">' + esc(l.a) + '</div>';
     if(l.k === "tot") return '<div class="rc-row rc-tot' + (l.big ? ' big' : '') + '"><span>' + esc(l.a) + '</span><b>' + esc(l.b) + '</b></div>';
-    if(l.k === "log") return '<div class="rc-row rc-log"><span>' + esc(l.a) + '</span><span class="g">' + esc(l.b) + '</span>' + (l.n ? '<small>' + esc(l.n) + '</small>' : '') + '</div>';
+    if(l.k === "log") return '<div class="rc-row rc-log"><span>' + esc(l.a) + '</span><span class="g">' + (l.mk != null ? '<i class="mk">' + esc(l.mk) + '</i>' : '') + esc(l.b) + '</span>' + (l.n ? '<small>' + esc(l.n) + '</small>' : '') + '</div>';
     return '<div class="rc-row"><span>' + esc(l.a) + (l.n ? '<small>' + esc(l.n) + '</small>' : '') + '</span><b>' + esc(l.b) + '</b></div>';
   }).join("");
-  var text = d.lines.map(function(l){ return l.k === "dash" ? "-----------------------------" : l.k === "log" ? l.a + " " + l.b + (l.n ? " · " + l.n : "") : (l.a || "") + (l.b ? "  " + l.b : "") + (l.n ? " (" + l.n + ")" : ""); }).join("\n");
+  var text = d.lines.map(function(l){ return l.k === "dash" ? "-----------------------------" : l.k === "log" ? (l.a || "      ") + " " + (l.mk != null ? (l.mk || " ") + " " : "") + l.b + (l.n ? " · " + l.n : "") : (l.a || "") + (l.b ? "  " + l.b : "") + (l.n ? " (" + l.n + ")" : ""); }).join("\n");
   return '<div class="overlay" onclick="HR.slip=null; render()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' + (rec ? sheetHeadX("", "HR.slip=null; render()") : sheetHead("급여계산서")) +
     '<div class="searchbox rc-wrap"><div class="receipt">' + html + '</div></div>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="hrSlipImage()">사진으로 저장</button><button class="btn ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText(' + JSON.stringify(text).replace(/"/g, "&quot;") + ').then(function(){ showToast(\'복사했습니다\'); })">글로 복사</button><button class="btn ghost" onclick="hrPrintSlip()">인쇄</button>' + (rec ? '' : '<button class="btn primary" onclick="HR.slip=null; render()">닫기</button>') + '</div></div></div>';
@@ -10309,7 +10332,7 @@ async function hrSlipImage(){
     else if(l.k === "note"){ g.font = "13px " + F; g.fillStyle = "#888"; g.textAlign = "center"; g.fillText(l.a, W / 2, y + 4); g.textAlign = "left"; g.fillStyle = "#1B1A18"; }
     else if(l.k === "tot"){ g.save(); g.strokeStyle = "#333"; g.beginPath(); g.moveTo(P, y + 2); g.lineTo(W - P, y + 2); g.stroke(); g.restore(); var big = !!l.big;
       g.font = (big ? "800 22px " : "700 17px ") + F; g.fillText(l.a, P, y + (big ? 14 : 10)); right(l.b, y + (big ? 12 : 10), (big ? "800 28px " : "800 18px ") + F); }
-    else if(l.k === "log"){ g.font = "14px " + F; g.fillStyle = "#555"; g.fillText(l.a, P, y + 4); g.fillStyle = "#1B1A18"; g.fillText(l.b, P + 84, y + 4); if(l.n){ g.font = "12px " + F; g.fillStyle = "#888"; g.fillText("· " + l.n, P + 84, y + 24); g.fillStyle = "#1B1A18"; } }
+    else if(l.k === "log"){ g.font = "14px " + F; g.fillStyle = "#555"; g.fillText(l.a, P, y + 4); g.fillStyle = "#1B1A18"; if(l.mk != null){ g.fillText(l.mk, P + 84, y + 4); g.fillText(l.b, P + 104, y + 4); } else g.fillText(l.b, P + 84, y + 4); if(l.n){ g.font = "12px " + F; g.fillStyle = "#888"; g.fillText("· " + l.n, P + 84, y + 24); g.fillStyle = "#1B1A18"; } }
     else { g.font = "16px " + F; g.fillText(l.a, P, y + 4); right(l.b, y + 4, "600 16px " + F); if(l.n){ g.font = "12px " + F; g.fillStyle = "#888"; g.fillText(l.n, P, y + 25); g.fillStyle = "#1B1A18"; } }
     y += hOf(l);
   });
@@ -10402,8 +10425,8 @@ function hrEditHtml(){
     sheetHead(e._new ? "직원 추가" : "직원") +
     /* 10-06 재아: 별칭 · 성명 오른쪽에 'PIN 관리' (줄 하나 아끼려고) — 누르면 PIN 창(상태·권한·마지막 변경일·번호 바꾸기) */
     (function(){ var cur = hrPinOf(e.id), ready = !e._new || /^\d{4}$/.test(e.pinNew || "");
-      return '<div class="hr-namerow"><label class="f"><div class="lb">별칭</div><input type="text" value="' + esc(e.nick || "") + '" placeholder="예: 만두언니" oninput="hrEditSet(\'nick\', this.value)"></label>' +
-        '<label class="f"><div class="lb">성명</div><input type="text" value="' + esc(e.name || "") + '" oninput="hrEditSet(\'name\', this.value)"></label>' +
+      return '<div class="hr-namerow"><label class="f"><div class="lb">성명</div><input type="text" value="' + esc(e.name || "") + '" oninput="hrEditSet(\'name\', this.value)"></label>' +
+        '<label class="f"><div class="lb">별칭 <span class="lbl-note">선택 · 비우면 성명</span></div><input type="text" value="' + esc(e.nick || "") + '" oninput="hrEditSet(\'nick\', this.value)"></label>' +
         '<div class="f"><div class="lb">PIN</div><button class="btn hr-pinbtn' + (ready ? '' : ' need') + '" onclick="hrPinPopOpen()">' + (e._new ? (ready ? "PIN 등록됨" : "PIN 등록") : "PIN 관리") + '</button></div></div>'; })() +
     '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + (hrPro() ? tab("pay", "급여·퇴직금") : "") + tab("etc", "기타") + '</div>' +
     '<div class="searchbox hr-edit-body">' + body + '</div>' +
@@ -10666,6 +10689,7 @@ function gsOpen(phone){
   GS.open = phone; GS.memoDraft = null;
   /* 등급·추가 방문·블랙리스트는 '저장' 을 눌러야 서버로 — 그 전까지 이 창 안에서만(09-29) */
   GS.ed = { tier:c.tier || "", adj:Number(c.visit_adj) || 0, black:!!c.black, note:c.black_note || "" };
+  GS.ed0 = JSON.stringify(GS.ed);   /* 바뀐 게 있는지 볼 기준(10-09) */
   render();
 }
 /* 손님 추가 — 예약 없이 바로 오신 손님(전화번호만 받아 방문을 세거나 블랙리스트로, 09-29 재아) */
@@ -10677,7 +10701,26 @@ async function gsAdd(){
   if(!CUST[d] && !gsBuild()[d]) CUST[d] = { phone:d, name:"", memo:"", tier:"", visit_adj:0, black:false, black_note:"", _new:true };
   GS.q = ""; gsOpen(d);
 }
-function gsClose(){ GS.open = null; render(); }
+/* 바뀐 게 있는지 — 등급·방문 횟수·블랙리스트(GS.ed)와 고정 이름·메모 칸(10-09 재아) */
+function gsDirty(){
+  if(!GS || !GS.open) return false;
+  var c = (CUST && CUST[GS.open]) || {}, g = gsBuild()[GS.open] || {};
+  var nm = document.getElementById("gs-name"), mm = document.getElementById("gs-memo");
+  if(GS.ed0 && JSON.stringify(GS.ed) !== GS.ed0) return true;
+  if(nm && nm.value.trim() !== String(c.name || "").trim()) return true;
+  if(mm && mm.value.trim() !== String(g.memo || "").trim()) return true;
+  return false;
+}
+/* 아래 단추: 바뀐 게 없으면 '닫기', 있으면 '닫기 / 저장하고 닫기'(넓게) — 글자를 칠 때는 다시 그리지 않고 단추 칸만 바꿈 */
+function gsActsHtml(){ return gsDirty() ? '<button class="btn" onclick="gsClose()">닫기</button><button class="btn primary gs-saveclose" onclick="gsSaveClose()">저장하고 닫기</button>' : '<button class="btn primary" onclick="gsClose()">닫기</button>'; }
+function gsActsUpdate(){ var el = document.getElementById("gs-acts"); if(el) el.innerHTML = gsActsHtml(); }
+async function gsClose(force){
+  if(!force && gsDirty() && !await uiConfirm("저장하지 않은 변경이 있습니다", "닫으면 바꾼 내용이 사라집니다.", {ok:"저장 안 하고 닫기", cancel:"계속 고치기"})) return;
+  /* 손님 추가로 연 빈 손님을 저장하지 않고 닫으면 목록에서 지움(10-09 재아: 공란이면 자동 삭제) */
+  if(GS.open && CUST && CUST[GS.open] && CUST[GS.open]._new) delete CUST[GS.open];
+  GS.open = null; render();
+}
+async function gsSaveClose(){ if(await gsSave()) gsClose(true); }
 async function gsSave(){
   var map = gsBuild(), g = map[GS.open]; if(!g) return;
   var nameEl = document.getElementById("gs-name"), memoEl = document.getElementById("gs-memo");
@@ -10686,8 +10729,8 @@ async function gsSave(){
               tier:e.tier || "", visit_adj:Number(e.adj) || 0, black:!!e.black, black_note:e.black ? String(e.note || "").trim() : "" };
   try{
     await sb("/rest/v1/customers?on_conflict=store,phone", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
-    CUST = CUST || {}; CUST[GS.open] = row; CUST_VER++; showToast("저장했습니다"); render();
-  }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
+    CUST = CUST || {}; CUST[GS.open] = row; CUST_VER++; GS.ed0 = JSON.stringify(GS.ed); showToast("저장했습니다"); render(); return true;
+  }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); return false; }
 }
 function sheetGuests(){
   if(!GS || GS.loading) return '<p class="muted" style="padding:20px 0">불러오는 중…</p>';
@@ -10695,7 +10738,7 @@ function sheetGuests(){
   /* 09-25 재아: 검색칸은 좁게('손님 검색'), 정렬은 그 옆, 노쇼 관리는 오른쪽 끝. 설명 글은 뺌(등급 숫자는 설정 → 운영 판단) */
   return '<div class="gs-top"><input id="gs-q" value="' + esc(GS.q || "") + '" placeholder="손님 검색" oninput="gsSetQ(this.value)" autocomplete="off">' +
     '<div class="seg">' + seg("vip", "VIP") + seg("recent", "최근") + seg("visits", "방문 횟수") + seg("black", "블랙리스트") + '</div>' +
-    '<button class="btn sm ghost" onclick="gsAdd()">손님 추가</button><button class="btn sm ghost gs-ns" onclick="openNoshow(\'guests\')">노쇼 관리</button></div>' +
+    '<button class="btn sm ghost gs-add" onclick="gsAdd()">손님 추가</button><button class="btn sm ghost gs-ns" onclick="openNoshow(\'guests\')">노쇼 관리</button></div>' +
     '<div class="card searchbox" id="gs-list">' + gsRows() + '</div>' +
     (GS.open ? gsDetailHtml() : "");
 }
@@ -10708,29 +10751,37 @@ function gsDetailHtml(){
     return '<button class="rowitem tap' + (past ? ' gs-past' : '') + '" onclick="openMark(\'' + r.id + '\')"><span class="time-col">' + esc(dateLabel(r.date).replace(/ \(.\)$/, "")) + '</span><span class="grow"><span class="t">' + esc(hm(r.time)) + ' · ' + pplText(r) + (r.status !== "확정" ? ' <span class="tag ' + (r.status === "노쇼" ? "rust" : r.status === "방문" ? "pine" : "") + ' sm">' + r.status + '</span>' : '') + '</span>' +
       '<span class="s">' + esc(resSeatLabel(r)) + (r.name !== g.name ? ' · ' + esc(r.name) : '') + (r.request ? ' · ' + esc(r.request) : '') + (r.allergy ? ' · 알러지 ' + esc(r.allergy) : '') + '</span></span></button>';
   }).join("");
-  return '<div class="overlay" onclick="gsClose()"><div class="sheet sheet-tall" onclick="event.stopPropagation()">' +
+  return '<div class="overlay" onclick="gsClose()"><div class="sheet sheet-tall" onclick="event.stopPropagation()" oninput="gsActsUpdate()">' +
     sheetHead(esc(g.name) + (g.black ? ' <span class="tag rust sm">블랙리스트</span>' : tierTagOf(g.tier)) + ' <small class="muted">' + gsPhoneHtml(g.phone) + '</small>') +
     '<div class="gs-stats"><span><b>' + (g.visit + g.adj) + '</b>방문</span><span><b>' + g.upcoming + '</b>예정</span><span class="' + (g.noshow ? "rust" : "") + '"><b>' + g.noshow + '</b>노쇼</span><span><b>' + g.cancel + '</b>취소</span><span><b>' + (g.total ? Math.round(g.people / g.total) : 0) + '</b>평균 인원</span></div>' +
     (g.aka.length ? '<p class="f-note">이 번호로 적힌 다른 이름: ' + esc(g.aka.join(", ")) + '</p>' : '') +
     '<div class="grid2"><label class="f"><div class="lb">고정 이름 <span class="lbl-note">공란 시 자동</span></div><input id="gs-name" type="text" value="' + esc(c ? c.name : "") + '" placeholder="' + esc(g.name) + '"></label>' +
-    '</div><label class="f"><div class="lb">메모</div><textarea id="gs-memo" class="gs-memo" rows="3" placeholder="예: 창가 선호, 매운 것 못 드심, 단골">' + esc(g.memo || "") + '</textarea></label>' +   /* 메모 칸 크게(09-25 재아) */
+    '</div><label class="f"><div class="lb">메모</div><textarea id="gs-memo" class="gs-memo" rows="3">' + esc(g.memo || "") + '</textarea></label>' +   /* 메모 칸 크게(09-25 재아) */
     gsEdHtml(g) +
-    '<div class="btn-row" style="margin:0 0 10px"><button class="btn sm primary" onclick="gsSave()">저장</button></div>' +
     '<div class="subhead">예약 기록 ' + g.total + '건</div><div class="card searchbox gs-hist">' + hist + '</div>' +   /* 창 전체가 스크롤 — 메모 칸을 키우니 기록 칸이 두 줄로 줄었음(09-25) */
-    '<div class="sheet-actions"><button class="btn primary" onclick="gsClose()">닫기</button></div></div></div>';
+    '<div class="sheet-actions" id="gs-acts">' + gsActsHtml() + '</div></div></div>';
 }
 /* 등급·추가 방문·블랙리스트 칸(09-29 재아) — 자동 등급 말고 직접 정하기, 예약 없이 오신 방문 더하기, 블랙리스트(막지 않고 예약 때 빨갛게 알림) */
 function gsEdHtml(g){
   var e = GS.ed || {}, auto = tierOf(g.visit + (Number(e.adj) || 0), g.noshow) || "일반";
   var tb = function(v, label){ return '<button class="' + ((e.tier || "") === v ? "on" : "") + '" onclick="GS.ed.tier=\'' + v + '\'; render()">' + label + '</button>'; };
   return '<div class="gs-ed">' +
-    '<div class="f"><div class="lb">등급</div><div class="seg">' + tb("", "자동 (" + auto + ")") + tb("일반", "일반") + tb("VIP", "VIP") + tb("VVIP", "VVIP") + '</div></div>' +
-    '<div class="f"><div class="lb">추가 방문 <span class="lbl-note">예약 없이 오신 방문 등</span></div><div class="gs-adj"><button class="btn sm" onclick="GS.ed.adj=(Number(GS.ed.adj)||0)-1; render()" aria-label="하나 빼기">−</button><b>' + ((Number(e.adj) || 0) > 0 ? "+" : "") + (Number(e.adj) || 0) + '회</b><button class="btn sm" onclick="GS.ed.adj=(Number(GS.ed.adj)||0)+1; render()" aria-label="하나 더하기">＋</button></div></div>' +
-    saSwHtml(!!e.black, "GS.ed.black=!GS.ed.black; render()", "블랙리스트", e.black ? "예약 받을 때·홈페이지 접수 때 빨갛게 알립니다(막지는 않음)" : "") +
-    (e.black ? '<label class="f"><div class="lb">사유</div><input type="text" value="' + esc(e.note || "") + '" placeholder="예: 노쇼 반복, 무리한 요구" oninput="GS.ed.note=this.value"></label>' : '') +
+    '<div class="f"><div class="lb">등급</div><div class="seg">' + tb("", "자동") + tb("일반", "일반") + tb("VIP", "VIP") + tb("VVIP", "VVIP") + '</div></div>' +
+    '<div class="f"><div class="lb">방문 횟수 추가</div><div class="gs-adj"><button class="btn sm" onclick="GS.ed.adj=(Number(GS.ed.adj)||0)-1; render()" aria-label="하나 빼기">−</button><b>' + ((Number(e.adj) || 0) > 0 ? "+" : "") + (Number(e.adj) || 0) + '회</b><button class="btn sm" onclick="GS.ed.adj=(Number(GS.ed.adj)||0)+1; render()" aria-label="하나 더하기">＋</button></div></div>' +
+    /* 10-09 재아: 켤 때 창으로 안내하고 사유도 거기서 */
+    saSwHtml(!!e.black, "gsBlackToggle()", "블랙리스트", e.black ? "사유: " + (e.note || "없음") : "") +
+    (e.black ? '<button class="btn sm ghost" onclick="gsBlackToggle(true)">사유 고치기</button>' : '') +
     '</div>';
 }
-function gsEsc(){ if(GS && view.form && view.form.type === "guests" && GS.open){ GS.open = null; render(); return true; } return false; }
+function gsEsc(){ if(GS && view.form && view.form.type === "guests" && GS.open){ gsClose(); return true; } return false; }   /* 바뀐 게 있으면 묻고 닫음(10-09) */
+/* 블랙리스트 켜기 — 안내와 사유를 한 창에서(10-09 재아). 끄기는 바로. edit=true 면 사유만 고침 */
+async function gsBlackToggle(edit){
+  var e = GS.ed; if(!e) return;
+  if(e.black && !edit){ e.black = false; render(); return; }
+  var why = await uiPrompt(edit ? "블랙리스트 사유" : "블랙리스트로 지정할까요?", "예약 등록 시 경고가 노출되며 홈페이지 예약이 불가능합니다.\n사유", {ok:edit ? "확인" : "지정", value:edit ? (e.note || "") : ""});
+  if(why == null) return;
+  e.black = true; e.note = String(why).trim(); render();
+}
 /* ---------- 사장님 메뉴 (18차, 재아) ----------
    더보기(⋮) → 사장님. 관리자 비밀번호 한 번 통과하면 그 안의 것들은 다시 안 묻습니다(설정과 같은 view.adminOk).
    여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · 보안 · 홈페이지 관리.
@@ -10754,7 +10805,7 @@ async function closeSettingsToOwner(){
 }
 /* 문자(10-06 재아): 문자 서비스(업체·발신번호) 등록 전이라 들어가는 길을 막아 둠 — 등록되면 true 로 */
 var SMS_READY = false;
-function smsBlocked(){ if(SMS_READY) return false; uiAlert("문자 서비스 등록 전입니다", "문자 업체·발신번호 등록이 끝나면 열립니다.", "warn"); return true; }
+function smsBlocked(){ if(SMS_READY) return false; uiAlert("문자 서비스가 비활성화 상태입니다", "", "warn"); return true; }
 function openMessagesPage(){ if(smsBlocked()) return; view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); }
 function sheetMessages(){
   var item = function(fn, icon, title, sub){ return '<button class="own-it" onclick="' + fn + '">' + icon + '<b>' + title + '</b><small>' + sub + '</small></button>'; };
@@ -11034,7 +11085,7 @@ function sheetOwner(){
     item("openGuestsPage()", ICON.users, "손님 관리", "단골·메모 · 노쇼 관리") +
     /* 10-07 재아: 문자 관리는 '준비 중' 으로 닫아 둠(문자 서비스 등록 전) · 퇴근하기는 뺌 — 방문 처리는 매일 아침 자동(autoVisitPast) */
     (SMS_READY ? item("openMessagesPage()", ICON.sms, "문자 관리", "감사 문자 · 직접 보내기 · 기록")
-               : '<button class="own-it soon" onclick="smsBlocked()">' + ICON.sms + '<b>문자 관리 <span class="own-beta">준비 중</span></b><small>문자 서비스 등록 뒤 열립니다</small></button>') +
+               : '<button class="own-it soon" onclick="smsBlocked()">' + ICON.sms + '<b>문자 관리 <span class="own-beta">준비 중</span></b><small>문자 서비스가 비활성화 상태입니다</small></button>') +
     /* '현장 손님 등록'(openWalkIn)은 10-06 재아 결정으로 메뉴에서 뺌 — 누님_질문 28 답을 들은 뒤 이 줄을 되살리면 다시 보임(아래 코드는 그대로 둠) */
     /* 10-06 재아: '사장님' 과 '관리' 를 한 묶음으로 · '개발자에게' 만 여백을 두고 아래에 */
     (isMobile() ? "" : item("openDisplay()", ICON.cast, "디스플레이 모드", "손님용 TV 화면")) +
@@ -11471,6 +11522,7 @@ async function openDevPage(){
   if(!supaOn()){ await uiAlert("서버 설정이 없는 빌드입니다", "개발자에게는 서버가 있어야 합니다.", "warn"); return; }
   view.form = {type:"devreq", page:true, back:(view.form && (view.form.type === "owner" || view.form.back)) ? "owner" : ""};   /* 사장님 페이지에서 열었으면 닫을 때 거기로(09-20) */
   if(!DQ) DQ = { list:[], loading:true, err:null, open:null, draft:null };
+  DQ.sec = ""; DQ.open = null;   /* 열 때는 늘 첫 화면(단추 셋)부터 */
   DQ.loading = true; render();
   await dqLoad(); render();
 }
@@ -11509,17 +11561,13 @@ function sheetDevReq(){
   };
   /* 개발자 공지 안에서는 '글 쓰기' 를 숨김(10-07 재아 — 공지에 글을 쓰는 줄 헷갈림) */
   var top = '<div class="dq-top">' + (sec === "notice" ? '' : '<button class="btn primary" onclick="dqNew()">글 쓰기</button>') +
-    (sec ? '<button class="btn ghost dq-back" onclick="DQ.sec=\'\'; render()">‹ ' + DQ_SECS[sec] + '</button>' : '') + '</div>';
+    '</div>';
   var err = DQ.err ? '<p class="f-note rust">불러오지 못했습니다: ' + esc(DQ.err) + '</p>' : '';
   var body;
   if(!sec){
-    var card = function(k, sub){ var n = L[k].length;
-      return '<button class="dq-sec" onclick="DQ.sec=\'' + k + '\'; render()"><b>' + DQ_SECS[k] + '</b><span class="dq-n">' + n + '<small>건</small></span><small>' + sub + '</small></button>'; };
-    var lastN = L.notice[0];
-    body = '<div class="dq-secs">' +
-      card("notice", lastN ? esc(lastN.title) : "아직 공지가 없습니다") +
-      card("open", L.open.length ? "개발자가 확인하고 답을 남깁니다" : "기다리는 글이 없습니다") +
-      card("done", L.done.length ? "최근 답변 " + esc(fmtWhen(L.done[0].replied_at || L.done[0].created_at)) : "아직 없습니다") + '</div>';
+    /* 10-09 재아: 카드 아래 설명 글은 뺌 — 이름과 건수만 */
+    var card = function(k){ return '<button class="dq-sec" onclick="DQ.sec=\'' + k + '\'; render()"><b>' + DQ_SECS[k] + '</b><span class="dq-n">' + L[k].length + '<small>건</small></span></button>'; };
+    body = '<div class="dq-secs">' + card("notice") + card("open") + card("done") + '</div>';
   } else {
     var list = L[sec];
     body = '<div class="dq-list' + (sec === "done" ? ' dq-done' : '') + '">' + (list.length ? list.map(row).join("") : '<p class="muted" style="padding:16px">' + (sec === "notice" ? "아직 공지가 없습니다." : sec === "open" ? "기다리는 글이 없습니다." : "답변 완료된 글이 없습니다.") + '</p>') + '</div>';
@@ -13864,7 +13912,7 @@ async function pinAddSave(){
 async function pinDel(id){
   const u = PIN_USERS.find(x=>x.id === id); if(!u) return;
   if(!await uiConfirm(u.name + " PIN 을 지울까요?", "지우면 그 번호로는 들어올 수 없습니다.", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
-  const r = await uiPin("PIN 삭제", "2차 PIN", 6); if(!r || !r.code) return;
+  const r = await uiPin("PIN 삭제", "2차 PIN을 입력해주세요.", 6); if(!r || !r.code) return;
   const tok = await pinAdminTok(r.code, "PIN 삭제"); if(!tok) return;
   try{ await sb("/rest/v1/rpc/hanok_pin_del", { method:"POST", token:tok, body:{ p_id:id } }); }   /* 워크시프트 직원 PIN 이면 서버가 거절 */
   catch(e){ await uiAlert("PIN 을 지우지 못했습니다", pinErrKo(e), "warn"); return; }
@@ -13982,7 +14030,7 @@ async function adminGate(what, opt){
   if(DEV_EMBED && !(opt && opt.force)) return true;   /* 개발자 화면 안 — 개발자 로그인이 이미 확인(18b). PIN 바꾸기 같은 force 는 그대로 2차 PIN */
   if(OWNER_OK && !(opt && opt.force)) return true;
   if(ADMIN_UNTIL > Date.now()) return true;
-  const r = await uiPin(what, "2차 PIN", 6, {keep:"10분간 다시 묻지 않기"});   /* '6자리' 설명은 뺌(09-25 재아) — 점 여섯 개로 보임 */   /* PIN 화면과 같은 키패드(09-20) */
+  const r = await uiPin(what, "2차 PIN을 입력해주세요.", 6, {keep:"10분간 다시 묻지 않기"});   /* '6자리' 설명은 뺌(09-25 재아) — 점 여섯 개로 보임 */   /* PIN 화면과 같은 키패드(09-20) */
   if(r == null) return false;
   if(!r || !r.code) return false;   /* 바깥 누름·취소 */
   const pw = r.code;
@@ -14214,7 +14262,7 @@ function sheetNoshow(){
 async function undoNoshow(id){
   const r = store().reservations.find(x=>x.id===id); if(!r) return;
   const to = r.date < todayStr() ? "방문" : "확정";
-  if(!await uiConfirm("노쇼를 취소할까요?", `${dateLabel(r.date)} ${r.time} ${r.name} 손님 → ${to}(으)로 돌아갑니다`, {ok:"노쇼 취소"})) return;
+  if(!await uiConfirm("노쇼를 취소할까요?", `해당 예약의 방문 상태가 노쇼 → ${to}(으)로 변경됩니다.`, {ok:"노쇼 취소"})) return;
   if(readonlyBlock()) return;
   if(to === "확정" && !await seatRetakeOk(r)) return;
   logEvent("노쇼 취소", `${r.date} ${r.time} ${r.name} ${pplOf(r)}명 ${r.phone||""} 노쇼 → ${to}`);
@@ -14224,7 +14272,7 @@ async function undoNoshow(id){
 /* 찾기 칸을 칠 때마다 목록만 다시(입력칸 포커스 유지) */
 function nsRowsOnly(){ var h = sheetNoshow(); var i = h.indexOf('<div class="card" id="ns-list"'); if(i < 0) return ""; i = h.indexOf(">", i) + 1; var j = h.indexOf('</div>\n    <div class="sheet-actions">', i); return j > i ? h.slice(i, j) : ""; }
 async function clearNoshow(key){
-  if(!await uiConfirm2("이 번호는 다음 예약 때 노쇼 경고를 띄우지 않을까요?\n노쇼 목록에는 그대로 남습니다.")) return;
+  if(!await uiConfirm2("해당 예약의 노쇼 경고를 제외할까요?\n노쇼 내역은 그대로 유지되며 노쇼 횟수로 인정되지 않습니다.")) return;
   const st = store().settings;
   logEvent("노쇼 기록 제외", key);
   st.noshowExcluded = [...(st.noshowExcluded||[]), key];
@@ -15823,6 +15871,7 @@ function closeDisplay(){
   /* 주소로 바로 들어온 경우에는 관리 화면 대신 잠금 화면으로 */
   if(wasRoute && !AUTHED){ view.storeKey = null; }
   clearInterval(dispTimer); clearInterval(bgTimer);
+  document.body.style.cursor = "";
   document.removeEventListener("keydown", escDisplay);
   render();
 }
@@ -15834,12 +15883,17 @@ function pokeExit(ms){
   const els = document.querySelectorAll(".tv-exit, .tv-swap");
   if(!els.length) return;
   for(var i=0;i<els.length;i++) els[i].classList.add("show");
+  document.body.style.cursor = "";
   clearTimeout(exitTimer);
   exitTimer = setTimeout(function(){
     var e2 = document.querySelectorAll(".tv-exit, .tv-swap");
     for(var j=0;j<e2.length;j++) e2[j].classList.remove("show");
+    if(view.display) document.body.style.cursor = "none";   /* 10-09 재아: 마우스 포인터는 '목록으로·종료' 단추가 보일 때만 */
   }, ms||5000);
 }
+/* 디스플레이에서 마우스를 움직이면 단추와 포인터를 잠깐 보여 줌 */
+var TV_MOVE_T = 0;
+document.addEventListener("mousemove", function(){ if(!view.display) return; var n = Date.now(); if(n - TV_MOVE_T < 400) return; TV_MOVE_T = n; pokeExit(3000); });
 
 function tableFloors(){
   const out = []; (store().settings.rooms||[]).filter(isTable).forEach(t=>{ if(out.indexOf(t.floor||"")<0) out.push(t.floor||""); }); return out;
