@@ -163,6 +163,8 @@ const SKEY = "hanok.dev.session";   /* 10-06 이름 바꿈(옛 madang.dev.sessio
 const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, stats:null, statDays:30, ai:null, aiForm:"", busy:false, err:"" };
 const $app = document.getElementById("app");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* 단추 코드 안 작은따옴표 문자열용 — esc 의 &#39; 는 속성 안에서 ' 로 풀려 끊김(10-09 점검) */
+const jsq = s => esc(String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\r?\n/g, " "));
 
 /* ---------- 시각 ---------- */
 const kst = iso => { if(!iso) return "—"; const d = new Date(iso); return d.toLocaleString("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false}); };
@@ -183,7 +185,7 @@ function loadSess(){ try{ localStorage.removeItem(SKEY); sessionStorage.removeIt
 async function auth(grant, body){
   const r = await fetch(CFG.url + "/auth/v1/token?grant_type=" + grant, { method:"POST", headers:{ apikey:CFG.anonKey, "Content-Type":"application/json" }, body:JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
-  if(!r.ok) throw new Error(/invalid/i.test(j.error_description || j.msg || "") ? "아이디나 비밀번호가 맞지 않습니다" : "로그인하지 못했습니다(" + r.status + ")");
+  if(!r.ok){ const er = new Error(/invalid/i.test(j.error_description || j.msg || "") ? "아이디나 비밀번호가 맞지 않습니다" : "로그인하지 못했습니다(" + r.status + ")"); er.authFail = r.status === 400 || r.status === 401 || r.status === 403; throw er; }
   if((j.user && j.user.email) !== DEV_EMAIL) throw new Error("개발자 계정만 들어올 수 있습니다");
   return { access_token:j.access_token, refresh_token:j.refresh_token, expires_at:Date.now() + (j.expires_in || 3600) * 1000 };
 }
@@ -191,7 +193,11 @@ async function ensureSess(minLeft){
   if(!S.sess) return false;
   if(S.sess.expires_at - Date.now() > (minLeft || 60000)) return true;
   try{ saveSess(await auth("refresh_token", { refresh_token:S.sess.refresh_token })); return true; }
-  catch(e){ saveSess(null); return false; }
+  catch(e){
+    /* 와이파이가 잠깐 끊긴 것(fetch 실패)으로 로그아웃하지 않음 — 서버가 거절했을 때(400·401·403)만(10-09 점검: 설정 창에서 고치던 것이 날아갔음) */
+    if(e && e.authFail) saveSess(null);
+    return false;
+  }
 }
 /* PostgREST — 401 이면 한 번 새로 받아서 다시 */
 async function api(path, opt = {}, retry = true){
@@ -262,7 +268,7 @@ async function noticeAdd(){
 }
 function noticeHtml(r){
   return `<div class="card req"><div class="req-h"><b>${esc(r.title)}</b> <span class="tag green">공지</span> <span class="muted">${esc(kst(r.created_at))}</span></div>
-    ${r.body ? `<div class="body">${esc(r.body)}</div>` : ""}<div class="row-btns"><button class="btn sm danger" onclick="reqDel('${esc(r.id)}')">삭제</button></div></div>`;
+    ${r.body ? `<div class="body">${esc(r.body)}</div>` : ""}<div class="row-btns"><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button></div></div>`;
 }
 function reqHtml(r){
   const imgs = (r.images || []).filter(Boolean);
@@ -274,9 +280,9 @@ function reqHtml(r){
     ${imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : ""}
     <div class="reply">
       ${isDone(r) && r.reply ? `<div class="done"><b>보낸 답 · ${esc(kst(r.replied_at))}</b>${esc(r.reply)}</div>` : ""}
-      ${isDone(r) ? `<div class="row-btns"><button class="btn sm" onclick="reqEdit('${esc(r.id)}')">답 고치기</button><button class="btn sm" onclick="reqReopen('${esc(r.id)}')">미답으로 되돌리기</button><button class="btn sm danger" onclick="reqDel('${esc(r.id)}')">삭제</button></div>`
+      ${isDone(r) ? `<div class="row-btns"><button class="btn sm" onclick="reqEdit('${jsq(r.id)}')">답 고치기</button><button class="btn sm" onclick="reqReopen('${jsq(r.id)}')">미답으로 되돌리기</button><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button></div>`
         : `<textarea id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea>
-           <div class="row-btns"><button class="btn sm danger" onclick="reqDel('${esc(r.id)}')">삭제</button><button class="btn sm primary" onclick="reqReply('${esc(r.id)}')">답변 보내기</button></div>`}
+           <div class="row-btns"><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button><button class="btn sm primary" onclick="reqReply('${jsq(r.id)}')">답변 보내기</button></div>`}
     </div></div>`;
 }
 async function reqPatch(id, body, msg){
@@ -331,7 +337,7 @@ function tabHealth(){
   if(h.error) return `<div class="card"><b>점검하지 못했습니다</b><p class="muted">${esc(h.error)}</p><button class="btn" onclick="loadHealth()">다시</button></div>`;
   const open = kstHour() >= 10 && kstHour() < 22;
   const av = mins(h.avail_at), staff = (h.logins || []).find(x => /staff/.test(x.email)), admin = (h.logins || []).find(x => /admin/.test(x.email));
-  const rq = h.requests || {}, dq = h.devreq || {}, site = h.site || {}, st = h.store || {}, res = h.res || {}, sto = h.storage || {};
+  const rq = h.requests || {}, dq = h.devreq || {}, site = Object.assign({ booking:true }, h.site || {}), st = h.store || {}, res = h.res || {}, sto = h.storage || {};
   const pages = [c.home, c.sys, c.tv], pagesOk = pages.every(p => p.ok);
   const u = h.usage || {}, pct = (a, b) => b ? Math.round(a * 1000 / b) / 10 : 0, lv = p => p >= 90 ? "bad" : p >= 70 ? "warn" : "";
   const dbp = pct(u.db_bytes || 0, u.db_limit), fip = pct(u.file_bytes || 0, u.file_limit);
@@ -518,20 +524,22 @@ async function backup(){
   try{
     const out = { kind:"hanok-backup", at:new Date().toISOString(), project:CFG.url };   /* kind·stores·reservations — 비상 페이지가 이 파일 하나로 엶(10-06) */
     const all = async (t, q) => { let rows = [], from = 0; for(;;){ const r = await api("/rest/v1/" + t + "?select=*" + (q || ""), { range:from + "-" + (from + 999) }); rows = rows.concat(r || []); if(!r || r.length < 1000) return rows; from += 1000; } };
-    for(const [t, q] of [["stores"], ["reservations", "&order=date,time,id"], ["requests", "&order=created_at"], ["customers"], ["staff"], ["attendance"], ["hr_settings"], ["site_posts"], ["site_draft"], ["dev_requests"], ["thanks_sms"]]) {
-      try{ out[t] = await all(t, q); }catch(e){ out[t] = { error:e.message }; }
+    /* 1,000행 넘게 이어 받을 땐 순서가 정해져 있어야 겹치거나 빠지지 않음 — 표마다 기본 키 순(10-09 점검) */
+    const failed = [];
+    for(const [t, q] of [["stores", "&order=key"], ["reservations", "&order=date,time,id"], ["requests", "&order=created_at,id"], ["customers", "&order=store,phone"], ["staff", "&order=id"], ["attendance", "&order=id"], ["hr_settings", "&order=store"], ["site_posts", "&order=id"], ["site_draft", "&order=store"], ["dev_requests", "&order=id"], ["thanks_sms", "&order=id"], ["staff_pins", "&order=id"], ["menu_boards", "&order=id"]]) {
+      try{ out[t] = await all(t, q); }catch(e){ out[t] = { error:e.message }; failed.push(t); }
     }
     try{ out.site_versions = await api("/rest/v1/site_versions?select=*&order=apply_at.desc&limit=20"); }catch(e){ out.site_versions = { error:e.message }; }
     const blob = new Blob([JSON.stringify(out, null, 1)], { type:"application/json" }), a = document.createElement("a");
     const d = new Date(), p = n => String(n).padStart(2, "0");
     a.href = URL.createObjectURL(blob); a.download = `backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;   /* 10-06 재아: backup-날짜.json — 매일 백업의 한 파일과 같은 이름 꼴 */
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    toast("백업을 내려받았습니다 · 예약 " + (Array.isArray(out.reservations) ? out.reservations.length : "?") + "건 · " + mb(blob.size));
+    toast((failed.length ? "일부 표를 못 받았습니다(" + failed.join(", ") + ") — " : "") + "백업을 내려받았습니다 · 예약 " + (Array.isArray(out.reservations) ? out.reservations.length : "?") + "건 · " + mb(blob.size));
   }catch(e){ toast("백업하지 못했습니다 — " + e.message); }
   if(btn){ btn.disabled = false; btn.textContent = "백업 내려받기"; }
 }
 function tabEm(){
-  const site = S.health && S.health.site, on = site ? site.booking : null;
+  const site = S.health && S.health.site, on = site ? site.booking : (S.health ? true : null);   /* 판이 없으면 기본값(켜짐)으로(10-09 점검) */
   return `<div class="card em"><div class="tx"><h3>모든 기기 새로고침</h3><p>고친 판을 올린 뒤 카운터 태블릿·사장님 폰·TV 가 옛 화면을 붙들고 있을 때. 켜져 있는 기기가 10초~1분 안에 못 보낸 것을 보내고 다시 읽습니다.</p></div>
       <button class="btn primary" onclick="act('reload', '켜져 있는 가게 기기를 모두 새로고침할까요?')">새로고침 보내기</button></div>
     <div class="card em"><div class="tx"><h3>홈페이지 예약 ${on === false ? "다시 켜기" : "긴급 끄기"}</h3><p>${on === false ? "지금 꺼져 있습니다. 켜면 손님이 다시 홈페이지에서 예약을 넣을 수 있습니다." : "접수가 잘못 들어오거나 남은 자리가 틀릴 때. 끄면 예약 창이 전화 안내만 보여 줍니다. 사장님 초안에도 꺼짐으로 남습니다."}${on == null ? ' <span class="muted">(지금 상태는 점검 탭에서 확인)</span>' : ""}</p></div>

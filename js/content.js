@@ -30,14 +30,23 @@
     return out;
   };
   let siteData = null, sysSet = null;
-  const draw = () => { const S = (siteData && typeof siteData === "object" && Object.keys(siteData).length) ? merge(window.SITE_DEFAULT, siteData) : window.SITE_DEFAULT; window.applySiteGlobals(withSys(S, sysSet)); };
+  /* 서버 값 하나가 모양이 틀려도(배열 자리에 글자 등) 화면 전체가 안 보이면 안 됨 — 실패하면 저장해 둔 사본을 지우고 기본값으로(10-09 점검).
+     전엔 틀린 값이 기기에 저장돼, 서버를 고쳐도 다시 찾은 손님에겐 계속 빈 화면이었음 */
+  const drawSafe = S => { try{ window.applySiteGlobals(withSys(S, sysSet)); return true; }catch(e){ console.error("홈페이지 내용 적용 실패", e); return false; } };
+  const draw = () => {
+    const S = (siteData && typeof siteData === "object" && Object.keys(siteData).length) ? merge(window.SITE_DEFAULT, siteData) : window.SITE_DEFAULT;
+    if(drawSafe(S)) return;
+    try{ localStorage.removeItem(CACHE); localStorage.removeItem(MCACHE); }catch(e){}
+    siteData = null; sysSet = null;
+    try{ window.applySiteGlobals(window.SITE_DEFAULT); }catch(e){ console.error(e); }
+  };
   const apply = data => { if(data && typeof data === "object" && Object.keys(data).length){ siteData = data; draw(); } };
   const MCACHE = "hanok-menu-live";
 
   let cached = null;
   if(!preview){ try{ cached = JSON.parse(localStorage.getItem(CACHE) || "null"); }catch(e){} }
   try{ sysSet = JSON.parse(localStorage.getItem(MCACHE) || "null"); }catch(e){}
-  if(cached && cached.data) apply(cached.data); else if(sysSet) draw();
+  try{ if(cached && cached.data) apply(cached.data); else if(sysSet) draw(); }catch(e){ try{ localStorage.removeItem(CACHE); localStorage.removeItem(MCACHE); }catch(x){} siteData = null; sysSet = null; }
 
   const C = window.SUPA;
   let done;
@@ -46,22 +55,24 @@
     const H = { "apikey": C.anonKey, "Authorization": "Bearer " + C.anonKey };
     const path = preview
       ? `/rest/v1/site_draft?store=eq.${C.store}&select=data,updated_at`
-      : `/rest/v1/site_versions?store=eq.${C.store}&apply_at=lte.${encodeURIComponent(new Date().toISOString())}&select=id,data,apply_at&order=apply_at.desc&limit=1`;
-    const site = fetch(C.url + path, {headers:H}).then(r => r.ok ? r.json() : []).then(rows => {
+      : `/rest/v1/site_versions?store=eq.${C.store}&select=id,data,apply_at&order=apply_at.desc&limit=1`;   /* 앞날 판은 서버 권한(apply_at <= now())이 가림 — 손님 기기 시계로 거르면 시계가 늦은 폰이 옛 판을 봤음 */
+    /* 서버 오류(5xx·429·잠김)는 '판 없음' 이 아님 — 던져서 아래 catch 가 저장해 둔 사본을 그대로 쓰게(10-09 점검: 전엔 사본을 지우고 옛 기본값을 보였음) */
+    const okJson = r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+    const site = fetch(C.url + path, {headers:H}).then(okJson).then(rows => {
       const row = rows && rows[0];
       if(!row){ if(!preview){ try{ localStorage.removeItem(CACHE); }catch(e){} siteData = null; } return; }
       siteData = row.data;
       if(!preview){ try{ localStorage.setItem(CACHE, JSON.stringify({at:Date.now(), id:row.id, data:row.data})); }catch(e){} }
     }).catch(() => {});
     /* 코스·특별 기간(예약 시스템 설정) — 미리보기에서도 지금 값(설정은 '적용하기' 한 것만 서버에 있음) */
-    const sys = fetch(C.url + `/rest/v1/public_screen?store=eq.${C.store}&select=settings`, {headers:H}).then(r => r.ok ? r.json() : []).then(rows => {
+    const sys = fetch(C.url + `/rest/v1/public_screen?store=eq.${C.store}&select=settings`, {headers:H}).then(okJson).then(rows => {
       const st = rows && rows[0] && rows[0].settings;
       if(st && Array.isArray(st.courseGroups)){ sysSet = { courseGroups: st.courseGroups, specials: st.specials || [] }; try{ localStorage.setItem(MCACHE, JSON.stringify(sysSet)); }catch(e){} }
     }).catch(() => {});
-    done = Promise.all([site, sys]).then(draw);
+    done = Promise.all([site, sys]).then(draw).catch(e => console.error(e));
   }
   const timeout = new Promise(r => setTimeout(r, 1500));
-  window.SITE_READY = Promise.race([done, timeout]).then(() => { show(); return window.SITE; });
+  window.SITE_READY = Promise.race([done, timeout]).catch(() => {}).then(() => { show(); return window.SITE; });
   /* 미리보기 표시 띠 — 손님이 볼 일은 없지만, 관리 화면 안에서 초안인지 한눈에 */
   if(preview) window.SITE_READY.then(() => { const b = document.createElement("div"); b.className = "preview-bar"; b.textContent = "미리보기 — 아직 적용하지 않은 초안입니다"; document.body.classList.add("has-preview"); document.body.append(b); });
 })();

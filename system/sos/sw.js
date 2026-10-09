@@ -3,7 +3,8 @@
 self.addEventListener("install", function(){ self.skipWaiting(); });
 self.addEventListener("activate", function(e){
   e.waitUntil(
-    caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); })
+    /* 옛 판(sos-v1~v7)만 — 저장소는 사이트 전체가 같이 써서, 전엔 새 비상 페이지(/manage/sos/)의 저장본까지 지웠음(10-09 점검) */
+    caches.keys().then(function(ks){ return Promise.all(ks.filter(function(k){ return /^sos-v[1-7]$/.test(k); }).map(function(k){ return caches.delete(k); })); })
       .then(function(){ return self.registration.unregister(); })
   );
 });

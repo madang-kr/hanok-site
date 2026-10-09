@@ -19,7 +19,7 @@
   const CACHE = "hanok-news-rows";
 
   /* 옛 깊은 링크(#post_…) → 새 주소(?p=…) */
-  if(location.hash && location.hash.length > 1 && !/[?&]p=/.test(location.search)){
+  if(/^#post_/.test(location.hash) && !/[?&]p=/.test(location.search)){   /* 글 번호만 — '#main-content'(건너뛰기 링크) 같은 다른 # 은 그대로(10-09 점검) */
     location.replace("news.html?p=" + encodeURIComponent(location.hash.slice(1))); return;
   }
   const Q = new URLSearchParams(location.search);
@@ -125,7 +125,7 @@
   if(cached && Array.isArray(cached.rows)) draw(cached.rows);
   const H = { "apikey": C.anonKey, "Authorization": "Bearer " + C.anonKey };
   fetch(`${C.url}/rest/v1/site_posts?store=eq.${C.store}&status=eq.%EA%B2%8C%EC%8B%9C&select=id,title,body,date,images,files,pinned&order=pinned.desc,date.desc,created_at.desc&limit=200`, {headers:H})
-    .then(r => r.ok ? r.json() : [])
+    .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })   /* 서버 오류를 '글 없음' 으로 보여 주지 않게(10-09 점검) */
     .then(rows => {
       const same = cached && JSON.stringify(cached.rows) === JSON.stringify(rows);
       try{ sessionStorage.setItem(CACHE, JSON.stringify({rows})); }catch(e){}

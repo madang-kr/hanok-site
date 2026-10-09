@@ -346,7 +346,7 @@ body.rv-open{overflow:hidden}
 .rv-fld-hint.bad{color:#B23E28}
 /* 확인표 */
 .rv-check{margin:0; border-top:1px solid var(--line)}
-.rv-check > div{display:grid; grid-template-columns:120px 1fr; gap:16px; padding:13px 0; border-bottom:1px solid var(--line)}
+.rv-check > div{display:grid; grid-template-columns:120px minmax(0,1fr); gap:16px; padding:13px 0; border-bottom:1px solid var(--line)}
 .rv-check dt{font-size:13.5px; color:var(--sub); letter-spacing:0}
 .rv-check dd{margin:0; font-size:15.5px; color:var(--ink); line-height:1.6}
 /* 동의 */
@@ -514,7 +514,7 @@ body.rv-open{overflow:hidden}
   .rv-times{grid-template-columns:repeat(3,1fr)}
   .rv-pick.two{grid-template-columns:1fr}
   .rv-days button{height:40px; font-size:14px}
-  .rv-check > div{grid-template-columns:88px 1fr; gap:12px}
+  .rv-check > div{grid-template-columns:88px minmax(0,1fr); gap:12px}
   .rv-sum{font-size:14px}
   .rv-cnt-n{font-size:20px; min-width:44px}
   .rv-call span{font-size:15px}
@@ -523,7 +523,8 @@ body.rv-open{overflow:hidden}
 
 /* ---------- 내용 불러오기(js/content.js) ---------- */
 /* 서버 값이 정해질 때까지 본문을 숨김 — 기본 글이 잠깐 보였다 바뀌는 깜빡임 방지. 1.5초 넘으면 content.js 가 그냥 보여줌 */
-html.pending body{visibility:hidden}
+html.pending body{visibility:hidden; animation:pend-show 0s 2.5s forwards}   /* 스크립트가 어떤 이유로 멈춰도 2.5초 뒤엔 보이게(10-09 점검) */
+@keyframes pend-show{to{visibility:visible}}
 /* ?preview=1 — 관리 화면의 미리보기. 초안임을 위에 띠로 */
 .preview-bar{position:fixed; left:0; right:0; bottom:0; z-index:200; background:#B8432B; color:#fff; font-size:13px; letter-spacing:.02em; text-align:center; padding:8px 12px}   /* 위에 두면 상단 메뉴를 가려서 아래로(검토 2026-09-17) */
 body.has-preview .fab{bottom:56px}
@@ -631,3 +632,6 @@ body.lb-open{overflow:hidden}
 .rv-fail .btn{margin-top:10px; min-width:0; padding:0 18px}
 .rv-fail-tel{display:inline-block; margin:10px 0 0 12px; font-size:14px}
 .rv h3:focus, .rv-msg:focus{outline:none}
+
+/* 띄어쓰기 없는 긴 글(주소 붙여넣기·영문 이름)이 화면을 가로로 밀던 것(10-09 점검) */
+.rv-check dd, .rv-check > div > *, .post-text, .post-body, .rv-sum span, .rv-pick b, .news-item, .rv-note{overflow-wrap:anywhere; min-width:0}

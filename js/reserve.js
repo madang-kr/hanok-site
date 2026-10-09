@@ -14,8 +14,14 @@
 (function(){
   const $ = (s, r) => (r||document).querySelector(s);
   const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  /* 전화 링크엔 숫자·+·- 만(10-09 점검: 서버 값의 따옴표가 링크를 끊고 코드가 될 수 있었음) */
+  const telHref = t => String(t == null ? "" : t).replace(/[^0-9+\-]/g, "");
   const pad = n => String(n).padStart(2,"0");
   const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  /* 가게 시각(한국) — 손님 폰이 다른 나라 시간대여도 '오늘·내일·지금' 은 한국 기준(10-09 점검: 미국 시간대 폰엔 한국 오늘이 '내일' 로 열렸음) */
+  const kst = ms => new Date((ms == null ? Date.now() : ms) + 9 * 3600e3);
+  const kstYmd = ms => { const d = kst(ms); return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate()); };
+  const kstMin = () => { const d = kst(); return d.getUTCHours()*60 + d.getUTCMinutes(); };
   const mins = t => Number(t.slice(0,2))*60 + Number(t.slice(3));
   const hm = t => { const h = Math.floor(mins(t)/60), m = mins(t)%60; return (h<12?"오전":"오후")+" "+(h%12===0?12:h%12)+":"+pad(m); };
   const WD = ["일","월","화","수","목","금","토"];
@@ -35,9 +41,10 @@
   /* 가짜 만석: 금·토 저녁 18:00·18:30 룸은 찼다고 칩니다. 실제로는 예약 현황에서 옵니다 */
   /* 당일이면 '지금 + 여유 시간' 이전 시각은 뺍니다(09-24). 당일을 끈 동안은 오늘을 달력에서 아예 못 고르니 여기 안 옴 */
   const leadCut = (date, list) => {
-    const n = new Date(), today = n.getFullYear() + "-" + pad(n.getMonth()+1) + "-" + pad(n.getDate());
+    const today = kstYmd();
+    if(date < today) return [];
     if(date !== today) return list;
-    const from = n.getHours()*60 + n.getMinutes() + Math.max(1, R().sameDayLeadH || 2)*60;
+    const from = kstMin() + Math.max(1, R().sameDayLeadH || 2)*60;
     return list.filter(t => { const p = t.split(":"); return (+p[0])*60 + (+p[1]) >= from; });
   };
   const stubFull = (date, time, seat) => { const wd = new Date(date+"T00:00:00").getDay(); return seat === "room" && (wd === 5 || wd === 6) && (time === "18:00" || time === "18:30"); };
@@ -129,7 +136,7 @@
      반대로 아무 6자리나 통과해 인증 의미도 없었음). 문자 업체를 붙이면 true 로 */
   const SMS_VERIFY = false;
   /* ---------- 상태 ---------- */
-  let S, step, timer, left, ov, monthCache, extended;   /* extended: 5분 연장을 한 번 썼는지 */
+  let S, step, timer, left, ov, monthCache, extended, submitting = false;   /* extended: 5분 연장을 한 번 썼는지 · submitting: 접수 답을 기다리는 중(10-09) */
   const total = () => S.adults + S.kids;
   const tooMany = () => total() > R().maxPeople;
   function reset(){
@@ -176,6 +183,8 @@
     opener = null;
   }
   function confirmClose(){
+    /* 접수 중(서버 답 기다리는 중)엔 닫지 않음 — 닫아도 접수는 들어가 '그만둔 줄 아는 예약' 이 생겼음(10-09 점검) */
+    if(submitting){ ask("접수하는 중입니다", "잠시만 기다려 주세요. 끝나면 결과가 나옵니다.", "확인", () => {}); return; }
     if(step > 1 && step < 8){ ask("예약을 그만두시겠습니까?", "입력하신 내용은 저장되지 않습니다.", "그만두기", close); return; }
     close();
   }
@@ -250,11 +259,11 @@
     if(S.seat === "room" && S.adults < roomMin(S.date)) return `룸 예약은 성인 기준 ${roomMin(S.date)}명부터 받고 있습니다.`;
     return "";
   }
-  const telBox = msg => `<div class="rv-note">${esc(msg)}<a class="rv-tel-lnk" href="tel:${INFO.tel}">${esc(INFO.tel)}</a></div>`;
+  const telBox = msg => `<div class="rv-note">${esc(msg)}<a class="rv-tel-lnk" href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></div>`;
   /* 남은 자리를 못 불러왔을 때(10-03) — 다시 시도 + 전화. 낭독기에는 role=alert 로 바로 읽힘 */
   const failBox = (retryId, what) => `<div class="rv-note rv-fail" role="alert">${what} 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.<br>
       <button type="button" class="btn" id="${retryId}">다시 시도</button>
-      <span class="rv-fail-tel">또는 전화로 예약 <a class="rv-tel-lnk" href="tel:${INFO.tel}">${esc(INFO.tel)}</a></span></div>`;
+      <span class="rv-fail-tel">또는 전화로 예약 <a class="rv-tel-lnk" href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></span></div>`;
 
   /* ---------- 틀 ---------- */
   const STEPS = ["인원", "날짜", "시간", "좌석", "메뉴", "예약자 정보", "예약 확인"];
@@ -264,7 +273,7 @@
     if(!R().enabled){
       steps.hidden = true;
       $(".rv-b", ov).innerHTML = `<section class="rv-sec rv-off"><h3>${esc(R().offTitle)}</h3><p>${esc(R().offMsg).replace(/\n/g, "<br>")}</p></section>`;
-      $(".rv-f", ov).innerHTML = `<a class="rv-call" href="tel:${INFO.tel}"><b>전화로 예약</b><span>${esc(INFO.tel)}</span></a><button type="button" class="btn ghost" data-off-close>닫기</button>`;
+      $(".rv-f", ov).innerHTML = `<a class="rv-call" href="tel:${telHref(INFO.tel)}"><b>전화로 예약</b><span>${esc(INFO.tel)}</span></a><button type="button" class="btn ghost" data-off-close>닫기</button>`;
       $("[data-off-close]", ov).addEventListener("click", close);
       return;
     }
@@ -286,9 +295,9 @@
   function foot(f, prev, next, label, off, warn){
     const leftEl = warn ? `<div class="rv-warn">${warn}</div>`
                  : prev ? `<button type="button" class="btn ghost" data-prev>이전</button>`
-                 : off ? `<a class="rv-call" href="tel:${INFO.tel}"><b>전화로 예약</b><span>${esc(INFO.tel)}</span></a>` : `<span></span>`;
+                 : off ? `<a class="rv-call" href="tel:${telHref(INFO.tel)}"><b>전화로 예약</b><span>${esc(INFO.tel)}</span></a>` : `<span></span>`;
     f.innerHTML = leftEl + `<button type="button" class="btn fill" data-next${off?" disabled":""}>${label||"다음"}</button>`;
-    if(prev) $("[data-prev]", f).addEventListener("click", () => { step--; render(); });
+    if(prev) $("[data-prev]", f).addEventListener("click", () => { if(submitting) return; step--; render(); });
     $("[data-next]", f).addEventListener("click", next);
   }
   const peopleText = () => S.kids ? `성인 ${S.adults} · 어린이 ${S.kids}` : `성인 ${S.adults}`;
@@ -302,7 +311,7 @@
   };
   /* 룸 최소 인원 — 평일 / 주말·공휴일 따로(09-24 재아). 주말 값이 없으면 평일 값 */
   const roomMin = date => (date && isWeekend(date) && R().roomMinAdultsWeekend) ? R().roomMinAdultsWeekend : R().roomMinAdults;
-  const dayRange = () => { const t = new Date(); return { min: ymd(R().sameDay ? t : new Date(t.getTime() + 864e5)), max: ymd(new Date(t.getTime() + R().maxDays*864e5)) }; };   /* 내일부터 — '당일 예약' 을 켜면 오늘부터 */
+  const dayRange = () => { const t = Date.now(); return { min: kstYmd(R().sameDay ? t : t + 864e5), max: kstYmd(t + R().maxDays*864e5) }; };   /* 내일부터 — '당일 예약' 을 켜면 오늘부터 */
 
   /* ---------- ① 인원 ---------- */
   function sPeople(b, f){
@@ -324,7 +333,7 @@
       b.querySelectorAll(".rv-cnt").forEach(r => r.querySelectorAll("button").forEach(y =>
         y.disabled = (y.dataset.d === "-1" ? S[r.dataset.k] <= 0 : total() >= MAX_SEAT)));
       const warn = tooMany()
-        ? `유선으로 예약 도와드리겠습니다. <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a>`
+        ? `유선으로 예약 도와드리겠습니다. <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a>`
         : (S.adults < R().minAdults ? `성인 ${R().minAdults}명부터 접수 가능합니다.` : "");
       foot(f, false, next, "다음", !ok(), warn);
     }
@@ -429,7 +438,7 @@
         return;
       }
       if(!ov || want !== S.date) return;
-      if(!list.length){ times.innerHTML = `<p class="rv-quiet">이 날은 예약 가능한 시간이 없습니다. 다른 날짜를 고르시거나 유선으로 문의해 주세요. <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a></p>`; return; }
+      if(!list.length){ times.innerHTML = `<p class="rv-quiet">이 날은 예약 가능한 시간이 없습니다. 다른 날짜를 고르시거나 유선으로 문의해 주세요. <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></p>`; return; }
       const le = lunchEnd(S.date), lunch = list.filter(t => mins(t) < le), dinner = list.filter(t => mins(t) >= le);
       const grid = (label, arr) => arr.length ? `<div class="rv-tgroup"><span>${label}</span><div class="rv-times">${
         arr.map(t => `<button type="button" data-t="${t}" class="${t===S.time?'on':''}" aria-pressed="${t===S.time}">${hm(t)}</button>`).join("")}</div></div>` : "";
@@ -474,7 +483,7 @@
       const po = !S.seat ? "" : (okBy[S.seat] === false ? `이 시각에는 ${label} 자리가 없습니다. 유선으로 예약 도와드리겠습니다.` : phoneOnly());
       const off = ["table", "room"].filter(k => okBy[k] === false).map(k => k === "room" ? "룸" : "테이블");
       hint.innerHTML = off.length ? `<p class="rv-quiet">${esc(off.join("·"))}은 이 시각에 자리가 없어 고를 수 없습니다.</p>` : "";
-      foot(f, true, next, "다음", !S.seat || !!po, po ? `${esc(po)} <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a>` : "");
+      foot(f, true, next, "다음", !S.seat || !!po, po ? `${esc(po)} <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a>` : "");
     }
     seg.querySelectorAll("[data-s]").forEach(x => x.addEventListener("click", () => {
       if(S.seat !== x.dataset.s){ S.seat = x.dataset.s; S.course = ""; S.courseLabel = ""; }
@@ -493,7 +502,7 @@
   function spOpenNow(sp){
     const on = sp.open != null ? !!sp.open : !sp.lock;
     if(!on) return false;
-    const t = ymd(new Date());
+    const t = kstYmd();
     return (!sp.openFrom || t >= sp.openFrom) && (!sp.openTo || t <= sp.openTo);
   }
   function lockedOf(date){ return (R().special || []).find(sp => sp && sp.from && sp.to && date >= sp.from && date <= sp.to && !spOpenNow(sp)) || null; }
@@ -592,7 +601,7 @@
             <input id="rv-code" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리">
             <button type="button" class="btn" id="rv-verify">확인</button>
           </div>
-          <p class="rv-fld-hint" id="rv-tel-hint">${S.verified ? "인증되었습니다." : (SMS_VERIFY ? "" : `확정 연락을 드릴 번호입니다. 일반전화·해외 번호는 <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a> 로 전화 주세요.`)}</p>
+          <p class="rv-fld-hint" id="rv-tel-hint">${S.verified ? "인증되었습니다." : (SMS_VERIFY ? "" : `확정 연락을 드릴 번호입니다. 일반전화·해외 번호는 <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a> 로 전화 주세요.`)}</p>
           <button type="button" class="rv-linkbtn" id="rv-tel-edit"${S.sent && !S.verified ? "" : " hidden"}>번호 수정</button>
         </div>
         <div class="rv-fld"><label for="rv-req">요청사항 <em>선택</em></label>
@@ -618,8 +627,10 @@
     name.addEventListener("input", () => { S.name = name.value; refoot(); });
     req.addEventListener("input", () => { S.req = req.value; });
     phone.addEventListener("input", () => {
-      const d = phone.value.replace(/\D/g, "").slice(0, 11);
-      phone.value = d.length > 7 ? d.replace(/(\d{3})(\d{3,4})(\d{0,4})/, "$1-$2-$3") : d.length > 3 ? d.replace(/(\d{3})(\d{0,4})/, "$1-$2") : d;
+      let d = phone.value.replace(/\D/g, "");
+      if(/^82(10|11|16|17|18|19)/.test(d)) d = "0" + d.slice(2);   /* +82 10-… 붙여넣기(10-09 점검) */
+      d = d.slice(0, 11);
+      phone.value = d.length === 10 ? d.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3") : d.length > 7 ? d.replace(/(\d{3})(\d{3,4})(\d{0,4})/, "$1-$2-$3") : d.length > 3 ? d.replace(/(\d{3})(\d{0,4})/, "$1-$2") : d;
       S.phone = phone.value;
       if(!SMS_VERIFY) refoot();
     });
@@ -693,8 +704,9 @@
     const all = () => S.agree.rule && S.agree.priv && S.agree.age;
     const refoot = () => foot(f, true, submit, "접수하기", !all());
     async function submit(){
-      if(!all()) return;
+      if(!all() || submitting) return;
       const btn = $("[data-next]", f); btn.disabled = true; btn.textContent = "접수 중…";
+      submitting = true; const prevBtn = $("[data-prev]", f); if(prevBtn) prevBtn.disabled = true;
       clearInterval(timer); timer = null;   /* 응답을 기다리는 사이 제한 시간이 끝나 완료 화면이 깨지던 것(09-25) */
       const body = {date:S.date, time:S.time, adults:S.adults, kids:S.kids, people:total(),
                     seat:S.seat, course:S.course, courseLabel:S.courseLabel,
@@ -703,10 +715,12 @@
          화면엔 새 내용으로 '접수됨' 이 떴음(10-09 점검). 바뀌었으면 새 번호로 */
       const sig = JSON.stringify(body);
       if(S.rid && S.ridSig !== sig) S.rid = "";
-      const r = await RES_API.submit(Object.assign({rid:S.rid}, body));
+      let r; try{ r = await RES_API.submit(Object.assign({rid:S.rid}, body)); }catch(e){ r = {ok:false}; }
+      submitting = false;
+      if(!ov) return;   /* 그사이 창이 닫혔으면(다른 길) 화면을 다시 그리지 않음 */
       if(r && r.id){ S.rid = r.id; S.ridSig = sig; }   /* 다시 보낼 때 같은 번호 */
       if(r && r.ok){ S.reqId = r.id || ""; clearInterval(timer); timer = null; step = 8; render(); }
-      else { btn.disabled = false; btn.textContent = "접수하기"; render((r && r.msg) || "접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."); }
+      else { if(!timer) startTimer(); btn.disabled = false; btn.textContent = "접수하기"; render((r && r.msg) || "접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."); }   /* 실패하면 남은 시간도 다시(전엔 멈춘 채) */
     }
     refoot();
   }
@@ -727,7 +741,7 @@
         <p class="big">${esc(dateText(S.date))} ${esc(hm(S.time))} · ${esc(peopleText())} · ${S.seat==="room"?"룸":"테이블"}</p>
         ${S.reqId ? `<p class="rv-code">예약번호 <b class="num">${resCode(S.reqId)}</b></p>` : ""}
         <p>가게에서 확인한 뒤 <b>${esc(S.phone)}</b> 로 확정을 알려드립니다.</p>
-        <p class="rv-quiet">예약 변경 혹은 다른 문의사항은 <a href="tel:${INFO.tel}">${esc(INFO.tel)}</a> 로 전화 주세요.</p>
+        <p class="rv-quiet">예약 변경 혹은 다른 문의사항은 <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a> 로 전화 주세요.</p>
       </div>`;
     f.innerHTML = `<span></span><button type="button" class="btn fill" data-close>닫기</button>`;
     $("[data-close]", f).addEventListener("click", close);
@@ -741,7 +755,7 @@
 
   if(/[?&]reserve=1/.test(location.search)) setTimeout(open, 300);   /* 옛 예약 장 주소(reserve.html)로 들어온 손님 — 홈에서 예약 창을 바로(09-25) */
   /* 미리보기: ?rv=5 처럼 붙이면 그 단계가 보기 데이터로 열립니다(스크린샷·검토용) */
-  const m = location.search.match(/[?&]rv=(\d)/);
+  const m = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || /[?&]shot=1/.test(location.search) ? location.search.match(/[?&]rv=(\d)/) : null;   /* 보기 데이터 창은 이 PC 확인용만 — 실서비스에서 보기 이름으로 접수가 들어가지 않게(10-09 점검) */
   if(m){
     open();
     const d = new Date(Date.now() + 3*864e5);

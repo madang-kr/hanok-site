@@ -260,6 +260,9 @@
     return r;
   }
   function loadTexts(texts){
+    try{ loadTextsGo(texts); }catch(e){ S.err = "파일을 읽다가 멈췄습니다 — 모양이 다른 파일 같습니다. backup-날짜.json 을 넣어 주세요."; S.ok = false; S.cache = null; render(); }   /* 전엔 말없이 첫 화면에 멈춤(10-09 점검) */
+  }
+  function loadTextsGo(texts){
     var res = null, settings = null, name = "", at = "", cache = null, bad = [];
     texts.forEach(function(t){
       var s0 = t.text.replace(/^﻿/, "").trim();
@@ -269,18 +272,22 @@
       if(o && o.kind === "hanok-sos-backup" && o.data){ cache = o.data; at = at || o.cacheAt || o.at || ""; return; }   /* 이 페이지의 옛 내보내기 */
       /* 한 파일 백업(10-06): 매일 백업의 sos/backup-날짜.json · 개발자 페이지 '백업 내려받기' — {at, stores:[…], reservations:[…]} */
       if(o && !Array.isArray(o) && Array.isArray(o.reservations)){
-        res = (res || []).concat(o.reservations.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean));
+        res = (res || []).concat(o.reservations.filter(function(x){ return x && (!x.store || x.store === "hanok"); }).map(rowToRes).filter(Boolean));
+        if(o.at && o.at > at) at = o.at;
         if(Array.isArray(o.stores) && o.stores.length){ var hs = o.stores.filter(function(x){ return x.key === "hanok"; })[0] || o.stores[0]; settings = hs.settings || {}; name = hs.name || ""; }
         at = at || o.at || ""; return;
       }
-      if(Array.isArray(o) && o.length && o[0].settings && o[0].key){ var h = o.filter(function(x){ return x.key === "hanok"; })[0] || o[0]; settings = h.settings || {}; name = h.name || ""; return; }   /* stores.json */
-      if(Array.isArray(o) && (!o.length || (o[0].date && o[0].time))){ res = (res || []).concat(o.filter(function(x){ return !x.store || x.store === "hanok"; }).map(rowToRes).filter(Boolean)); return; }   /* reservations.json */
+      if(Array.isArray(o) && o.length && o[0] && o[0].settings && o[0].key){ var h = o.filter(function(x){ return x.key === "hanok"; })[0] || o[0]; settings = h.settings || {}; name = h.name || ""; return; }   /* stores.json */
+      if(Array.isArray(o) && (!o.length || (o[0] && o[0].date && o[0].time))){ res = (res || []).concat(o.filter(function(x){ return x && (!x.store || x.store === "hanok"); }).map(rowToRes).filter(Boolean)); return; }   /* reservations.json */
       bad.push(t.name);
     });
     if(!cache && !res){
       S.err = bad.length ? "읽을 수 없는 파일입니다: " + bad.join(", ") + " — backup-날짜.json 을 넣어 주세요." : "예약이 든 파일이 아닙니다 — backup-날짜.json 을 넣어 주세요.";
       return render();
     }
+    if(cache && (!cache.hanok || !Array.isArray(cache.hanok.reservations))){ S.err = "예약이 든 파일이 아닙니다 — backup-날짜.json 을 넣어 주세요."; return render(); }
+    /* 여러 날 백업을 한꺼번에 열면 같은 예약이 두 번 — 번호마다 가장 늦게 고친 것만(10-09 점검) */
+    if(res){ var byId = {}; res.forEach(function(r){ var k = r.id || Math.random(); if(!byId[k] || (r._upd || "") > (byId[k]._upd || "")) byId[k] = r; }); res = Object.keys(byId).map(function(k){ return byId[k]; }); }
     if(!cache){
       var last = ""; res.forEach(function(r){ if((r._upd || "") > last) last = r._upd; });
       cache = { hanok:{ name:name || "한옥반점", settings:settings || {}, reservations:res } };
@@ -328,7 +335,8 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(b){ b.onclick = function(){ S.date = shift(S.date, +b.getAttribute("data-d")); render(); }; });
     var t = document.querySelector("[data-today]"); if(t) t.onclick = function(){ S.date = today(); render(); };
     var dp = document.getElementById("dpick"); if(dp) dp.onchange = function(){ if(dp.value){ S.date = dp.value; render(); } };
-    var q = document.getElementById("q"); if(q){ q.oninput = function(){ S.q = q.value; var pos = q.selectionStart; render(); var q2 = document.getElementById("q"); q2.focus(); try{ q2.setSelectionRange(pos, pos); }catch(e){} }; }
+    /* 한글 조합 중(ㅎ→하→한)에 화면을 다시 그리면 글자가 깨짐 — 조합이 끝났을 때 그림(10-09 점검) */
+    var q = document.getElementById("q"); if(q){ q.addEventListener("compositionend", function(){ q.oninput({}); }); q.oninput = function(e){ S.q = q.value; if(e && e.isComposing) return; var pos = q.selectionStart; render(); var q2 = document.getElementById("q"); q2.focus(); try{ q2.setSelectionRange(pos, pos); }catch(e){} }; }
     var pr = document.getElementById("print"); if(pr) pr.onclick = function(){ window.print(); };
     var as = document.getElementById("allsw"); if(as) as.onclick = function(){ S.all = !S.all; render(); var q3 = document.getElementById("q"); if(q3) q3.focus(); };
     Array.prototype.forEach.call(document.querySelectorAll("[data-res]"), function(el){ el.onclick = function(){ showRes(el.getAttribute("data-res")); }; el.onkeydown = function(e){ if(e.key === "Enter") showRes(el.getAttribute("data-res")); }; });
