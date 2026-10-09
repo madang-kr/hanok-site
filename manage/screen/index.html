@@ -15877,9 +15877,8 @@ let exitTimer = null;
 function pokeExit(ms){
   /* 종료와 전환을 같이 띄웁니다 — TV 에는 마우스가 없어 화면을 눌러야 나옵니다 */
   const els = document.querySelectorAll(".tv-exit, .tv-swap");
-  if(!els.length) return;
+  document.body.style.cursor = "";   /* 단추가 없는 화면이어도 포인터 숨기기는 돌게(10-09 점검) */
   for(var i=0;i<els.length;i++) els[i].classList.add("show");
-  document.body.style.cursor = "";
   clearTimeout(exitTimer);
   exitTimer = setTimeout(function(){
     var e2 = document.querySelectorAll(".tv-exit, .tv-swap");
