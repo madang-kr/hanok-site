@@ -696,10 +696,15 @@
       if(!all()) return;
       const btn = $("[data-next]", f); btn.disabled = true; btn.textContent = "접수 중…";
       clearInterval(timer); timer = null;   /* 응답을 기다리는 사이 제한 시간이 끝나 완료 화면이 깨지던 것(09-25) */
-      const r = await RES_API.submit({rid:S.rid, date:S.date, time:S.time, adults:S.adults, kids:S.kids, people:total(),
-                                      seat:S.seat, course:S.course, courseLabel:S.courseLabel,
-                                      name:S.name.trim(), phone:S.phone, request:S.req.trim(), allergy:S.allergy.trim()});
-      if(r && r.id) S.rid = r.id;   /* 다시 보낼 때 같은 번호 */
+      const body = {date:S.date, time:S.time, adults:S.adults, kids:S.kids, people:total(),
+                    seat:S.seat, course:S.course, courseLabel:S.courseLabel,
+                    name:S.name.trim(), phone:S.phone, request:S.req.trim(), allergy:S.allergy.trim()};
+      /* 같은 번호로 다시 보내는 건 내용이 그대로일 때만 — 끊긴 뒤 시각·인원을 바꿔 다시 누르면 서버엔 옛 내용이 남고(409 = 이미 받음)
+         화면엔 새 내용으로 '접수됨' 이 떴음(10-09 점검). 바뀌었으면 새 번호로 */
+      const sig = JSON.stringify(body);
+      if(S.rid && S.ridSig !== sig) S.rid = "";
+      const r = await RES_API.submit(Object.assign({rid:S.rid}, body));
+      if(r && r.id){ S.rid = r.id; S.ridSig = sig; }   /* 다시 보낼 때 같은 번호 */
       if(r && r.ok){ S.reqId = r.id || ""; clearInterval(timer); timer = null; step = 8; render(); }
       else { btn.disabled = false; btn.textContent = "접수하기"; render((r && r.msg) || "접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."); }
     }
