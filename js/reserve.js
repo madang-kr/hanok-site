@@ -111,6 +111,8 @@
       return out;
     };
     RES_API.submit = async p => {
+      /* 관리 화면의 미리보기(?preview=1)에서는 진짜 접수를 넣지 않음 — 초안 확인용이라(10-09 점검) */
+      if(/[?&]preview=1/.test(location.search)) return {ok:false, msg:"미리보기 화면입니다 — 접수는 실제 홈페이지에서만 됩니다."};
       /* 같은 접수를 다시 보낼 때는 같은 번호(p.rid) — 응답만 잃어버린 뒤 다시 눌러도 두 번 들어가지 않음(409 = 이미 들어감 = 성공) */
       const body = { id:p.rid || ("rq_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36)), store:SUPA.store,
         date:p.date, time:p.time, adults:p.adults, kids:p.kids, people:p.people, seat:p.seat, course:p.course, course_label:p.courseLabel,
