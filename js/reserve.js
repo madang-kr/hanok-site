@@ -596,7 +596,7 @@
         <div class="rv-fld">
           <label for="rv-phone">휴대폰 번호</label>
           <div class="rv-inline">
-            <input id="rv-phone" type="tel" value="${esc(S.phone)}" placeholder="010-0000-0000" autocomplete="tel" inputmode="numeric"${S.verified?" disabled":""}>
+            <input id="rv-phone" type="tel" value="${esc(S.phone)}" autocomplete="tel" inputmode="numeric"${S.verified?" disabled":""}>
             <button type="button" class="btn" id="rv-send"${S.verified?" disabled":""}${SMS_VERIFY ? "" : " hidden"}>${S.verified ? "인증 완료" : "인증번호 요청"}</button>
           </div>
           <div class="rv-inline" id="rv-codebox"${S.sent && !S.verified ? "" : " hidden"}>

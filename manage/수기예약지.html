@@ -14,7 +14,7 @@
 @page{size:A4; margin:8mm}
 *{box-sizing:border-box}
 body{margin:0; font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:#111}
-.sheet{width:194mm; margin:0 auto; display:grid; grid-template-columns:1fr; grid-template-rows:repeat(2,140mm)}
+.sheet{width:194mm; margin:0 auto; display:grid; grid-template-columns:1fr; grid-template-rows:repeat(2,132mm)}   /* 10-13 재아 '출력이 깨짐': 140mm 둘이면 프린터 기본 여백(12~13mm)에서 A4 를 넘어 두 번째 장이 잘렸음 → 132mm(여백 16mm 까지 한 장) */
 .slip{border-bottom:1px dashed #888; padding:5mm 5mm 4mm; display:grid; grid-template-rows:auto auto 1fr auto; row-gap:3mm; font-size:10.5pt; break-inside:avoid}
 .slip:last-child{border-bottom:none}
 .slip h2{margin:0; font-size:13pt; border-bottom:2px solid #111; padding-bottom:1.5mm; letter-spacing:.02em; display:flex; justify-content:space-between; align-items:baseline}
@@ -43,10 +43,13 @@ body{margin:0; font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sa
 .foot .v.s{min-width:9mm}   /* 접수 일시: __월 __일 __:__ */
 .foot .done{display:inline-flex; align-items:flex-end; font-weight:700; color:#111}
 .foot .done i{display:inline-block; width:4.2mm; height:4.2mm; border:1.4px solid #111; margin-right:1.5mm}
-@media screen{ body{background:#eee; padding:10mm 0} .sheet{background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.15)} }
+@media screen{ body{background:#eee; padding:10mm 0} .sheet{background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.15)}
+  .printbar{position:fixed; top:12px; right:16px; z-index:2} .printbar button{font:600 15px/1 inherit; padding:10px 18px; border-radius:10px; border:1px solid #333; background:#111; color:#fff; cursor:pointer} }
+@media print{ .printbar{display:none} html, body{background:#fff} }
 </style>
 </head>
 <body>
+<div class="printbar"><button onclick="window.print()">인쇄</button></div>
 <div class="sheet">
 <script>
 function opt(t){ return '<span class="opt"><i></i>' + t + '</span>'; }
