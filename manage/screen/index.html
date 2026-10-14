@@ -4419,7 +4419,9 @@ async function pushChanged(rec, k, cur){
   /* 충돌 */
   var theirs = await sb("/rest/v1/reservations?id=eq." + rec.id + "&select=*");
   var t = theirs && theirs[0];
-  if(!t){ await pushNew(rec, k); return; }   /* 서버에 아예 없음(백업 복구 등) — 새로 넣습니다 */
+  /* 서버에 아예 없음 — 이미 한 번 저장했던 예약이 사라졌다면 누군가 서버에서 지운 것(앱은 지울 때 휴지통 표시만 함 · 10-14 배포 전 정리처럼 SQL 로 지움).
+     전엔 새로 넣어 되살렸는데, 정리한 더미가 켜 둔 기기에서 되살아날 수 있었음 → 이 기기에서도 지움 */
+  if(!t){ var stx = DATA[k]; stx.reservations = stx.reservations.filter(function(x){ return x.id !== rec.id; }); stx.trash = (stx.trash || []).filter(function(x){ return x.id !== rec.id; }); delete SYNC.res[rec.id]; return; }
   var trec = rowToRes(t);
   if(!trec){ await pushNew(rec, k); return; }   /* 서버 행이 깨져 있으면 내 것으로 덮습니다 */
   var st = DATA[k];
