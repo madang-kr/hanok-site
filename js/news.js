@@ -9,6 +9,7 @@
 
    글 목록은 한 번 받으면 sessionStorage 에 두고 다음 화면에서 먼저 씁니다 — 목록 ↔ 글 사이를 오갈 때 '불러오는 중' 이 안 보이게.
    서버가 없거나(js/config.js 없음) 실패하면 "아직 소식이 없습니다" 만 — 손님에게 오류 문장을 보이지 않습니다. */
+if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(String(u || "")) ? String(u) : "#"; };   /* content.js 가 옛 캐시일 때 대비(site.js 와 같음) */
 (function(){
   const box = document.getElementById("news"); if(!box) return;
   const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -74,8 +75,8 @@
     box.innerHTML = `<article class="post-v" id="${esc(p.id)}">
         <header class="post-vh">${metaHtml(p)}<h2>${esc(p.title)}</h2></header>
         <div class="post-text">${paras.map(x => `<p>${rich(x).replace(/\n/g, "<br>")}</p>`).join("")}</div>
-        ${imgs.length ? `<div class="post-imgs">${imgRows(imgs).map(row => `<div class="post-row">${row.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentNode.remove()"></a>`).join("")}</div>`).join("")}</div>` : ""}
-        ${files.length ? `<ul class="post-files">${files.map(f => `<li><a href="${esc(f.url)}" target="_blank" rel="noopener" download>${esc(f.name || f.url.split("/").pop())}</a></li>`).join("")}</ul>` : ""}
+        ${imgs.length ? `<div class="post-imgs">${imgRows(imgs).map(row => `<div class="post-row">${row.map(u => `<a href="${esc(safeHref(u))}" target="_blank" rel="noopener"><img src="${esc(safeHref(u))}" alt="" loading="lazy" onerror="this.parentNode.remove()"></a>`).join("")}</div>`).join("")}</div>` : ""}
+        ${files.length ? `<ul class="post-files">${files.map(f => `<li><a href="${esc(safeHref(f.url))}" target="_blank" rel="noopener" download>${esc(f.name || f.url.split("/").pop())}</a></li>`).join("")}</ul>` : ""}
       </article>
       <nav class="post-nav">
         ${newer ? `<a class="nx" href="news.html?p=${encodeURIComponent(newer.id)}"><small>다음 글</small><span>${esc(newer.title)}</span></a>` : `<span class="nx off"><small>다음 글</small><span>다음 글이 없습니다</span></span>`}

@@ -554,9 +554,6 @@ body.notoday .card{box-shadow:none}
 .nav{border-radius:var(--r-sm)}
 .rowitem .left.soon, .rust{color:var(--rust)}
 
-/* 종료하기 뒤 화면 — 창이 안 닫히는 브라우저(홈 화면 앱·직접 연 탭)용 */
-.bye{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s12); background:var(--bg); color:var(--text)}
-.bye b{font-size:var(--fs-head)} .bye span{color:var(--text-3)}
 
 /* ---- 10-05 에 12-overrides.css 에서 옮겨 옴: 상단바 날짜 화살표·더보기 메뉴 ---- */
 /* ---- 상단바: 맨 왼쪽 버튼을 없애고 매장 이름이 그 일을 합니다 (6차-K 부터 아이콘 없이 HANOK 글자만) ---- */
@@ -1703,7 +1700,6 @@ label.chk span{width:auto}
 .sa-numrow{display:flex; align-items:center; gap:var(--s8)}
 .sa-numrow input{max-width:120px}
 .sa-numrow span{font-size:var(--fs-sub); color:var(--text-3)}
-.grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--s12)}
 /* 한 줄에 '이름 | 값 | ×' */
 .sa-row{display:flex; align-items:center; gap:var(--s8); margin-bottom:var(--s8)}
 .sa-row input{flex:1 1 auto; min-width:0}
@@ -1748,7 +1744,7 @@ label.chk span{width:auto}
 .sa-pimg-x .btn{padding:2px 6px; min-height:0; font-size:var(--fs-label)}
 .sa-pimg.add{display:flex; align-items:center; justify-content:center; border:1px dashed var(--border-strong); background:none; color:var(--text-2); font:inherit; font-size:var(--fs-sub); font-weight:600; cursor:pointer}
 @media (max-width:640px){
-  .grid2, .grid3{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
   .sa-row{flex-wrap:wrap}
   .sa-row .sa-k{flex:1 1 100%}
   .sa-acts{width:100%}
@@ -1772,7 +1768,7 @@ label.chk span{width:auto}
 .sa-body textarea{padding:8px 11px; font-size:14px !important; line-height:1.6}
 .sa-body .btn.sm{padding:6px 12px; font-size:var(--fs-sub); line-height:20px}
 .sa-top .btn.sm{padding:6px 14px}
-.sa-body .grid2, .sa-body .grid3{column-gap:var(--s12)}
+.sa-body .grid2{column-gap:var(--s12)}
 /* 한 줄 항목(스위치·숫자) — 줄 사이 가는 선 */
 .sa-line{display:flex; align-items:center; gap:var(--s12); padding:10px 0; border-top:1px solid var(--border); cursor:default}
 .sa-box .sa-line:first-of-type, .sa-box-h + .sa-line{border-top:none}
@@ -1797,7 +1793,7 @@ label.chk span{width:auto}
   .sa-acts .btn{flex:1 1 calc(50% - 4px)}
   .sa-line .sa-numrow input{width:64px}
 }
-.grid2 > .sa-line, .grid3 > .sa-line{border-top:none}
+.grid2 > .sa-line{border-top:none}
 /* 폰: 네 단추를 한 줄로 — 두 줄 2×2 는 단추가 화면 절반을 차지해 너무 컸음(09-24) */
 @media (max-width:640px){
   .sa-acts{flex-wrap:nowrap; gap:4px}
@@ -2186,8 +2182,6 @@ button.sa-card:hover{border-color:var(--text-3)}
 .hr-pay td small.rust{color:var(--rust)}
 
 /* PIN 창의 번호 칸 셋(10-06 재아) */
-.hr-pin3{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--s12)}
-@media (max-width:520px){ .hr-pin3{grid-template-columns:1fr 1fr} .hr-pin3 > :last-child{grid-column:1 / -1} }
 /* 수기 예약지에서 돌아왔을 때 '다시 전체화면' (09-25 재아) */
 .fs-back{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:300; height:48px; padding:0 22px; border:none; border-radius:24px; background:#1f1d1a; color:#fff; font-family:inherit; font-size:15px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.25); cursor:pointer}
 
@@ -2269,7 +2263,6 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .dq-sec > small{display:block; width:100%; color:var(--text-3); font-size:var(--fs-label); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .dq-sec.urgent{box-shadow:inset 4px 0 0 var(--rust)}
 .dq-sec:hover{background:var(--surface-2)}
-.dq-back{margin-right:auto}
 .own-section.own-dev{margin-top:56px}
 @media (max-width:640px){ .dq-secs{grid-template-columns:1fr} .dq-sec{min-height:0; flex-direction:row; align-items:center; flex-wrap:wrap} .dq-sec .dq-n{margin:0 0 0 auto; font-size:24px} .dq-sec > small{flex-basis:100%; margin-top:var(--s4)} }
 /* 10-06 재아 3차: 별칭 · 성명 · PIN 관리 한 줄 / PIN 창 / 기간 상자 머리(왼쪽 상태, 오른쪽 위 적용 시작일) / 퇴사자 없음 글 */
@@ -3325,15 +3318,6 @@ html, body, button, a, input, label, .pkey{touch-action:manipulation}
   .tl-row > * + *{margin-left:8px}
   .tvg-when > * + *{margin-left:calc(var(--tvu)*1.6)}   /* 좌석표 머리 날짜·시계(10-06) — grid gap 은 구형에서도 되지만 flex gap 은 안 됨 */
 }
-/* clamp 를 못 읽는 브라우저를 위한 기본값.
-   ※ 예전에는 이 규칙들이 @supports 없이 그냥 파일 끝에 놓여 있었습니다.
-      CSS 는 우선순위가 같으면 뒤에 온 것이 이기므로, 이 고정값이 모든 브라우저에서
-      앞의 clamp 를 덮어쓰고 있었습니다. 디스플레이 모드 글자가 화면 크기와 상관없이
-      항상 19px 로 나오던 원인입니다. 이제 clamp 를 못 읽을 때만 적용됩니다.
-      ※ 디스플레이 모드(.tv)는 아래에서 clamp 를 쓰지 않게 바꿨으므로 여기서 뺐습니다. */
-@supports not (font-size: clamp(10px, 1vw, 20px)){
-  .tvx-legacy{padding:0}   /* 자리만 남겨 둡니다 — 앱 화면 쪽 clamp 폴백이 필요하면 여기에 */
-}
 
 /* 09-25 전수검토: 크롬 66~83 은 grid 의 gap 은 알아서 위 @supports(gap) 가 참이 되지만, flex 의 gap 은 84부터라
    TV 목록에서 "17:30홍길동 님4명" 처럼 붙어 보였음. aspect-ratio(크롬 88)를 모르는 브라우저에 여백을 따로 줌
@@ -3965,8 +3949,27 @@ function setFsOverride(v){ if(DATA && DATA._ui){ if(v === true || v === false) D
 function uiSave(){ try{ if(DATA && DATA._ui) localStorage.setItem(UI_KEY, JSON.stringify(DATA._ui)); }catch(e){} }
 /* 오프라인에서 PIN 을 맞춰 볼 수단 — 마지막으로 서버가 받아 준 PIN 의 해시(djb2). 4자리 PIN 은 원래 약하니 이 정도로 */
 function strHash(str){ var h = 5381, i; for(i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }
-function pinHashSave(pin){ try{ localStorage.setItem(PINH_KEY, strHash(pin + "|" + SUPA_CFG.url)); }catch(e){} }
-function pinHashOk(pin){ try{ return localStorage.getItem(PINH_KEY) === strHash(pin + "|" + SUPA_CFG.url); }catch(e){ return false; } }
+/* 10-14 보안 점검: 예전엔 PIN 의 짧은 해시(djb2, 소금 없음)라 기기의 저장값만 보면 PIN 이 바로 나왔음(그 PIN 으로 다른 기기에서 서버 로그인 가능).
+   → 기기마다 다른 난수 소금 + PBKDF2(10만 번). 저장 모양 "p2:소금:해시". 옛 모양 값은 한 번 맞으면 새 모양으로 바꿔 둠 */
+async function pinHashCalc(pin, salt){
+  var k = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(pin) + "|" + SUPA_CFG.url), "PBKDF2", false, ["deriveBits"]);
+  var bits = await crypto.subtle.deriveBits({ name:"PBKDF2", hash:"SHA-256", salt:new TextEncoder().encode(salt), iterations:100000 }, k, 256);
+  return Array.prototype.map.call(new Uint8Array(bits), function(b){ return ("0" + b.toString(16)).slice(-2); }).join("");
+}
+async function pinHashSave(pin){
+  try{
+    var salt = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function(b){ return ("0" + b.toString(16)).slice(-2); }).join("");
+    localStorage.setItem(PINH_KEY, "p2:" + salt + ":" + await pinHashCalc(pin, salt));
+  }catch(e){}
+}
+async function pinHashOk(pin){
+  try{
+    var v = localStorage.getItem(PINH_KEY) || "", p = v.split(":");
+    if(p[0] === "p2" && p.length === 3) return (await pinHashCalc(pin, p[1])) === p[2];
+    if(v && v === strHash(pin + "|" + SUPA_CFG.url)){ await pinHashSave(pin); return true; }   /* 옛 모양 */
+    return false;
+  }catch(e){ return false; }
+}
 /* 서버를 못 읽을 때 캐시로 들어갑니다(읽기 전용). 캐시가 없으면 false */
 /* 아직 서버에 못 보낸 변경이 있는지 — 오프라인 전환·잠금 전에 봅니다 */
 function hasDirty(){
@@ -4147,7 +4150,7 @@ function migrateSeats(d){
     var legacy = function(id){ return id && !known[id] && (hallIds.indexOf(id) >= 0 || /^h\d+$/.test(id)); };
     (d[k].reservations||[]).concat(d[k].trash||[]).forEach(function(r){
       var before = JSON.stringify(r);
-      if(legacy(r.roomId)){ r.roomId = null; r.seatPref = "table-any"; r.legacyHall = true; }
+      if(legacy(r.roomId)){ r.roomId = null; r.seatPref = "table-any"; }
       if(legacy(r.tentativeRoomId)){ r.tentativeRoomId = null; r.tentativeExtra = []; }
       if(r.seatPref === "hall-any") r.seatPref = "table-any";
       if(JSON.stringify(r) !== before) MIGRATED_RES[r.id] = 1;
@@ -4202,6 +4205,24 @@ function settingsSanitize(d){
     (Array.isArray(st.joins) ? st.joins : []).forEach(function(j){ if(!j) return; j.id = fixId(j.id); num(j, "min"); num(j, "max"); if(Array.isArray(j.ids)) j.ids = j.ids.filter(function(x){ return ID.test(String(x)); }); });
     (Array.isArray(st.specials) ? st.specials : []).forEach(function(x){ if(x && x.id != null) x.id = fixId(x.id); });
     (Array.isArray(st.scheduled) ? st.scheduled : []).forEach(function(x){ if(x && x.id != null) x.id = fixId(x.id); if(x && x.values){ fixSeats(x.values.rooms); } });
+    /* 10-14 보안 점검: 시각·층 이름은 서버에서 직원 토큰으로도 고칠 수 있어, 운영시간 창·네이버 창의 HTML 속성에 그대로 들어가면
+       스크립트가 됨(개발자 화면 안에서 열리면 개발자 토큰까지). 그리는 곳에서 esc 하고, 여기서도 모양을 거름 — 시각은 HH:MM 또는 빈 값 */
+    var HM = /^\d{2}:\d{2}$/;
+    var fixHm = function(o, k){ if(o && o[k] != null && o[k] !== "" && !HM.test(String(o[k]))) o[k] = ""; };
+    var fixDay = function(x){
+      if(!x || typeof x !== "object") return;
+      ["open","close","lo","bs","be"].forEach(function(n){ fixHm(x, n); });
+      if(x.sess && typeof x.sess === "object"){
+        fixHm(x.sess, "edge");
+        ["lunch","dinner"].forEach(function(sg){ var s = x.sess[sg]; if(!s || typeof s !== "object") return;
+          fixHm(s, "lastBook");
+          ["room","table"].forEach(function(n){ if(s[n] != null && s[n] !== "end" && typeof s[n] !== "number"){ var v = Number(s[n]); s[n] = isFinite(v) ? v : 120; } }); });
+      }
+    };
+    ["open","close","lastOrder"].forEach(function(n){ fixHm(st, n); });
+    (Array.isArray(st.schedules) ? st.schedules : []).forEach(function(x){ if(x){ (Array.isArray(x.days) ? x.days : []).forEach(fixDay); fixDay(x.holiday); } });
+    (Array.isArray(st.overrides) ? st.overrides : []).forEach(fixDay);
+    (Array.isArray(st.rooms) ? st.rooms : []).forEach(function(r){ if(r && typeof r.floor === "string") r.floor = r.floor.replace(/[<>"'`&\\]/g, "").slice(0, 20); });
     ["holidays", "holidaysOff", "holidaysLegal"].forEach(function(n){ if(Array.isArray(st[n])) st[n] = st[n].filter(function(x){ return DATE.test(String(x)); }); });
     if(Array.isArray(st.schedules)) st.schedules = st.schedules.filter(function(x){ return x && (!x.from || DATE.test(String(x.from))); });
     if(Array.isArray(st.overrides)) st.overrides = st.overrides.filter(function(x){ return x && (!x.date || DATE.test(String(x.date))); });
@@ -5211,7 +5232,7 @@ function findSeat(o){
     /* 나눠 앉기(재아 결정) — 붙일 조합이 없으면 빈 테이블 여러 개에 나눠 앉는 것으로 잡습니다. 붙임 여부는 안 봅니다.
        큰 테이블부터 채워 개수를 최소로. 결과에 split 을 붙여 화면에서는 경고로만 알립니다(막지 않음) */
     if(!o.noSplit){
-      const freeT = seats.filter(x=>isTable(x) && inFloor(x) && !(roomMin(x) > people && false) && ((o.confirmedOnly || o.strict) ? free(x.id) : freeLoose(x.id)))
+      const freeT = seats.filter(x=>isTable(x) && inFloor(x) && ((o.confirmedOnly || o.strict) ? free(x.id) : freeLoose(x.id)))
         .sort((x,y)=>(y.seats||4)-(x.seats||4));
       let sum = 0; const pick = [];
       for(const t of freeT){ if(sum >= people) break; pick.push(t); sum += (t.seats||4); }
@@ -5258,7 +5279,6 @@ const ICON = {
   key:'<svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15 12v2"/></svg>',
   /* 사장님 메뉴 타일용(09-24) — 한 아이콘은 한 뜻만. 퇴근=집, 규칙=체크한 종이, 코스·세트=그릇과 젓가락, 예약경로=이정표, 문자 설정=봉투,
      디스플레이 모드=재생 화면, 운영 판단=저울, 화면 크기=가/가, 예약 내보내기=내려받기, 개발자에게=구명환(SOS) */
-  home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-5.5h4V20"/></svg>',
   rules:'<svg viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8.5 13l2.5 2.5 4.5-4.5"/></svg>',
   bowl:'<svg viewBox="0 0 24 24"><path d="M3 12h18c0 4.4-4 7.5-9 7.5S3 16.4 3 12z"/><path d="M9 21.5h6"/><path d="M13 3.5l-2.5 6.5M18.5 4.5l-4.5 5.5"/></svg>',
   route:'<svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 5.5h10.5L18.5 8l-3 2.5H5z"/><path d="M19 12.5H8.5L5.5 15l3 2.5H19z"/></svg>',
@@ -5273,8 +5293,6 @@ const ICON = {
   users:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.4"/><path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5M16 14.5c3 0 5.5 1.8 5.5 4.5"/></svg>',
   print:'<svg viewBox="0 0 24 24"><path d="M7 8V4h10v4M7 16H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 13h10v7H7z"/></svg>',
   site:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
-  expand:'<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
-  shrink:'<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>',
   res:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   staff:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M17 11.5a2.7 2.7 0 100-5.4M18 19.5c0-2.3-.8-3.9-2.2-4.9"/></svg>',
@@ -5285,9 +5303,8 @@ const ICON = {
   tv:'<svg viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 21h8M12 17.5V21"/></svg>',
   refresh:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>',
   exit:'<svg viewBox="0 0 24 24"><path d="M14 4h5a1 1 0 011 1v14a1 1 0 01-1 1h-5"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>',
-  power:'<svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.6 6.6a7.5 7.5 0 1 0 10.8 0"/></svg>',
   sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>',   /* 타임라인 점심만(09-20) */
-  moon:'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',   /* 저녁만 */   /* 종료하기 — 전원 단추 모양(예전엔 축소 아이콘이라 뜻이 안 맞았음, 재아 09-20) */
+  moon:'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',   /* 저녁만 */
   search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>',
   inbox:'<svg viewBox="0 0 24 24"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1.5 2h3L15 13h5"/></svg>',
   clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
@@ -5866,7 +5883,7 @@ async function pinCheckServer(){
   }catch(e){
     PIN_BUF = "";
     if(e.network){
-      if(pinHashOk(pin) && enterOffline(pin)){ LOCK_BUSY = false; enterAfterLogin(); return; }
+      if((await pinHashOk(pin)) && enterOffline(pin)){ LOCK_BUSY = false; enterAfterLogin(); return; }
       PIN_ERR = "서버에 연결할 수 없습니다";
     }else if(e.status === 400){                      /* Supabase: 비밀번호 틀림 = 400 invalid_credentials. 401 은 API 키 문제라 따로 */
       PIN_ERR = "PIN 번호가 맞지 않습니다."; pinFailed();
@@ -5903,25 +5920,14 @@ async function lockNow(){
   logEvent("잠금", "");
   AUTHED=false; PIN_BUF=""; PIN_ERR=""; view.storeKey=null; view.draft=null; view.adminOk=false; ADMIN_UNTIL=0; OWNER_OK=false;
   DATA._session = {authed:false};
+  /* 서버 쪽 로그인도 끝냄(10-14 보안 점검) — 기기에서만 지우면 갱신 토큰이 서버에 살아 있어, 그 값을 빼 간 사람이 계속 쓸 수 있었음.
+     방금 남긴 '잠금' 기록이 먼저 나가도록 몇 초 뒤에. 실패해도(오프라인) 그대로 — 토큰은 1시간이면 끝남. 개발자 화면 안에선 개발자 세션이라 건드리지 않음 */
+  var tok = SESSION && SESSION.access_token;
+  if(tok && supaOn() && !DEV_EMBED) setTimeout(function(){
+    try{ fetch(SUPA_CFG.url + "/auth/v1/logout?scope=local", { method:"POST", headers:{ "apikey":SUPA_CFG.anonKey, "Authorization":"Bearer " + tok } }).catch(function(){}); }catch(e){}
+  }, 3000);
   sessionClear(); OFFLINE = null;
   saveData(); render();
-}
-/* 더보기 → 종료하기: 로그아웃하고 창을 닫습니다(재아).
-   브라우저는 스크립트가 연 창만 window.close() 로 닫아 줍니다 — 태블릿 홈 화면 앱(PWA)이나 직접 연 탭은 안 닫힐 수 있어,
-   그럴 땐 '종료했습니다 · 창을 닫아 주세요' 화면을 보여 줍니다(다시 열면 처음부터) */
-async function exitApp(){
-  if(!await uiConfirm("종료할까요?", "로그아웃하고 이 창을 닫습니다.", {ok:"종료", cancel:"취소"})) return;
-  if(!await flushBeforeLeave()) return;
-  resetOverlays();
-  logEvent("종료", "");
-  AUTHED=false; PIN_BUF=""; PIN_ERR=""; view.storeKey=null; view.draft=null; view.adminOk=false; ADMIN_UNTIL=0;
-  DATA._session = {authed:false};
-  sessionClear(); OFFLINE = null;
-  try{ saveData(); }catch(e){}
-  try{ window.close(); }catch(e){}
-  setTimeout(function(){
-    document.body.innerHTML = '<div class="bye"><b>종료했습니다</b><span>이 창은 닫아도 됩니다.</span><button class="btn" onclick="location.reload()">다시 열기</button></div>';
-  }, 300);
 }
 /* PC에서 키보드로도 입력 */
 function pinKeydown(e){
@@ -11303,7 +11309,8 @@ function sheetExport(){
    2차 PIN 은 기기에 남겨 두지 않으므로 내보낼 때 한 번 더 받아(맞는지 서버로 확인) 그걸로 잠급니다.
    암호화는 xlsx-populate(jsdelivr, 처음 한 번만 받음) — 엑셀·한셀에서 열 때 비밀번호를 묻는 파일 */
 var XLSX_POP = "https://cdn.jsdelivr.net/npm/xlsx-populate@1.21.0/browser/xlsx-populate.min.js";
-function xlsxPopLoad(){ return new Promise(function(res, rej){ if(window.XlsxPopulate) return res(); var s = document.createElement("script"); s.src = XLSX_POP; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("엑셀 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
+var XLSX_POP_SRI = "sha384-YnsK3VaaV54M5EcU58Pt9SdJqzL0iZpQzQAcav+18Kgn5tbwk16y/3g6FpT2d83h";   /* 바깥 CDN 파일이 바뀌면(해킹 등) 실행하지 않음 — 이 창엔 로그인 토큰이 있어서(10-14 보안 점검). 버전을 올리면 이 값도 새로 */
+function xlsxPopLoad(){ return new Promise(function(res, rej){ if(window.XlsxPopulate) return res(); var s = document.createElement("script"); s.src = XLSX_POP; s.integrity = XLSX_POP_SRI; s.crossOrigin = "anonymous"; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("엑셀 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
 async function exportCsv(){
   var e = view.exp || {}, from = e.from || "", to = e.to || "";
   var list = expList().sort(function(a,b){ return (a.date + a.time).localeCompare(b.date + b.time); });
@@ -12417,9 +12424,10 @@ function mbPrint(){
 /* 사진: 페이지마다 PNG(2배 선명도). html2canvas 는 cdnjs 에서 처음 한 번만 받음 */
 var MB_H2C = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
 var MB_ZIP = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
-function mbLoadZip(){ return new Promise(function(res, rej){ if(window.JSZip) return res(); var s = document.createElement("script"); s.src = MB_ZIP; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("압축 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
+var MB_H2C_SRI = "sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H", MB_ZIP_SRI = "sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG";   /* 바깥 CDN 파일이 바뀌면(해킹 등) 실행하지 않음 — 이 창엔 로그인 토큰이 있어서(10-14 보안 점검). 버전을 올리면 이 값도 새로 */
+function mbLoadZip(){ return new Promise(function(res, rej){ if(window.JSZip) return res(); var s = document.createElement("script"); s.src = MB_ZIP; s.integrity = MB_ZIP_SRI; s.crossOrigin = "anonymous"; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("압축 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
 function mbDownload(blob, name){ var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
-function mbLoadH2c(){ return new Promise(function(res, rej){ if(window.html2canvas) return res(); var s = document.createElement("script"); s.src = MB_H2C; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("사진 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
+function mbLoadH2c(){ return new Promise(function(res, rej){ if(window.html2canvas) return res(); var s = document.createElement("script"); s.src = MB_H2C; s.integrity = MB_H2C_SRI; s.crossOrigin = "anonymous"; s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error("사진 도구를 불러오지 못했습니다(인터넷 연결 확인)")); }; document.head.appendChild(s); }); }
 function mbPng(){
   var b = mbCur(); if(!b) return;
   mbPop("사진으로 저장", [{ v:"cur", label:"지금 페이지만", sub:(MB.page + 1) + "p" }, { v:"all", label:"모든 페이지", sub:b.data.pages.length + "p" }], function(v){ mbPngRun(v === "all" ? b.data.pages.map(function(_, i){ return i; }) : [MB.page]); });
@@ -12693,7 +12701,7 @@ function sheetRes(){
       <div class="f"><div class="lb">날짜</div><button class="numbtn ${f.pickDate?'on':''}" onclick="syncRes(); tmpRes.pickDate=!tmpRes.pickDate; tmpRes.pickTime=false; render()">${f.date?dateLabel(f.date):"날짜 고르기"}</button></div>
       <div class="f"><div class="lb">시간</div><button class="numbtn ${f.pickTime?'on':''}" onclick="syncRes(); tmpRes.pickTime=!tmpRes.pickTime; tmpRes.pickDate=false; render()">${f.time?hm(f.time):"시각 고르기"}</button></div>
     </div>
-    <input id="f-date" type="hidden" value="${f.date||""}"><input id="f-time" type="hidden" value="${f.time||""}">
+    <input id="f-date" type="hidden" value="${esc(f.date||"")}"><input id="f-time" type="hidden" value="${esc(f.time||"")}">
     ${f.pickDate ? `<div class="card" style="padding:8px; margin-bottom:12px">${miniCal(f.date, "resPickDate")}</div>` : ""}
     ${f.pickTime ? `<div class="card" style="padding:8px; margin-bottom:12px">${f.date ? timeGrid({date:f.date, people:f.people||0, time:f.time, pick:"resPickSlot"}) : `<div class="empty">날짜를 먼저 고르세요</div>`}
       ${store().settings.minuteSteps !== false && f.time ? `<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="resNudge(-10)">− 10분</button><span class="lbl-note">${hm(f.time)}</span><button class="btn sm" onclick="resNudge(10)">＋ 10분</button></div>` : ""}</div>` : ""}
@@ -12703,9 +12711,9 @@ function sheetRes(){
     </div>
     <div class="grid2">
       <label class="f"><div class="lb">총 인원 (어린이 포함)</div>
-        <input id="f-people" type="number" min="1" value="${pplOf(f)}"></label>
+        <input id="f-people" type="number" min="1" value="${esc(pplOf(f))}"></label>
       <label class="f"><div class="lb">어린이</div>
-        <input id="f-infants" type="number" min="0" value="${f.infants||0}"></label>
+        <input id="f-infants" type="number" min="0" value="${esc(f.infants||0)}"></label>
     </div>
     <label class="f"><div class="lb">좌석</div>
       <select id="f-room" onchange="pickRoom(this.value)"><option value="">미배정</option>${roomOpts}</select></label>
@@ -13529,7 +13537,7 @@ function sheetNaver(){
       <option value="room-any" ${x.seat==="room-any"?"selected":""}>룸 미정(자동)</option>
       ${st.rooms.filter(isRoom).map(rm=>`<option value="${rm.id}" ${x.seat===rm.id?"selected":""}>${esc(rm.name)} 룸</option>`).join("")}
       <option value="table-any" ${x.seat==="table-any"?"selected":""}>테이블(층 상관없음)</option>
-      ${tableFloors().map(fl=>`<option value="table:${fl}" ${x.seat==="table:"+fl?"selected":""}>${esc(floorLabel(fl))}</option>`).join("")}
+      ${tableFloors().map(fl=>`<option value="table:${esc(fl)}" ${x.seat==="table:"+fl?"selected":""}>${esc(floorLabel(fl))}</option>`).join("")}
     </select>`;
   const res = n.result ? `<div class="bulk-res">${n.result.map(x=>`<div class="bulk-row ${x.ok?(x.kind==="skip"?"":(x.seatWarn||x.request?"warn":"ok")):"bad"} ${x.skip?"skipped":""}"><span class="bulk-ln">${x.n}</span><span class="grow">${esc(x.text)}${x.request?`<div class="nv-req">요청: ${esc(x.request)}</div>`:""}${x.ok&&x.kind==="new"?`<div class="nv-ctl"><label class="chk" style="margin:0"><input type="checkbox" ${x.skip?"checked":""} onchange="view.naver.result[${x.n-1}].skip=this.checked"><span>건너뛰기</span></label>${seatOpts(x)}</div>`:""}</span><span class="bulk-msg">${x.ok?`${x.kind==="new"?"＋ 새로":x.kind==="update"?"↻ 고침":"＝ 같음"} · ${esc(x.msg)}`:`✗ ${esc(x.msg)}`}</span></div>`).join("")}</div>` : "";
   const cnt = k => n.result ? n.result.filter(x=>x.ok && x.kind===k).length : 0;
@@ -13733,15 +13741,15 @@ function stayBox(i, seg, k, label){
   const v = dayOf(i).sess[seg][k];
   /* 브레이크 없는 날 점심: 정한 분만큼 앉음(10-14 누님 답 — 2시간) — '끝까지' 체크 없이 분만 */
   if(seg === "lunch" && !dayOf(i).bs) return `<div class="sf"><span>${label}</span><span class="sess-stay">
-    <input type="number" min="30" step="10" data-title="${label} 자리 시간" data-unit="분" value="${softGuar(v)}" onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||120)"><small>분</small></span></div>`;
+    <input type="number" min="30" step="10" data-title="${label} 자리 시간" data-unit="분" value="${esc(softGuar(v))}" onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||120)"><small>분</small></span></div>`;
   return `<div class="sf"><span>${label}</span><span class="sess-stay"><label class="chk"><input type="checkbox" ${v==="end"?"checked":""} onchange="setSessV(${i},'${seg}','${k}',this.checked?'end':110)"><span>끝까지</span></label>
-    <input type="number" min="30" step="10" value="${v==="end"?"":(v||110)}" ${v==="end"?"disabled":""} onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||110)"><small>분</small></span></div>`;
+    <input type="number" min="30" step="10" value="${v==="end"?"":esc(v||110)}" ${v==="end"?"disabled":""} onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||110)"><small>분</small></span></div>`;
 }
 function segBox(i, seg, title, note){
   return `<div class="sess-r two">
     <div class="sf full"><b>${title}</b><span class="lbl-note">${esc(note)}</span></div>
     ${seg === "lunch" && !dayOf(i).bs ? `<div class="sf"><span>접수 마감</span><span class="sess-auto">점심 경계 전까지</span></div>`
-      : `<div class="sf"><span>접수 마감 <small>이 시각 전까지</small></span><input type="time" data-title="${esc(title)} 접수 마감" value="${dayOf(i).sess[seg].lastBook||""}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>`}
+      : `<div class="sf"><span>접수 마감 <small>이 시각 전까지</small></span><input type="time" data-title="${esc(title)} 접수 마감" value="${esc(dayOf(i).sess[seg].lastBook||"")}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>`}
     ${stayBox(i, seg, "room", "점유 · 룸")}
     ${stayBox(i, seg, "table", "점유 · 테이블")}
   </div>`;
@@ -13757,7 +13765,7 @@ function dayEditHtml(x, i){
     const edge = x.bs ? x.bs : (x.sess.edge || "");
     const loRef = x.lo ? `마감 ${hmDur(Math.max(0, toMin(x.close) - toMin(x.lo)))} 전` : "";
     /* 시각 칸: 누르면 뜨는 팝업 제목(data-title)을 '시작 시간' · '끝 시간' 식으로 — 09-25 재아 */
-    const tIn = (k, title, v) => `<input type="time" data-title="${title}" value="${v||""}" onchange="${k === "edge" ? `setEdge(${i},this.value)` : `setDay(${i},'${k}',this.value)`}">`;
+    const tIn = (k, title, v) => `<input type="time" data-title="${esc(title)}" value="${esc(v||"")}" onchange="${k === "edge" ? `setEdge(${i},this.value)` : `setDay(${i},'${k}',this.value)`}">`;
     return `<div class="dr-in">
         <label><span>영업</span>${tIn("open", "시작 시간", x.open)}<em>~</em>${tIn("close", "끝 시간", x.close)}</label>
         <!-- 09-25 재아: '없음' 이 기본으로 체크, 풀면 그 아래에 시각 칸이 드러남(평소엔 안 보임).
@@ -13791,7 +13799,7 @@ function sheetSchedule(){
     ${sheetHead(d.isNew?"새 운영시간 (정한 날짜부터)":"운영시간 수정")}
     ${d.from > todayStr() ? `<div class="sched-note">${esc(pkShort(d.from))} 부터 적용 — 적용하면 오른쪽 위 '예정' 에 들어갑니다</div>` : ""}
     <label class="f"><div class="lb">적용 시작일</div>
-      <input type="date" value="${d.from}" onchange="setSchedFrom(this.value)">
+      <input type="date" value="${esc(d.from)}" onchange="setSchedFrom(this.value)">
     </label>
     ${rows}
     <div class="sheet-actions">
@@ -14015,9 +14023,9 @@ function sheetBlocks(){
     <div class="sect-title" style="margin-top:0">기간 추가</div>
     <div class="grid2">
       <label class="f"><div class="lb">시작 날짜</div>
-        <input type="date" value="${d.from}" onchange="setBlk('from',this.value)"></label>
+        <input type="date" value="${esc(d.from)}" onchange="setBlk('from',this.value)"></label>
       <label class="f"><div class="lb">종료 날짜</div>
-        <input type="date" value="${d.to}" ${d.openEnded?"disabled":""}
+        <input type="date" value="${esc(d.to)}" ${d.openEnded?"disabled":""}
           onchange="setBlk('to',this.value)"></label>
     </div>
     <label class="chk"><input type="checkbox" ${d.openEnded?"checked":""}

@@ -271,7 +271,9 @@ function noticeHtml(r){
     ${r.body ? `<div class="body">${esc(r.body)}</div>` : ""}<div class="row-btns"><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button></div></div>`;
 }
 function reqHtml(r){
-  const imgs = (r.images || []).filter(Boolean);
+  /* 우리 Storage 에 올린 사진 주소만(10-14 보안 점검) — 직원 토큰으로 images 에 javascript: 나 바깥 주소를 넣으면
+     개발자가 누를 때 스크립트가 돌거나, 사진을 여는 것만으로 개발자 IP 가 바깥으로 새던 것 */
+  const imgs = (r.images || []).filter(u => typeof u === "string" && u.indexOf(CFG.url + "/storage/v1/object/") === 0);
   return `<div class="card req${r.urgent && !isDone(r) ? " urgent" : ""}">
     <div class="req-h"><div style="flex:1"><h3>${esc(r.title)}</h3>
       <div class="req-m">${r.store === "anjip" ? "안집" : "한옥반점"} · ${r.by === "admin" ? "사장님" : "직원"} · ${esc(kst(r.created_at))} (${esc(ago(r.created_at))})</div></div>

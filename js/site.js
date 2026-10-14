@@ -4,6 +4,8 @@
    예약 창은 js/reserve.js 가 맡습니다(어느 장에서든 [data-reserve] 를 누르면 뜹니다).
    내용은 window.SITE(data/site.js 기본값 + 서버 값, js/content.js) 에서 읽습니다 — HTML 에 적힌 글은 JS 가 꺼져 있을 때의 대비용이고
    SITE_READY 뒤에 전부 SITE 값으로 다시 채웁니다(data-t / data-paras / data-img / data-list 표시). */
+/* safeHref 는 content.js 에 있음 — 배포 직후 옛 content.js 가 캐시에 남은 몇 분 동안 화면이 죽지 않게 보수적인 대체(http(s)만) */
+if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(String(u || "")) ? String(u) : "#"; };
 window.SITE_READY.then(function(){
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -133,7 +135,7 @@ window.SITE_READY.then(function(){
   document.querySelectorAll("[data-list]").forEach(el => { const v = get(el.dataset.list); if(!Array.isArray(v)) return; el.innerHTML = v.map(x => `<li>${rich(x)}</li>`).join("");
     const h = el.previousElementSibling; if(h && h.tagName === "H3") h.hidden = !v.length;   /* 목록이 비면 바로 위 제목도 숨김(10-03) */ });
   document.querySelectorAll("[data-img]").forEach(el => { const v = get(el.dataset.img); if(v) el.src = imgUrl(v); const a = el.dataset.alt ? get(el.dataset.alt) : null; if(a != null) el.alt = a; });
-  document.querySelectorAll("[data-href]").forEach(el => { const v = get(el.dataset.href); if(v) el.href = v; });
+  document.querySelectorAll("[data-href]").forEach(el => { const v = get(el.dataset.href); if(v) el.href = safeHref(v); });
   document.querySelectorAll("a[href^='tel:'][data-tel]").forEach(el => { el.href = "tel:" + INFO.tel; el.textContent = INFO.tel; });
 
   /* ---------- 장별 ---------- */
@@ -185,9 +187,9 @@ window.SITE_READY.then(function(){
   }
   if(page === "visit"){
     $("#hours").innerHTML = hoursList();
-    $("#lnk-naver").href = INFO.naverMap; $("#lnk-kakao").href = INFO.kakaoMap;
+    $("#lnk-naver").href = safeHref(INFO.naverMap); $("#lnk-kakao").href = safeHref(INFO.kakaoMap);
   }
-  if(page === "menu") document.querySelectorAll("a.pdf").forEach(a => { if(INFO.menuPdf) a.href = INFO.menuPdf; else a.style.display = "none"; });   /* 파일명(menu.pdf) 또는 올린 파일의 전체 주소. 관리에서 지우면 단추 숨김(09-25) */
+  if(page === "menu") document.querySelectorAll("a.pdf").forEach(a => { if(INFO.menuPdf) a.href = safeHref(INFO.menuPdf); else a.style.display = "none"; });   /* 파일명(menu.pdf) 또는 올린 파일의 전체 주소. 관리에서 지우면 단추 숨김(09-25) */
   if(page === "menu"){   /* 비운 묶음(코스·점심·요리·만두·주류)은 통째로 숨김 — 차림을 자유롭게 줄이고 늘리게(09-25 재아) */
     const empty = { courses:!(MENU.courses.items || []).length, lunch:!(MENU.lunch || []).length, dishes:!(MENU.dishes || []).length, dumplings:!(MENU.dumplings.items || []).length, drinks:!(MENU.drinks || []).length };
     Object.keys(empty).forEach(k => { const el = document.getElementById(k); if(el && empty[k]) el.style.display = "none"; });

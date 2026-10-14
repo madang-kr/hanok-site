@@ -6,6 +6,15 @@
    화면은 값이 정해질 때까지 잠깐 숨깁니다(html.pending — 1.5초 넘으면 그냥 보여줌).
    ★ 홈페이지 예약 창의 코스 목록·특별 기간은 예약 시스템 설정이 원본(09-25 재아) — 공개 뷰 public_screen(38차)에서 받음.
      차림 장은 홈페이지 자료(홈페이지 관리 → 차림) 그대로. 받지 못하면(서버 죽음) 예약 창도 홈페이지 자료로 */
+/* 서버 값으로 만드는 링크 주소 — http(s) 주소와 이 사이트 안의 상대 경로(menu.pdf 등)만 통과, 그 밖의 'xxx:' 주소(javascript: 등)는 '#'.
+   10-14 보안 점검: 지도·메뉴판·소식 첨부 주소를 거르지 않아, 직원 계정이 새면 손님 화면에서 스크립트가 돌 수 있었음.
+   브라우저는 주소 앞뒤 공백·제어 문자와 중간의 탭·줄바꿈을 무시하므로(java\tscript:) 그걸 지운 모양으로 검사 */
+window.safeHref = function(u){
+  var s = String(u == null ? "" : u).trim(), t = s.replace(/[\u0000- \u007f]/g, "");
+  if(/^https?:\/\//i.test(t)) return s;
+  if(/^[a-z][a-z0-9+.\-]*:/i.test(t) || /^[\/\\]{2}/.test(t)) return "#";
+  return s;
+};
 (function(){
   const preview = /[?&]preview=1/.test(location.search);
   const CACHE = "hanok-site-live";

@@ -11,6 +11,7 @@
      month(ym, people, seat)   → {"2026-09-18": 11, …}  그 달 각 날짜에 남은 시각 수(0이면 달력에서 잠김)
      slots(date, people, seat) → ["11:00","11:30", …]    그 날 고를 수 있는 시각
      submit(payload)           → {ok:true}               '손님 요청' 으로 저장 */
+if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(String(u || "")) ? String(u) : "#"; };   /* content.js 가 옛 캐시일 때 대비(site.js 와 같음) */
 (function(){
   const $ = (s, r) => (r||document).querySelector(s);
   const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -572,7 +573,7 @@
           ${room ? `<button type="button" data-c="later" data-l="메뉴 미정" class="${S.course==='later'?'on':''}"><b>미정</b></button>`
                  : `<button type="button" data-c="none" data-l="단품 주문" class="${S.course==='none'?'on':''}"><b>단품 주문</b></button>`}`}
         </div>
-        ${INFO.menuPdf ? `<p class="rv-quiet"><a href="${esc(INFO.menuPdf)}" target="_blank" rel="noopener">메뉴판(PDF) 보기</a></p>` : ""}
+        ${INFO.menuPdf ? `<p class="rv-quiet"><a href="${esc(safeHref(INFO.menuPdf))}" target="_blank" rel="noopener">메뉴판(PDF) 보기</a></p>` : ""}
       </section>`);
     b.querySelectorAll("[data-c]").forEach(el => el.addEventListener("click", () => {
       S.course = el.dataset.c; S.courseLabel = el.dataset.l;
