@@ -562,6 +562,33 @@ function tabEm(){
 /* ---------- 틀 ---------- */
 function loadTab(){ if(S.tab === "req" && !S.reqs) loadReqs(); if(S.tab === "health" && !S.health) loadHealth(); if(S.tab === "stats" && !S.stats) loadStats(); if(S.tab === "em" && !S.health) loadHealth(); if(S.tab === "em" && !S.ai) loadAi(); }
 function go(t){ S.tab = t; loadTab(); render(); }
+/* 개발자 비밀번호 바꾸기(10-14 재아: 바꾸는 방법을 모름) — 지금 비밀번호로 한 번 더 확인한 뒤 서버 계정 비밀번호를 바꿈. 값은 어디에도 저장하지 않음 */
+function pwForm(){
+  return `<form class="card login" onsubmit="pwChange(event)" style="margin-bottom:16px"><h2>개발자 비밀번호 바꾸기</h2><p>10자 이상, 다른 곳에 쓰지 않는 것으로. 바꾼 뒤에는 다른 기기의 개발자 로그인도 새 비밀번호로.</p>
+    <label class="f"><span>지금 비밀번호</span><input id="pw-cur" type="password" autocomplete="current-password"></label>
+    <label class="f"><span>새 비밀번호</span><input id="pw-new" type="password" autocomplete="new-password"></label>
+    <label class="f"><span>새 비밀번호 확인</span><input id="pw-new2" type="password" autocomplete="new-password"></label>
+    <div class="err">${esc(S.pwMsg || "")}</div>
+    <button class="btn primary" ${S.pwBusy ? "disabled" : ""}>${S.pwBusy ? "바꾸는 중…" : "바꾸기"}</button></form>`;
+}
+async function pwChange(e){
+  e.preventDefault(); if(S.pwBusy) return;
+  const v = id => (document.getElementById(id) || {}).value || "";
+  const cur = v("pw-cur"), n1 = v("pw-new"), n2 = v("pw-new2");
+  const say = m => { S.pwMsg = m; render(); };
+  if(!cur) return say("지금 비밀번호를 넣어 주세요");
+  if(n1.length < 10) return say("새 비밀번호는 10자 이상으로 해 주세요");
+  if(n1 !== n2) return say("새 비밀번호 확인이 서로 다릅니다");
+  if(n1 === cur) return say("지금과 다른 비밀번호로 해 주세요");
+  S.pwBusy = true; render();
+  try{
+    saveSess(await auth("password", { email:DEV_EMAIL, password:cur }));   /* 지금 비밀번호 확인 + 새 토큰 */
+    const r = await fetch(CFG.url + "/auth/v1/user", { method:"PUT", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token, "Content-Type":"application/json" }, body:JSON.stringify({ password:n1 }) });
+    const j = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(j.msg || j.error_description || ("서버가 거절했습니다(" + r.status + ")"));
+    S.pwBusy = false; S.pwOpen = false; S.pwMsg = ""; render(); alert("비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 쓰세요.");
+  }catch(err){ S.pwBusy = false; say(err.authFail ? "지금 비밀번호가 맞지 않습니다" : (err.message || String(err))); }
+}
 function tabSet(){ return ""; }   /* 내용은 #setwrap 의 창 */
 function render(){
   if(!CFG.url){ $app.innerHTML = '<p class="spin">접속 설정(js/config.js)을 못 읽었습니다</p>'; return; }
@@ -576,7 +603,8 @@ function render(){
     return;
   }
   const open = S.reqs ? S.reqs.filter(r => !isDone(r)) : [], urg = open.filter(r => r.urgent).length;
-  $app.innerHTML = `<header><h1>개발자 <span>· 한옥반점</span></h1><span class="sp"></span><button class="btn sm" onclick="logout()">로그아웃</button></header>
+  $app.innerHTML = `<header><h1>개발자 <span>· 한옥반점</span></h1><span class="sp"></span><button class="btn sm" onclick="S.pwOpen=!S.pwOpen; S.pwMsg=''; render()">비밀번호 바꾸기</button><button class="btn sm" onclick="logout()">로그아웃</button></header>
+    ${S.pwOpen ? pwForm() : ""}
     <nav class="tabs">
       <button class="${S.tab === "req" ? "on" : ""}" onclick="go('req')">개발자에게${open.length ? `<span class="badge${urg ? " red" : ""}">${open.length}</span>` : ""}</button>
       <button class="${S.tab === "health" ? "on" : ""}" onclick="go('health')">점검</button>
