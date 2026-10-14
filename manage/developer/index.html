@@ -158,7 +158,7 @@ table.logs td.d{color:var(--text-2); word-break:break-all}
 <script>
 "use strict";
 const CFG = window.SUPA || {};
-const DEV_EMAIL = "madang-dev@jaealee.com";   // 서버 hanok_is_dev() 와 같아야 함 — 서버 계정 이름이라 그대로(화면에는 안 보임)
+const DEV_EMAIL = "madang-dev@hanokbanjeom.com";   // 서버 hanok_is_dev() 와 같아야 함(10-14 48차: @jaealee.com → @hanokbanjeom.com) — 화면에는 안 보임
 const SKEY = "hanok.dev.session";   /* 10-06 이름 바꿈(옛 madang.dev.session) — 바꾼 날 한 번 다시 로그인 */
 const S = { sess:null, tab:"req", reqs:null, reqFilter:"open", health:null, checks:null, stats:null, statDays:30, ai:null, aiForm:"", busy:false, err:"" };
 const $app = document.getElementById("app");
@@ -508,7 +508,7 @@ function aiCard(){
       <button class="btn" onclick="S.aiForm='cap'; render()">상한 바꾸기</button></div>
     <div class="bar-o" style="margin-top:10px"><div class="bar-i ${pct >= 90 ? "bad" : pct >= 70 ? "warn" : ""}" style="width:${Math.min(100, Math.max(pct, 1))}%"></div></div>
     ${form}
-    ${(a.recent || []).length ? `<table class="logs" style="margin-top:12px">${a.recent.slice(0, 10).map(r => `<tr><td class="t">${esc(kst(r.at))}</td><td class="a">${st(r.status)}</td><td class="d">${esc(r.model)} <span class="muted">· ${esc((r.who || "").replace("@jaealee.com", ""))}</span></td></tr>`).join("")}</table>` : '<p class="muted" style="font-size:13px; margin:10px 0 0">아직 부른 적 없음</p>'}
+    ${(a.recent || []).length ? `<table class="logs" style="margin-top:12px">${a.recent.slice(0, 10).map(r => `<tr><td class="t">${esc(kst(r.at))}</td><td class="a">${st(r.status)}</td><td class="d">${esc(r.model)} <span class="muted">· ${esc((r.who || "").replace(/@(jaealee|hanokbanjeom).com$/, ""))}</span></td></tr>`).join("")}</table>` : '<p class="muted" style="font-size:13px; margin:10px 0 0">아직 부른 적 없음</p>'}
   </div>`;
 }
 
