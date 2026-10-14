@@ -8,7 +8,7 @@
 window.SITE_DEFAULT = {
   info: {
     name: "한옥반점", addr: "경기 성남시 분당구 새마을로51번길 2", addr2: "경기 성남시 분당구\n새마을로51번길 2",
-    tel: "031-724-1004", parking: "주차비 1,000원 · 발렛 무료", since: 2020,
+    tel: "031-724-1004", parking: "발렛 포함 주차비 1,000원", since: 2020,
     naverMap: "https://naver.me/Gubj9Qkx",
     kakaoMap: "https://place.map.kakao.com/2103030097",
     instagram: "https://www.instagram.com/hanok_banjeom",
@@ -158,7 +158,7 @@ window.SITE_DEFAULT = {
     parking: [
       "주차장은 맞은편 음식점 '안집'과 함께 사용하고 있습니다.",
       "골목 초입이라 혼잡한 구간이므로 주차 관리요원의 안내에 따라 주세요.",
-      "발렛 및 주차장 이용 요금은 한 대당 1,000원입니다."
+      "주차비는 발렛 포함 한 대당 1,000원입니다."   /* 10-14 재아: 발렛 포함 1,000원으로 통일 */
     ],
     transitTitle: "대중교통",
     transit: ["버스 — 통로골 또는 서현중학교 정류장", "지하철 — 수인분당선 서현역"]
