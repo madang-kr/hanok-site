@@ -3392,20 +3392,20 @@ const DEFAULT_DATA = {
         from:"2000-01-01",
         /* 세션(8차-X): 하루를 '점심 경계'(edge) 하나로 점심/저녁으로 나눕니다. 브레이크가 있는 날은 경계 = 브레이크 시작(자동, 잠김).
            점심·저녁마다 접수 마감(lastBook)과 점유(room/table: "end" = 세션 끝까지 한 팀, 숫자 = 분). 경계가 비면 하루가 한 세션(저녁 규칙).
-           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 저녁은 매일 룸 끝까지 · 테이블 2시간(10-14 누님 답·재아 — 테이블은 회전). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
+           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 저녁은 매일 룸 끝까지 · 테이블 2시간, 평일 점심 테이블도 2시간(10-14 누님 답·재아 — 테이블은 회전). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
         days:[
           {open:"11:00", close:"20:30", lo:"19:40", bs:"",      be:"",
            sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:120}}},   /* 일 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 월 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 월 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 화 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 화 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 수 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 수 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 목 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 목 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 금 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 금 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"",      be:"",
            sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}}    /* 토 */
         ],
@@ -10319,6 +10319,19 @@ async function hrStaffRetire(){
   HR.edit = null; HR.loading = true; render(); await hrLoad(); render();
   showToast(goOn ? "퇴사 취소했습니다" : "퇴사 처리했습니다");
 }
+/* 퇴사한 직원 완전 삭제(10-14 재아) — 근태·PIN 까지 지움, 되돌릴 수 없음. 서버 47차 hanok_staff_delete(사장님 2차 PIN 토큰) */
+async function hrStaffDelete(){
+  var e = HR.edit; if(!e || e._new || e.active !== false) return;
+  var label = hrLabel(e);
+  if(!await uiConfirm(label + " 직원을 삭제할까요?", "근무 기록·급여 계산에 쓰인 근태와 PIN 까지 모두 지워지고 되돌릴 수 없습니다.\n잘못 등록한 직원을 정리할 때만 쓰세요. 그만둔 직원은 퇴사 처리만 해 두면 기록이 남습니다.", {ok:"삭제", cancel:"취소", tone:"warn"})) return;
+  var pr = await uiPin("직원 삭제", "2차 PIN을 입력해주세요.", 6); if(!pr || !pr.code) return;
+  var tok = await pinAdminTok(pr.code, "직원 삭제"); if(!tok) return;
+  try{ await sb("/rest/v1/rpc/hanok_staff_delete", { method:"POST", token:tok, body:{ p_id:e.id } }); }
+  catch(err){ await uiAlert("삭제하지 못했습니다", err.message || String(err), "warn"); return; }
+  logEvent("직원 삭제", label);
+  HR.edit = null; HR.loading = true; render(); await hrLoad(); if(typeof pinUsersLoad === "function") await pinUsersLoad(); render();
+  showToast(label + " 직원을 삭제했습니다");
+}
 async function hrShowSeverance(){ var e = HR.edit; if(!e) return; e.sev = { loading:true }; render();
   try{ e.sev = await hrSeverance(e) || { none:true }; }catch(err){ e.sev = null; render(); await uiAlert("계산하지 못했습니다", err.message || String(err), "warn"); return; }   /* 전엔 '계산 중…' 에 멈춤(10-09 점검) */
   render(); }
@@ -10661,6 +10674,7 @@ function hrEditHtml(){
     '<div class="seg" style="margin-bottom:12px">' + tab("sched", "정규 근무") + (hrPro() ? tab("pay", "급여·퇴직금") : "") + tab("etc", "기타") + '</div>' +
     '<div class="searchbox hr-edit-body">' + body + '</div>' +
     '<div class="sheet-actions">' + (e._new ? '' : '<button class="btn ghost ' + (e.active === false ? "" : "danger") + '" onclick="hrStaffRetire()">' + (e.active === false ? "퇴사 취소" : "퇴사") + '</button>') +
+      (!e._new && e.active === false ? '<button class="btn ghost danger" onclick="hrStaffDelete()">삭제</button>' : '') +   /* 퇴사한 직원만 완전 삭제(10-14 재아 — 잘못 등록 등) */
     '<button class="btn ghost" onclick="HR.edit=null; render()">취소</button><button class="btn primary" data-enter onclick="hrStaffSave()">저장</button></div></div></div>';
 }
 function hrSetupHtml(){
