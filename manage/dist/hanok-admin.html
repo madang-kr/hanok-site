@@ -3600,6 +3600,16 @@ async function pinLogin(pin){
     try{ await sbLogin(em, pinToPassword(pin)); }catch(e2){ throw e2.status === 400 ? e : e2; }
   }
 }
+/* 로그인 계정 id(토큰 안의 sub) — 직원별 PIN 이면 staff_pins.id 와 같음. 토큰이 바뀌면 다시 읽음 */
+var UID_CACHE = { t:"", id:"" };
+function sessionUid(){
+  if(!SESSION || !SESSION.access_token) return "";
+  if(UID_CACHE.t === SESSION.access_token) return UID_CACHE.id;
+  var id = "";
+  try{ var p = SESSION.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); while(p.length % 4) p += "="; id = JSON.parse(atob(p)).sub || ""; }catch(e){}
+  UID_CACHE = { t:SESSION.access_token, id:id };
+  return id;
+}
 /* 기록의 '누가'(by·who) — 직원별 PIN 이면 그 이름, 아니면 staff/admin (09-25, 29차) */
 function sessionBy(){ return SESSION ? (SESSION.name || SESSION.who || "") : ""; }
 /* 로그에 남는 계정(이메일) → 사람이 읽는 이름 */
@@ -14222,7 +14232,10 @@ function myRole(){
   if(!SESSION) return "staff";
   if(SESSION.who === "admin") return "owner";
   if(SESSION.email === SUPA_CFG.staffEmail) return ROLE_SHARED;
-  var u = (PIN_USERS || []).find(function(x){ return x.email === SESSION.email; });
+  /* 직원별 PIN — staff_pins.id 는 그 PIN 의 로그인 계정 id(토큰의 sub)와 같음(29차 hanok_pin_add 가 같은 v_id 로 만듦).
+     10-14: 52차로 email 칸을 못 읽게 되면서 email 로 찾던 이 줄이 늘 '직원' 이 되던 것(사장 PIN 으로 들어와도 직원) → id 로 찾음 */
+  var uid = sessionUid();
+  var u = (PIN_USERS || []).find(function(x){ return x.id === uid; });
   return (u && PIN_ROLE[u.role]) ? u.role : "staff";
 }
 function canEditRes(){ return myRole() !== "staff"; }
