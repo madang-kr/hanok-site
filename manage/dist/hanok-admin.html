@@ -8,6 +8,7 @@
 <!-- 아이폰·아이패드는 웹 전체화면 API 가 없어, '홈 화면에 추가' 로 열면 주소창·탭 없이 뜨게 합니다 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FAFAFC">   <!-- 상태 표시줄 띠 색 = 상단바 색(10-14 재아 '깔끔한 띠'). 다른 날짜를 볼 때(검은 상단바)는 render 가 검정으로 바꿈 -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">   <!-- 10-14 재아: black-translucent 는 시계·배터리를 흰 글씨로 화면 위에 겹쳐 그려, 밝은 상단바에서 뿌옇고 단추가 가려졌음 → 상태 표시줄을 따로(흰 바탕·검정 글씨) 두고 앱은 그 아래부터. 바꾼 뒤엔 홈 화면 아이콘을 지웠다 다시 추가해야 반영 -->
 <title>한옥반점 예약</title>
 <!-- 글꼴은 파일 안에 들어 있습니다(맨 위 @font-face, work/fonts.md).
@@ -2291,6 +2292,13 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .hr-edit input[type=text], .hr-edit input[type=tel], .hr-edit input[type=date], .hr-edit input[type=time], .hr-edit .hr-min, .hr-edit .hr-pinbtn, .hr-edit .hr-daybtn{height:44px; min-height:44px; box-sizing:border-box; padding-top:0; padding-bottom:0}
 .hr-pinacts{margin:0 0 var(--s12)}
 .gs-saveclose{flex:2}   /* 저장하고 닫기는 넓게(10-09) */
+/* 폰(10-14 점검): 주차 이동 단추(« ‹ › »)가 가운데 제목의 최소 폭(200px) 때문에 화면 밖으로 밀렸음 — 제목 폭을 풀고 간격을 줄임 */
+@media (max-width:640px){
+  .hr-period.center{gap:var(--s4); padding:var(--s4) 0}
+  .hr-period.center .hr-period-t{min-width:0; flex:1}
+  .hr-period-nav{gap:2px} .hr-nb{min-width:32px; height:34px; padding:0 4px; font-size:16px}
+  .hr-period-t b{font-size:var(--fs-title)}
+}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -3149,6 +3157,52 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
   .wz-top{padding:var(--s8) var(--s12); min-height:0; row-gap:var(--s4)}
   .wz-sum{width:100%; margin-left:0; overflow-x:auto} .wz-sum span{padding:2px var(--s8); font-size:var(--fs-label)}
   .wz-dot{padding:var(--s4)}
+}
+
+/* 10-14 재아(3차): 폰에서는 왼쪽 위 HANOK 로고를 뺌 — 목록/타임라인 스위치가 오른쪽 단추들과 겹쳤음. 오늘로 가기는 달력·더보기에, 새로고침은 ↻ 단추에 있음 */
+@media (max-width:640px){
+  .topbar .storename{display:none}
+  .topbar .mswitch{margin-left:0}
+  .topbar .bar-right{gap:6px; flex-shrink:0}
+  .topbar-in{gap:var(--s8)}
+}
+/* 상단 아이콘 단추 폭을 줄여 좁은 폰(320~360)에서도 목록/타임라인 스위치와 안 겹치게(10-14). 아주 좁으면 새로고침은 더보기 안으로 */
+@media (max-width:640px){
+  .topbar.mobile .tvbtn.icon{width:34px; height:34px; padding:0}
+  .topbar.mobile .tvbtn.icon svg{width:18px; height:18px}
+}
+@media (max-width:379px){
+  .topbar.mobile .tvbtn.icon{width:32px; height:32px}
+  .topbar.mobile .bar-right{gap:4px}
+}
+@media (max-width:359px){
+  .topbar.mobile .b-refresh{display:none}
+}
+html.tight .topbar.mobile .b-refresh{display:none}
+
+/* 10-14 재아(3차) 폰·태블릿 전 화면 손질
+   ① 화면형(워크시프트·손님 관리·메뉴판 …) 상단바: 로고를 뺀 뒤 ✕ 와 제목이 두 줄로 갈라져 120px 을 먹었음 → 한 줄(제목 왼쪽, 닫기 오른쪽) */
+@media (max-width:900px){
+  .topbar.page .topbar-in{flex-wrap:nowrap}
+  .topbar.page .bar-mid{order:2; flex:1 1 auto; justify-content:flex-start; min-width:0}
+  .topbar.page .bar-mid .bdate.static{font-size:var(--fs-title); font-weight:700; padding-left:var(--s4); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .topbar.page .bar-right{order:3; flex:0 0 auto}
+}
+@media (max-width:640px){
+  .topbar.page .topbar-in{padding:var(--s8) var(--s12)}
+  /* ② 대시보드 걸러 보기 칩 4개가 한 줄에 다 들어가게(넷째 '취소·노쇼' 가 잘렸음) */
+  .filters{gap:6px}
+  .filters button{padding:6px 10px; font-size:var(--fs-label)}
+  /* ③ 예약 검색 줄: 날짜·시각과 이름이 붙고 이름이 '손…' 으로 잘렸음 → 두 줄(날짜·시각 · 이름 / 인원 · 룸·테이블 · 전화) */
+  .srow{grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"d n k" "p ph ph" "w w w"; row-gap:2px; column-gap:var(--s8)}
+  .srow .sr-d{grid-area:d} .srow .sr-n{grid-area:n} .srow .sr-k{grid-area:k; text-align:right}
+  .srow .sr-p{grid-area:p} .srow .sr-ph{grid-area:ph; grid-column:auto; font-size:var(--fs-label)}
+  .srow .sr-when{grid-area:w}
+}
+/* 아이패드 세로(가로보다 세로가 긴 태블릿)도 마법사를 위부터 — 질문이 화면 한가운데에 떠 위아래가 비었음(10-14) */
+@media (min-width:641px) and (max-width:1024px) and (orientation:portrait){
+  .wz-mid{justify-content:flex-start}
+  .wz-q{padding-top:var(--s24)}
 }
 /* ============================================================
    12c. apple-design 2차 (2026-09-20) — 12b 뒤·13 앞. 새 화면(사장님·설정 목록·워크시프트·감사 문자)이 생긴 뒤 다시 맞춘 것.
@@ -5523,7 +5577,9 @@ function applyTheme(){
   /* 화면 배율. 브라우저 확대와 같은 방식이라 레이아웃이 그대로 커집니다.
      transform:scale 은 자리를 그대로 차지해 화면이 잘리므로 쓰지 않습니다. */
   document.documentElement.style.setProperty("--ui-zoom", (uiZoom()/100) * zoomK());
-  document.documentElement.style.setProperty("--lock-zoom", uiZoom()/100);   /* 로그인 화면은 예전 크기(ZOOM_K 없이) — 1.35배면 PIN 판이 화면 밑으로 밀려 안 보였음(10-06) */
+  document.documentElement.style.setProperty("--lock-zoom", uiZoom()/100);
+  /* 실제로 쓸 수 있는 폭(화면 ÷ 배율)이 좁으면 상단 ↻ 를 더보기 안으로 — 폰 상단 단추가 목록/타임라인 스위치와 겹치지 않게(10-14) */
+  try{ document.documentElement.classList.toggle("tight", window.innerWidth <= 640 && window.innerWidth / ((uiZoom()/100) * zoomK()) < 330); }catch(e){}   /* 로그인 화면은 예전 크기(ZOOM_K 없이) — 1.35배면 PIN 판이 화면 밑으로 밀려 안 보였음(10-06) */
 }
 /* 기본 110%. 100%는 태블릿·모니터 모두 조금 작고, 125%는 브라우저 확대와 겹치면 너무 커집니다.
    기기마다 다르므로 설정 → 화면 크기에서 바꿉니다. */
@@ -5543,7 +5599,8 @@ function zoomBase(st){
 /* 화면 크기 = 매장 공유값(설정 → 적용하기) + 이 기기 보정(즉시). PC 는 110 이 맞고 아이패드는 100 이 맞는 식이라 보정을 둡니다 */
 function uiZoom(){
   if(DATA && DATA._ui && typeof DATA._ui.zoom === "number" && typeof DATA._ui.zoomAdj !== "number"){ DATA._ui.zoomAdj = Math.max(-40, Math.min(40, DATA._ui.zoom - 100)); delete DATA._ui.zoom; uiSave(); }   /* 8차-T: 옛 기기값을 보정으로 */
-  const base = zoomBase(view.storeKey && DATA && DATA[view.storeKey] ? DATA[view.storeKey].settings : null);
+  /* 폰은 매장 공통 화면 크기를 따르지 않음(10-14) — PC·태블릿에 맞춰 70~120% 로 바꾸면 폰까지 같이 줄거나 커져 글자·단추가 깨졌음. 폰은 100 + 이 기기 보정만 */
+  const base = isMobile() ? 100 : zoomBase(view.storeKey && DATA && DATA[view.storeKey] ? DATA[view.storeKey].settings : null);
   const adj = DATA && DATA._ui && typeof DATA._ui.zoomAdj === "number" ? DATA._ui.zoomAdj : 0;
   return Math.max(70, Math.min(160, base + adj));
 }
@@ -5682,6 +5739,7 @@ function renderApp(){
   applyTheme();
   /* 오늘이 아닌 날짜면 페이지 바탕도 검정 (applyTheme 이 className 을 통째로 다시 쓰므로 그 뒤에) */
   document.body.classList.toggle("notoday", notodayView());
+  { const tc = document.querySelector('meta[name="theme-color"]'), want = notodayView() ? "#1D1D1F" : "#FAFAFC"; if(tc && tc.getAttribute("content") !== want) tc.setAttribute("content", want); }   /* 상태 표시줄 띠도 상단바와 같은 색(폰·아이패드, 10-14) */
   const pk = popKey(), mk = modalKey();
   document.body.classList.toggle("same-pop", pk === lastPopKey);
   document.body.classList.toggle("same-modal", mk === lastModalKey);
@@ -6163,13 +6221,13 @@ function renderStoreCore(){
   return `
     <div class="shell">
       ${pageForm ? `<header class="topbar page ${notodayView()?'notoday':''}"><div class="topbar-in">
-        <button class="storename" onpointerdown="ownerGateDown()" onpointerup="ownerGateUp(event)" onpointerleave="ownerGateUp()" onclick="if(OWNER_GATE_T===null) goHomeScreen()" title="홈으로"><span class="sn-brand">HANOK</span></button>
+        <button class="storename" onclick="goHomeScreen()" title="홈으로"><span class="sn-brand">HANOK</span></button>
         <div class="bar-mid"><span class="bdate static">${pageTitle}</span></div>
         <div class="bar-right">${view.form.type === "devreq" && typeof DQ !== "undefined" && DQ && DQ.sec ? `<button class="tvbtn icon b-pageback" onclick="DQ.sec=''; DQ.open=null; render()" title="개발자에게로" aria-label="개발자에게로 돌아가기">${ICON.back}</button>` : view.form.back ? `<button class="tvbtn icon b-pageback" onclick="closeSheet()" title="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로" aria-label="${view.form.back==="owner"?"사장님":view.form.back==="messages"?"문자":"손님 관리"}으로 돌아가기">${ICON.back}</button>` : (DEV_EMBED && view.form.type === "owner") ? "" : `<button class="tvbtn icon b-exit" onclick="closeSheet()" title="닫기" aria-label="닫기">✕</button>`}</div>
       </div></header>` : `<header class="topbar ${notodayView()?'notoday':''} ${isMobile()?'mobile':''} ${view.tab==="settings"?'settings':''}"><div class="topbar-in">
         <!-- 매장 이름 = 예전 맨 왼쪽 버튼의 역할. 대시보드에서는 매장 선택으로, 설정에서는 대시보드로. 아이콘·화살표 없이 글자만(6차-K) -->
         <!-- 8차-P(재아): HANOK 은 홈(대시보드·오늘)으로, 이미 홈이면 새로고침. 매장 나가기·로그아웃은 더보기 -->
-        <button class="storename" onpointerdown="ownerGateDown()" onpointerup="ownerGateUp(event)" onpointerleave="ownerGateUp()" onclick="if(OWNER_GATE_T!==null) return; ${view.tab==="settings" || view.form || WZ ? "goHomeScreen()" : (view.date===todayStr() ? "manualRefresh()" : "goToday()")}"
+        <button class="storename" onclick="${view.tab==="settings" || view.form || WZ ? "goHomeScreen()" : (view.date===todayStr() ? "manualRefresh()" : "goToday()")}"
           title="${view.tab==="settings" ? "대시보드로" : (view.date===todayStr() ? "새로고침" : "오늘로")}"><span class="sn-brand">HANOK</span></button>
         ${isMobile() && view.tab!=="settings" ? `
         <!-- 폰: 리스트|그래프 스위치 — 본문에 두면 자리를 크게 먹어 로고 옆으로 (7차-M) -->
@@ -6211,6 +6269,7 @@ function renderStoreCore(){
             ${view.moreOpen ? `
             <div class="more-menu">
               ${isMobile() && view.date!==todayStr() ? `<button onclick="closeMore(); goToday()">${ICON.cal}<span>오늘로</span></button>` : ``}
+              ${isMobile() && (window.innerWidth < 360 || document.documentElement.classList.contains("tight")) ? `<button onclick="closeMore(); manualRefresh()">${ICON.refresh}<span>새로고침</span></button>` : ``}   <!-- 아주 좁은 폰은 상단 ↻ 를 숨기고 여기로(10-14) -->
               <button onclick="closeMore(); openHours()">${ICON.clock}<span>영업시간</span></button>
               <button onclick="closeMore(); openZoomAdj()">${ICON.search}<span>화면 보정</span></button>
               ${typeof canSeeOwnerMenu === "function" && !canSeeOwnerMenu() ? "" : `<button onclick="closeMore(); openOwnerPage()">${ICON.staff}<span>사장님</span></button>`}   <!-- 공용 PIN·사장만(10-14 재아) -->
@@ -7451,7 +7510,7 @@ function renderTimeline(date, compact){
     /* 폰(압축판)은 테이블 6칸이 너무 높아 3칸으로 접고, 층 이름을 누르면 펼칩니다(모바일 2026-09-17).
        접힌 동안 못 들어간 팀은 그리지 않고 "숨은 N팀" 으로만 — 겹쳐 그리면 뒤 팀이 안 보입니다 */
     const FOLD = 3, key = fl == null ? "_" : fl;
-    const foldable = compact && tbls.length > FOLD;
+    const foldable = false;   /* 10-14 재아: 폰의 '3칸만 ▾' 접기를 뺌 — 줄 높이가 이미 쓰인 칸만큼이라 접어도 거의 안 바뀌어 '왜 있는지·작동도 안 함' 으로 보였음. 늘 다 보임 */
     const folded = foldable && !(view.tlOpen && view.tlOpen[key]);
     const lanes = Math.max(1, folded ? FOLD : tbls.length);
     let placed = laneLayout(items.map(it=>Object.assign({}, it, {need:Math.min(it.need, lanes)})), lanes);
@@ -10971,8 +11030,8 @@ async function gsBlackToggle(edit){
    더보기(⋮) → 사장님. 관리자 비밀번호 한 번 통과하면 그 안의 것들은 다시 안 묻습니다(설정과 같은 view.adminOk).
    여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · 보안 · 홈페이지 관리.
    화면형(view.form={type:"owner", page:true}) — 큰 단추 격자. 폰에서는 두 줄. */
-async function openOwnerPage(fromGate){
-  if(!fromGate && typeof canSeeOwnerMenu === "function" && !canSeeOwnerMenu()) return;   /* 사장 권한이 아니면 조용히(단추가 숨겨져 있음 — 주소로 열어도). 로고 길게 누르기(ownerGate)는 2차 PIN 으로 통과 */
+async function openOwnerPage(){
+  if(typeof canSeeOwnerMenu === "function" && !canSeeOwnerMenu()) return;   /* 사장 권한이 아니면 조용히(단추가 숨겨져 있음 — 주소로 열어도) */
   /* 09-25(재아): 사장님 버튼을 누를 때 한 번 묻고, 안의 메뉴는 다시 안 물음(전엔 메뉴마다 물었음) */
   if(!OWNER_OK){ if(!await adminGate("사장님 메뉴")) return; OWNER_OK = true; }
   view.form = {type:"owner", page:true}; render();
@@ -14118,18 +14177,9 @@ function myRole(){
 }
 function canEditRes(){ return myRole() !== "staff"; }
 /* 사장님 메뉴가 보이는 계정 — 공용 PIN(사장님이 카운터 기기에서 2차 PIN 을 넣고 씀) · 사장 권한. 직원·매니저 개인 PIN 에는 안 보임(10-14 재아) */
-function canSeeOwnerMenu(){ return myRole() === "owner"; }   /* 10-14 재아(2차): 사장님 메뉴는 사장만 — 공용·직원·매니저 모두 숨김. 사장 PIN 이 없을 때는 로고를 길게 눌러 2차 PIN(ownerGate) */
+function canSeeOwnerMenu(){ return myRole() === "owner"; }   /* 10-14 재아(2차): 사장님 메뉴는 사장만 — 공용·직원·매니저 모두 숨김(사장 PIN 으로 들어옴. 로고 길게 누르기 숨은 입구는 사장 PIN 을 만든 뒤 뺌) */
 /* 홈페이지 예약(접수함·새 접수 알림)은 매니저·사장만(10-14 재아) */
 function canSeeReqs(){ return canEditRes(); }
-/* 숨은 문: 상단 로고를 0.8초 누르고 있으면 사장님 2차 PIN — 사장 권한 PIN 을 아직 안 만든 가게에서도 사장님 메뉴로 들어갈 길(10-14) */
-var OWNER_GATE_T = null;
-function ownerGateDown(){ clearTimeout(OWNER_GATE_T); OWNER_GATE_T = setTimeout(function(){ OWNER_GATE_T = "fired"; ownerGate(); }, 800); }
-function ownerGateUp(e){ if(OWNER_GATE_T === "fired"){ OWNER_GATE_T = null; if(e){ e.preventDefault(); e.stopPropagation(); } return false; } clearTimeout(OWNER_GATE_T); OWNER_GATE_T = null; return true; }
-async function ownerGate(){
-  if(!AUTHED || !view.storeKey) return;
-  if(!OWNER_OK){ if(!await adminGate("사장님 메뉴")) return; OWNER_OK = true; }
-  openOwnerPage(true);
-}
 function pinRoleSeg(cur){ return '<div class="seg">' + ["staff", "manager", "owner"].map(function(k){ return '<button type="button" class="' + (cur === k ? 'on' : '') + '" onclick="view.pinRole=\'' + k + '\'; render()">' + PIN_ROLE[k] + '</button>'; }).join("") + '</div>'; }
 function sheetPinList(){
   /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차) */
