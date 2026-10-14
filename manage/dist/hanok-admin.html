@@ -9419,7 +9419,7 @@ function sheetSite(){
   var body = ({online:saTabOnline, notices:saTabNotices, posts:saTabPosts, hours:saTabHours, texts:saTabTexts, menu:saTabMenu, images:saTabImages}[SA.tab] || saTabOnline)();   /* posts 는 14c */
   var instant = SA.tab === "posts" || SA.tab === "notices";
   return saHead() +
-    (instant ? '<div class="sa-top2 sa-top-post"><span>' + (SA.tab === "posts" ? '소식은 <b>게시</b>' : '팝업은 <b>저장</b>') + '을 누르면 바로 홈페이지에 반영됩니다.</span></div>' : saTopHtml()) +
+    (instant ? '<div class="sa-top2 sa-top-post"><span>' + (SA.tab === "posts" ? '소식은 <b>게시</b>를' : '팝업은 <b>저장</b>을') + ' 누르면 바로 홈페이지에 반영됩니다.</span></div>' : saTopHtml()) +
     (saOnly() ? '' : '<div class="sa-tabs">' + TABS.map(function(t){ return (t[0] === "notices" ? '<i class="sa-tab-sep"></i>' : '') + '<button class="' + (SA.tab === t[0] ? "on" : "") + '" onclick="saTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join("") + '</div>') +
     '<div class="sa-body">' + body + '</div>' +
     (view.saPreview ? saPreviewHtml() : "") + (view.saApply ? saApplyHtml() : "");
