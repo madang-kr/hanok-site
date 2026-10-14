@@ -3296,10 +3296,10 @@ const DEFAULT_DATA = {
         from:"2000-01-01",
         /* 세션(8차-X): 하루를 '점심 경계'(edge) 하나로 점심/저녁으로 나눕니다. 브레이크가 있는 날은 경계 = 브레이크 시작(자동, 잠김).
            점심·저녁마다 접수 마감(lastBook)과 점유(room/table: "end" = 세션 끝까지 한 팀, 숫자 = 분). 경계가 비면 하루가 한 세션(저녁 규칙).
-           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
+           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 저녁은 룸 끝까지 · 테이블 2시간(10-14 누님 답). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
         days:[
           {open:"11:00", close:"20:30", lo:"19:40", bs:"",      be:"",
-           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:"end"}}},   /* 일 */
+           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:120}}},   /* 일 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
            sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 월 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
@@ -3311,11 +3311,11 @@ const DEFAULT_DATA = {
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
            sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 금 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"",      be:"",
-           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"19:30", room:"end", table:"end"}}}    /* 토 */
+           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}}    /* 토 */
         ],
         /* 공휴일은 일요일과 같습니다 (설정에서 변경) */
         holiday:{open:"11:00", close:"20:30", lo:"19:40", bs:"", be:"",
-           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:"end"}}}
+           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:120}}}
       }],
       overrides:[],        /* 임시 휴무·단축 영업 등 특정 날짜만 다른 경우 */
       /* 손님용 목록 화면 왼쪽에 트는 광고 영상.
