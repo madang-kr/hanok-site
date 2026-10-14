@@ -8,7 +8,7 @@
 <!-- 아이폰·아이패드는 웹 전체화면 API 가 없어, '홈 화면에 추가' 로 열면 주소창·탭 없이 뜨게 합니다 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">   <!-- 10-14 재아: black-translucent 는 시계·배터리를 흰 글씨로 화면 위에 겹쳐 그려, 밝은 상단바에서 뿌옇고 단추가 가려졌음 → 상태 표시줄을 따로(흰 바탕·검정 글씨) 두고 앱은 그 아래부터. 바꾼 뒤엔 홈 화면 아이콘을 지웠다 다시 추가해야 반영 -->
 <title>한옥반점 예약</title>
 <!-- 글꼴은 파일 안에 들어 있습니다(맨 위 @font-face, work/fonts.md).
      v3 까지는 CDN(jsdelivr·Google Fonts)에서 불러왔는데, TV·태블릿의 인터넷이 느리면 그동안 시스템 글꼴로 보이다가
@@ -1664,7 +1664,7 @@ label.chk span{width:auto}
 .st-list{border-top:1px solid var(--border); margin-bottom:10px}
 .st-row{display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--border)}
 .st-ord{display:inline-flex; flex-direction:column; flex:none}
-.st-ord button{width:28px; height:20px; padding:0; border:none; background:none; font-size:10px; line-height:1; color:var(--text-3); cursor:pointer}
+.st-ord button{width:32px; height:22px; padding:0; border:none; background:none; font-size:12px; line-height:1; color:var(--text-3); cursor:pointer}
 .st-ord button:disabled{opacity:.25; cursor:default}
 .st-main{flex:1 1 auto; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:5px 6px; min-height:48px; padding:8px 6px; border:none; background:none; font:inherit; color:var(--text); text-align:left; cursor:pointer; border-radius:8px}
 .st-main:hover{background:var(--surface-2)}
@@ -1940,7 +1940,7 @@ button.sa-card:hover{border-color:var(--text-3)}
 .hr-legend span{display:inline-flex; align-items:center; gap:var(--s4)}
 .hr-legend i.hc{display:inline-block; width:18px; text-align:center; font-style:normal; font-weight:700; font-size:14px; line-height:1}
 .hr-legend i.hc.reg{color:var(--pine)} .hr-legend i.hc.alt{color:var(--amber)} .hr-legend i.hc.abs{color:var(--rust)} .hr-legend i.hc.off{color:var(--text-3)}
-.hr-legend i.r-ex{font-style:normal; font-size:9px; font-weight:700; color:var(--amber)} .hr-legend i.dot-ex{width:5px; height:5px; border-radius:50%; background:#2F5BA8}
+.hr-legend i.r-ex{font-style:normal; font-size:11px; font-weight:700; color:var(--amber)} .hr-legend i.dot-ex{width:5px; height:5px; border-radius:50%; background:#2F5BA8}
 .hr-seg button, .hr-days button{flex:1 1 auto}
 .hr-pay{width:100%; border-collapse:collapse; font-size:var(--fs-sub)}
 .hr-pay th, .hr-pay td{padding:var(--s8) var(--s12); border-bottom:1px solid var(--border); text-align:center; white-space:nowrap}
@@ -3133,6 +3133,22 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
 @media (max-width:767px){
   .mswitch{height:34px} .mswitch span{height:28px; padding:0 9px}
   .seg button, .page-wrap .seg button{min-height:34px !important}   /* .page-wrap .seg button 이 !important 로 0 을 줘서 같은 무게로 덮음 */
+}
+
+/* 10-14 재아(2차) '폰은 전혀 고려 안 한 느낌' — 예약 등록 마법사(폰)
+   ① 질문·본문을 세로 가운데에 두면(태블릿 눈높이용) 폰에서는 위아래가 텅 비고, 이름·전화 칠 때 키보드가 입력칸을 가렸음 → 위부터 채움
+   ② 질문 글자와 경고 자리(60px)를 줄여 첫 화면에 입력칸·선택지가 바로 보이게
+   ③ 상단 단계 줄: 닫기 + 1~7 이 한 줄에, 요약(일시·인원·자리)은 그 아래 한 줄로 작게 */
+@media (max-width:640px){
+  .wz-mid{justify-content:flex-start}
+  .wz-q{padding:var(--s16) var(--s16) 0}
+  .wz-q h2{font-size:19px; line-height:1.35}
+  .wz-warn{min-height:0; height:auto; max-height:60px; margin-top:var(--s4)}
+  .wz-warn:empty{display:none}
+  .wz-body{padding:var(--s12) var(--s12) var(--s16)}
+  .wz-top{padding:var(--s8) var(--s12); min-height:0; row-gap:var(--s4)}
+  .wz-sum{width:100%; margin-left:0; overflow-x:auto} .wz-sum span{padding:2px var(--s8); font-size:var(--fs-label)}
+  .wz-dot{padding:var(--s4)}
 }
 /* ============================================================
    12c. apple-design 2차 (2026-09-20) — 12b 뒤·13 앞. 새 화면(사장님·설정 목록·워크시프트·감사 문자)이 생긴 뒤 다시 맞춘 것.
