@@ -567,7 +567,7 @@
         <h3>메뉴</h3>
         <div class="rv-pick" id="rv-cs">
           ${menuGroups().map(g => `<div class="rv-pick-h">${esc(g.title)}${g.note ? `<small>${esc(g.note)}</small>` : ""}</div>` + g.items.map(it =>
-              `<button type="button" data-c="${esc(it.key)}" data-l="${esc(it.name)}" class="${S.course===it.key?'on':''}"><b>${esc(it.name)}${it.cn?`<small>${esc(it.cn)}</small>`:""}</b><span class="qty">${total()}인분</span></button>`).join("")).join("")}
+              `<button type="button" data-c="${esc(it.key)}" data-l="${esc(it.name)}" class="${S.course===it.key?'on':''}"><b>${esc(it.name)}${it.cn?`<small>${esc(it.cn)}</small>`:""}</b><span class="qty">${S.adults}인분</span></button>`).join("")).join("")}
           ${specialOf(S.date) ? "" : `<div class="rv-pick-h"></div>
           ${room ? `<button type="button" data-c="later" data-l="메뉴 미정" class="${S.course==='later'?'on':''}"><b>미정</b></button>`
                  : `<button type="button" data-c="none" data-l="단품 주문" class="${S.course==='none'?'on':''}"><b>단품 주문</b></button>`}`}

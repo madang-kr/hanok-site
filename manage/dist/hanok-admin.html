@@ -2435,8 +2435,8 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .lk-logo{width:96px; height:222px; margin:-40px auto 0; background:var(--img-logo) center / contain no-repeat}
 /* PIN 자리 — 작은 빈 원. 채울 때마다 매장 이름이 한 글자씩(f1~f4 는 글자마다 다른 글꼴) 색이 들어옵니다.
    처음엔 네모 칸이 튀어오르는 방식이었는데 산만해서 원 + 글자색만 바뀌게 줄였습니다 */
-.pdots{display:flex; justify-content:center; align-items:center; margin:var(--s24) 0 var(--s8); gap:var(--s16); height:48px}
-.pdot{width:40px; height:40px; border:1.5px solid var(--border-strong); background:transparent; display:grid; place-items:center; font-size:30px; line-height:1; color:transparent; transition:color .2s ease; box-shadow:none; border-radius:50%}   /* 40px 은 너무 컸음 → 30px */
+.pdots{display:flex; justify-content:center; align-items:center; margin:var(--s24) 0 var(--s8); gap:10px; height:48px}   /* 10-14: 여섯 칸(PIN 6자리) — 간격 16 → 10 */
+.pdot{width:36px; height:36px; border:1.5px solid var(--border-strong); background:transparent; display:grid; place-items:center; font-size:30px; line-height:1; color:transparent; transition:color .2s ease; box-shadow:none; border-radius:50%}   /* 40px 은 너무 컸음 → 30px */
 /* 채워지면 원이 사라지고 그 자리에 큰 글자가 들어옵니다 (원 안의 작은 글자는 심심하다는 평 — 6차-F).
    글자마다 글꼴을 과할 만큼 다르게 — 내장 글꼴 두 벌(Pretendard·Noto Serif KR)만으로 기울임·외곽선·회전으로 변화를 줍니다 */
 .pdot.on{border-color:transparent; color:var(--text)}
@@ -2445,6 +2445,8 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .pdot.f3{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 반 — 속이 빈 외곽선 명조 */
 .pdot.f3.on, body.theme-hanok .pdot.f3.on{color:transparent; -webkit-text-stroke:1.6px var(--text)}
 .pdot.f4{font-family:'Pretendard',sans-serif; font-weight:400; transform:rotate(-10deg)}                      /* 점 — 가는 고딕을 살짝 기울여 (회전은 배율과 무관) */
+.pdot.f5{font-family:'Noto Serif KR',serif; font-weight:400; font-style:italic}                                /* 분 — 가는 명조 기울임 */
+.pdot.f6{font-family:'Pretendard',sans-serif; font-weight:900; letter-spacing:-.05em}                             /* 당 — 아주 굵은 고딕 */
 .lk-err{height:20px; font-size:var(--fs-sub); color:var(--rust); font-weight:600; margin-bottom:var(--s16)}
 .lk-err.busy{color:var(--text-3)}   /* 서버 확인 중 — 오류가 아니라 회색 */
 /* 숫자 키패드 — 64px 높이, 카운터에서 손가락으로.
@@ -5783,8 +5785,9 @@ let PIN_ERR = "";
 function renderLock(){
   const s = view.storeKey ? DATA[view.storeKey] : null;
   /* 자리를 채울 때마다 매장 이름 한 글자씩 나타납니다 */
-  const marks = (s && s.name.length>=4) ? s.name.split("").slice(0,4) : ["한","옥","반","점"];
-  const dots = [0,1,2,3].map(i=>
+  /* 10-14: PIN 6자리(4자리는 0000~9999 를 차례로 넣어 보면 뚫림) — 매장 이름 네 글자 뒤에 '분당' */
+  const marks = ((s && s.name.length>=4 ? s.name.slice(0,4) : "한옥반점") + "분당").split("");
+  const dots = [0,1,2,3,4,5].map(i=>
     `<span class="pdot f${i+1} ${i<PIN_BUF.length?'on':''}">${i<PIN_BUF.length?marks[i]:""}</span>`).join("");
   const keys = [1,2,3,4,5,6,7,8,9,"clear",0,"back"].map(k=>{
     if(k==="clear") return `<button class="pkey sub" onclick="pinClear()" title="다시 입력">↻</button>`;
@@ -5806,19 +5809,23 @@ function renderLock(){
 }
 function pinPush(n){
   if(!view.storeKey || view.display || AUTHED) return;   /* 잠금 화면일 때만. TV 리모컨 숫자키가 로그인 시도가 됐습니다(점검 U1) */
-  if(PIN_BUF.length>=4 || LOCK_BUSY || pinLockLeft() > 0) return;
+  if(PIN_BUF.length>=PIN_LEN || LOCK_BUSY || pinLockLeft() > 0) return;
   PIN_BUF += n; PIN_ERR="";
 
-  /* 120ms 뒤 확인 — 그사이 ←·다시 누름이 오면 세 자리로 보내거나 로그인이 두 번 돌던 것(10-09 점검). 확인 대기 중엔 입력을 받지 않음 */
-  if(PIN_BUF.length===4){ PIN_PENDING = true; setTimeout(function(){ PIN_PENDING = false; if(PIN_BUF.length === 4) pinCheck(); }, 120); }
+  /* 120ms 뒤 확인 — 그사이 ←·다시 누름이 오면 다섯 자리로 보내거나 로그인이 두 번 돌던 것(10-09 점검). 확인 대기 중엔 입력을 받지 않음 */
+  clearTimeout(PIN_OLD_T);
+  if(PIN_BUF.length===PIN_LEN){ PIN_PENDING = true; setTimeout(function(){ PIN_PENDING = false; if(PIN_BUF.length === PIN_LEN) pinCheck(); }, 120); }
+  /* 옛 4자리 PIN(10-14 이전에 만든 것) — 네 자리에서 2초 동안 더 누르지 않으면 그대로 확인. 서버의 PIN 을 전부 6자리로 바꾸면 쓸 일이 없음 */
+  else if(PIN_BUF.length===4){ var b4 = PIN_BUF; PIN_OLD_T = setTimeout(function(){ if(PIN_BUF === b4 && !LOCK_BUSY && !AUTHED) pinCheck(); }, 2000); }
   render();
 }
+var PIN_LEN = 6, PIN_OLD_T = 0;
 var PIN_PENDING = false;
-function pinBack(){ if(PIN_PENDING || LOCK_BUSY) return; PIN_BUF = PIN_BUF.slice(0,-1); render(); }
-function pinClear(){ if(PIN_PENDING || LOCK_BUSY) return; PIN_BUF=""; PIN_ERR=""; render(); }
+function pinBack(){ if(PIN_PENDING || LOCK_BUSY) return; clearTimeout(PIN_OLD_T); PIN_BUF = PIN_BUF.slice(0,-1); render(); }
+function pinClear(){ if(PIN_PENDING || LOCK_BUSY) return; clearTimeout(PIN_OLD_T); PIN_BUF=""; PIN_ERR=""; render(); }
 /* ============================================================
    PIN 확인
-   서버 모드(SUPA_CFG 있음): PIN 4자리 + "00" 으로 staff 계정 로그인 — 진짜 검증. 틀림 5회 → 60초 잠금.
+   서버 모드(SUPA_CFG 있음): PIN 6자리(옛 PIN 은 4자리) + "00" 으로 staff 계정 로그인 — 진짜 검증. 틀림 5회 → 60초 잠금.
    서버 설정이 없는 빌드: 들어갈 수 없습니다(7차-H). build.py 가 prod 설정이 없으면 dev 설정을 쓰므로 사이트에 설정 없는 빌드가 올라갈 일은 없습니다.
    ============================================================ */
 var PIN_FAILS = 0, PIN_LOCK_UNTIL = 0;   /* 틀린 횟수 · 잠금 해제 시각(ms) */
@@ -5840,7 +5847,7 @@ function pinFailed(){
     var t = setInterval(function(){ if(pinLockLeft() <= 0){ clearInterval(t); PIN_ERR = ""; } render(); }, 1000);
   }
 }
-/* 서버 모드 — PIN 4자리를 staff 계정 비밀번호(PIN+"00")로 로그인. 맞으면 서버를 읽어 들어갑니다.
+/* 서버 모드 — PIN 을 staff 계정 비밀번호(PIN+"00")로 로그인. 맞으면 서버를 읽어 들어갑니다.
    연결이 없으면: 마지막으로 서버가 받아 준 PIN 과 같을 때만 캐시로 들어갑니다(읽기 전용) */
 async function pinCheckServer(){
   var pin = PIN_BUF;
@@ -5853,6 +5860,8 @@ async function pinCheckServer(){
     logEvent("로그인 성공", (SESSION && SESSION.name) || "공용 PIN");
     LOCK_BUSY = false;
     enterAfterLogin();
+    /* 옛 4자리 PIN 으로 들어왔으면 바꾸라고 알림 — 막지는 않음 */
+    if(pin.length === 4) setTimeout(function(){ uiAlert("PIN을 6자리로 바꿔 주세요", "이 PIN은 예전 4자리입니다. 4자리는 차례로 넣어 보면 뚫릴 수 있습니다.\n사장님 메뉴 → 보안 → PIN 관리에서 " + ((SESSION && SESSION.name) || "공용 PIN") + " 을 6자리로 바꿔 주세요.", "warn"); }, 600);
     return;
   }catch(e){
     PIN_BUF = "";
@@ -10178,21 +10187,21 @@ function hrPinPopHtml(){
     (e._new ? '' : '<div class="hr-pininfo"><div><small>상태</small><b>' + esc(state) + '</b></div><div><small>권한</small><b>' + esc(cur ? (PIN_ROLE[cur.role || "staff"] || "일반") : "—") + '</b></div><div><small>마지막 PIN 변경</small><b>' + esc(when) + '</b></div></div>' +
       '<div class="btn-row hr-pinacts">' + (pp.roleOpen ? '' : '<button class="btn" onclick="HR.pinPop.roleOpen=true; render()">권한 변경</button>') + (pp.pinOpen ? '' : '<button class="btn" onclick="HR.pinPop.pinOpen=true; render()">PIN 변경</button>') + '</div>') +
     (roleOpen ? '<div class="f"><div class="lb">권한</div><div class="seg">' + ["staff", "manager", "owner"].map(function(k){ return '<button class="' + (role === k ? "on" : "") + '" onclick="HR.edit.pinRole=\'' + k + '\'; render()">' + PIN_ROLE[k] + '</button>'; }).join("") + '</div></div>' : '') +
-    (pinOpen ? '<div class="grid2">' + pinPad("hr-pin1", cur ? "새 PIN" : "PIN", 4, e.pinNew, "hrEditSet('pinNew', v);") +   /* 숫자판(10-14 재아: 키보드가 올라와 불편) */
-      pinPad("hr-pin2", "PIN 확인", 4, e.pinNew2, "hrEditSet('pinNew2', v);") + '</div>' : '') +
+    (pinOpen ? '<div class="grid2">' + pinPad("hr-pin1", cur ? "새 PIN" : "PIN", 6, e.pinNew, "hrEditSet('pinNew', v);") +   /* 숫자판(10-14 재아: 키보드가 올라와 불편) */
+      pinPad("hr-pin2", "PIN 확인", 6, e.pinNew2, "hrEditSet('pinNew2', v);") + '</div>' : '') +
     (e._new || roleOpen || pinOpen ? '<div class="sheet-actions"><button class="btn primary" data-enter onclick="hrPinPopSave()">' + (e._new ? "적용" : "저장") + '</button></div>' : '') + '</div></div>';
 }
 async function hrPinPopSave(){
   var e = HR.edit; if(!e) return;
   var pin = (e.pinNew || "").trim();
   if(e._new){
-    if(!/^\d{4}$/.test(pin)){ await uiAlert("PIN은 숫자 4자리여야 합니다", "", "warn"); return; }
+    if(!/^\d{6}$/.test(pin)){ await uiAlert("PIN은 숫자 6자리여야 합니다", "", "warn"); return; }
     if(pin !== (e.pinNew2 || "").trim()){ await uiAlert("PIN 확인이 서로 다릅니다", "", "warn"); return; }
     HR.pinPop = null; render(); return;   /* 직원 저장 때 같이 만듦(그때 2차 PIN 창) */
   }
   var cur = hrPinOf(e.id);
   if(!pin && cur && (e.pinRole || "staff") === (cur.role || "staff")){ await uiAlert("바뀐 것이 없습니다", "", "warn"); return; }
-  if(!pin && !cur){ await uiAlert("PIN 4자리를 넣어 주세요", "PIN이 없는 직원은 번호를 정해야 권한도 정해집니다.", "warn"); return; }   /* 전엔 아무것도 안 보내고 'PIN을 저장했습니다' 가 떴음(10-09 점검) */
+  if(!pin && !cur){ await uiAlert("PIN 6자리를 넣어 주세요", "PIN이 없는 직원은 번호를 정해야 권한도 정해집니다.", "warn"); return; }   /* 전엔 아무것도 안 보내고 'PIN을 저장했습니다' 가 떴음(10-09 점검) */
   e.pinAdm = "";
   if(!await hrPinApply(e, (e.nick || "").trim() || (e.name || "").trim())) return;
   e.pinNew = ""; e.pinNew2 = ""; HR.pinPop = null;
@@ -10208,12 +10217,13 @@ async function hrPinApply(e, label){
   var roleChg = !!cur && role !== (cur.role || "staff");
   if(!pin && !roleChg) return true;
   if(pin || !cur){
-    if(!/^\d{4}$/.test(pin)){ await uiAlert("PIN은 숫자 4자리여야 합니다", "", "warn"); return false; }
+    if(!/^\d{6}$/.test(pin)){ await uiAlert("PIN은 숫자 6자리여야 합니다", "", "warn"); return false; }
     if(pin !== (e.pinNew2 || "").trim()){ await uiAlert("PIN 확인이 서로 다릅니다", "", "warn"); return false; }
   }
   /* 2차 PIN 은 칸이 아니라 지금 창으로 묻기(10-09 재아) */
   var adm = (e.pinAdm || "").trim();
   if(!adm){ var pr = await uiPin("직원 PIN " + (cur ? "변경" : "만들기"), "2차 PIN을 입력해주세요.", 6); if(!pr || !pr.code) return false; adm = pr.code; }
+  if(pin && pin === adm){ await uiAlert("2차 PIN과 같은 번호는 쓸 수 없습니다", "직원이 사장님 2차 PIN 을 알게 됩니다.", "warn"); return false; }
   var tok = await pinAdminTok(adm, "직원 PIN " + (cur ? "변경" : "만들기")); if(!tok) return false;   /* 워크시프트에 들어올 때와 따로, PIN 을 만들 때마다 2차 PIN(09-25 재아) */
   try{
     /* 번호 먼저 — 겹치는 번호로 실패할 때 권한만 바뀐 채 남지 않게(10-09 점검) */
@@ -10266,7 +10276,7 @@ async function hrStaffSave(opt){
   if(need.length){ await uiAlert("필수 항목을 채워 주세요", need.join(" · ") + (need.some(function(x){ return x !== "성명"; }) ? "\n(전화번호·역할·입사일은 '기타' 탭에 있습니다)" : ""), "warn"); return false; }
   (e.sched_hist || []).forEach(function(h, i){ if(!h.from && (h.rows || []).length && i === 0) h.from = e.start_date; });   /* 첫 근무 기간 시작일이 비면 입사일로 */
   /* 10-06 재아: 새 직원은 PIN 을 꼭 만들게(나중에 따로 '등록' 하는 길은 없앰 — 헷갈려서) */
-  if(e._new && !(e.pinNew || "").trim() && !hrPinOf(e.id)){ await uiAlert("PIN을 등록해 주세요", "'PIN 등록' 을 눌러 숫자 4자리를 정해야 저장됩니다.", "warn"); return false; }
+  if(e._new && !(e.pinNew || "").trim() && !hrPinOf(e.id)){ await uiAlert("PIN을 등록해 주세요", "'PIN 등록' 을 눌러 숫자 6자리를 정해야 저장됩니다.", "warn"); return false; }
   /* 10-06 재아: 다 안 채운 근무 행이 있으면 저장 안 함 — 전엔 요일 없는 행을 말없이 버려서 넣은 근무가 날아갔음 */
   var miss = opt.quick ? "" : hrSchedMissing(e.sched_hist);
   if(miss){ await uiAlert("정규 근무를 다 채워 주세요", miss, "warn"); if(e.tab !== "sched"){ e.tab = "sched"; render(); } return false; }
@@ -14231,15 +14241,15 @@ async function pinPadOpen(id, label, max, set){
 /* 입력칸 값은 view 에 — 권한 알약을 누르면 다시 그리는데 그때 2차 PIN·새 PIN 이 지워지던 것(09-25 재아) */
 function pinIn(key, id, label, opt){
   opt = opt || {}; var st = view[opt.store || "pa"] || {};
-  if(!opt.text){ var sk = opt.store || "pa"; return pinPad(id, label, opt.max || 4, st[key], "(view." + sk + " = view." + sk + " || {})." + key + " = v;"); }
-  return '<label class="f big"><div class="lb">' + label + '</div><input id="' + id + '" type="' + (opt.text ? "text" : "password") + '"' + (opt.text ? '' : ' inputmode="numeric"') + ' maxlength="' + (opt.max || 4) + '"' + ' autocomplete="off" value="' + esc(st[key] || "") + '" oninput="(view.' + (opt.store || "pa") + ' = view.' + (opt.store || "pa") + ' || {}).' + key + ' = this.value"></label>';
+  if(!opt.text){ var sk = opt.store || "pa"; return pinPad(id, label, opt.max || 6, st[key], "(view." + sk + " = view." + sk + " || {})." + key + " = v;"); }
+  return '<label class="f big"><div class="lb">' + label + '</div><input id="' + id + '" type="' + (opt.text ? "text" : "password") + '"' + (opt.text ? '' : ' inputmode="numeric"') + ' maxlength="' + (opt.max || 6) + '"' + ' autocomplete="off" value="' + esc(st[key] || "") + '" oninput="(view.' + (opt.store || "pa") + ' = view.' + (opt.store || "pa") + ' || {}).' + key + ' = this.value"></label>';
 }
 function sheetPinAdd(){
   return sheetHead("PIN 추가") +
     pinIn("adm", "pa-admin", "2차 PIN", {max:6}) +
     pinIn("name", "pa-name", "PIN 이름", {text:true, max:20}) +
     '<div class="f big"><div class="lb">권한</div>' + pinRoleSeg(view.pinRole || "staff") + '</div>' +
-    pinIn("a", "pa-new", "새 PIN", {ph:"••••"}) + pinIn("b", "pa-new2", "새 PIN 확인", {ph:"••••"}) +
+    pinIn("a", "pa-new", "새 PIN", {ph:"••••••"}) + pinIn("b", "pa-new2", "새 PIN 확인", {ph:"••••••"}) +
     '<div class="sheet-actions"><button class="btn ghost" onclick="view.form={type:\'pinlist\'}; render()">취소</button><button class="btn primary" onclick="pinAddSave()">추가</button></div>';
 }
 /* 2차 PIN 으로 사장님 임시 토큰 — 틀리면 알리고 null */
@@ -14257,7 +14267,8 @@ async function pinAddSave(){
   const adm = g("pa-admin"), name = g("pa-name").trim(), a = g("pa-new"), b = g("pa-new2");
   if(!name){ await uiAlert2("PIN 이름을 입력하세요."); return; }
   if(PIN_USERS.some(u=>(u.name || "").trim().toLowerCase() === name.toLowerCase())){ await uiAlert2("같은 이름의 PIN이 이미 있습니다."); return; }   /* 서버도 막음(34차) */
-  if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
+  if(!/^\d{6}$/.test(a)){ await uiAlert2("PIN은 숫자 6자리여야 합니다."); return; }
+  if(a === adm){ await uiAlert2("2차 PIN과 같은 번호는 쓸 수 없습니다."); return; }   /* 직원이 사장님 2차 PIN 을 알게 됨 */
   if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
   const tok = await pinAdminTok(adm, "PIN 추가"); if(!tok) return;
   try{ await sb("/rest/v1/rpc/hanok_pin_add", { method:"POST", token:tok, body:{ p_name:name, p_pin:a, p_base:SUPA_CFG.staffEmail, p_role:view.pinRole || "staff" } }); }
@@ -14300,7 +14311,7 @@ function sheetPin(){
     (tg ? pinIn("name", "pin-name", "PIN 이름", {text:true, max:20, store:"pe"}) + (tg.staff_id ? '<p class="f-note" style="margin-top:-6px">워크시프트에서 직원 이름을 바꾸면 이 이름도 따라 바뀝니다.</p>' : '') +
       '<div class="f big"><div class="lb">권한</div>' + pinRoleSeg(view.pinRole || tg.role || "staff") + '</div>' +
       '<div class="sa-line"><span class="sa-line-l"><b>PIN 번호 바꾸기</b></span><button type="button" class="sa-sw' + (chg ? ' on' : '') + '" role="switch" aria-checked="' + chg + '" aria-label="PIN 번호 바꾸기" onclick="view.pe.chg=!view.pe.chg; render()"><i></i></button></div>' : '') +
-    (chg ? pinIn("a", "pin-new", "새 PIN", {ph:"••••", store:"pe"}) + pinIn("b", "pin-new2", "새 PIN 확인", {ph:"••••", store:"pe"}) : '') +
+    (chg ? pinIn("a", "pin-new", "새 PIN", {ph:"••••••", store:"pe"}) + pinIn("b", "pin-new2", "새 PIN 확인", {ph:"••••••", store:"pe"}) : '') +
     '<div class="sheet-actions"><button class="btn ghost" onclick="view.form={type:\'pinlist\'}; render()">취소</button><button class="btn primary" onclick="savePin()">저장</button></div>';
 }
 /* PIN = staff 계정 비밀번호. 로그인 토큰 받기·자기 비밀번호 바꾸기(2차 PIN 변경에 씀) */
@@ -14322,7 +14333,8 @@ async function savePin(){
   const chg = tg ? !!pe.chg : true, name = tg ? String(pe.name || "").trim() : "";
   const roleChanged = !!tg && (view.pinRole || "staff") !== (tg.role || "staff"), nameChanged = !!tg && name !== (tg.name || "");
   if(chg){
-    if(!/^\d{4}$/.test(a)){ await uiAlert2("PIN은 숫자 4자리여야 합니다."); return; }
+    if(!/^\d{6}$/.test(a)){ await uiAlert2("PIN은 숫자 6자리여야 합니다."); return; }
+    if(a === adm){ await uiAlert2("2차 PIN과 같은 번호는 쓸 수 없습니다."); return; }   /* 직원이 사장님 2차 PIN 을 알게 됨 */
     if(a !== b){ await uiAlert2("새 PIN이 서로 다릅니다."); return; }
   }
   if(tg){
