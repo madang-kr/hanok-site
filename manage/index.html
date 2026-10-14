@@ -3296,10 +3296,10 @@ const DEFAULT_DATA = {
         from:"2000-01-01",
         /* 세션(8차-X): 하루를 '점심 경계'(edge) 하나로 점심/저녁으로 나눕니다. 브레이크가 있는 날은 경계 = 브레이크 시작(자동, 잠김).
            점심·저녁마다 접수 마감(lastBook)과 점유(room/table: "end" = 세션 끝까지 한 팀, 숫자 = 분). 경계가 비면 하루가 한 세션(저녁 규칙).
-           토·일·공휴일 점심은 1시간 50분(브레이크 없음, 15:30 경계). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
+           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
         days:[
           {open:"11:00", close:"20:30", lo:"19:40", bs:"",      be:"",
-           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:110, table:110}, dinner:{lastBook:"18:30", room:"end", table:"end"}}},   /* 일 */
+           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:"end"}}},   /* 일 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
            sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 월 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
@@ -3311,11 +3311,11 @@ const DEFAULT_DATA = {
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
            sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 금 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"",      be:"",
-           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:110, table:110}, dinner:{lastBook:"19:30", room:"end", table:"end"}}}    /* 토 */
+           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"19:30", room:"end", table:"end"}}}    /* 토 */
         ],
         /* 공휴일은 일요일과 같습니다 (설정에서 변경) */
         holiday:{open:"11:00", close:"20:30", lo:"19:40", bs:"", be:"",
-           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:110, table:110}, dinner:{lastBook:"18:30", room:"end", table:"end"}}}
+           sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:"end"}}}
       }],
       overrides:[],        /* 임시 휴무·단축 영업 등 특정 날짜만 다른 경우 */
       /* 손님용 목록 화면 왼쪽에 트는 광고 영상.
@@ -3341,7 +3341,7 @@ const DEFAULT_DATA = {
       fullscreenAuto:true,      /* 전체화면 자동(모든 기기 공통, 화면 보정에서 이 기기만 예외) */
       tvMaskName:false,         /* TV 손님 성함 가리기 */
       tvIdleFull:true,          /* 남은 예약이 없으면 광고 영상으로 */
-      minuteSteps:true,         /* 5분 단위 예약 */
+      minuteSteps:false,        /* 5분 단위 예약 — 10-14 누님 답: 30분 단위만 */
       closeGapMin:60,           /* 예약 충돌 경고(분 안) */
       noshowCancelRule:"sameday",   /* 예약 취소 노쇼 적용 기준 */
       noshowWarnCount:1,        /* 노쇼 경고 기준(회부터) */
@@ -4682,7 +4682,7 @@ function sessFromDay(day){
 function ensureSess(day){ if(!day.sess) day.sess = sessFromDay(day); delete day.sessions; return day.sess; }
 /* 09-25 재아:
    · 접수 마감은 '그 시각 전까지'(15:30 이면 15:25·15:00 까지) — 15:30 에 오는 손님은 점심 주문 마감(15:25)에 걸리므로
-   · 브레이크가 없는 날 점심(soft)은 점심 경계 전까지 받고, 자리는 '경계까지, 늦게 온 팀은 최소 N분 보장'(룸·테이블 따로 — seg.room/table 이 분)
+   · 브레이크가 없는 날 점심(soft)은 점심 경계 전까지 받고(점심 세트도 경계 전까지), 자리는 정한 N분(룸·테이블 따로 — seg.room/table 이 분, 10-14 누님: 2시간)
    · 경계가 영업시간 밖이면(임시 영업시간으로 저녁만 여는 날 등) 하루 한 세션 — 전엔 '17시 시작 15:30 끝' 점심이 생겼음 */
 function sessionsOfDay(dh){
   var x = sessFromDay(dh);
@@ -4692,8 +4692,8 @@ function sessionsOfDay(dh){
   if(!edge) return [ mk("종일", dh.open, x.dinner, dh.close) ];
   return [ mk("점심", dh.open, x.lunch, edge, !dh.bs), mk("저녁", dh.be || edge, x.dinner, dh.close) ];
 }
-/* 브레이크 없는 날 점심의 최소 보장(분) — 옛 값 '끝까지' 는 110 */
-function softGuar(v){ return (v === "end" || !Number(v)) ? 110 : Number(v); }
+/* 브레이크 없는 날 점심의 자리 시간(분) — 옛 값 '끝까지' 는 120 */
+function softGuar(v){ return (v === "end" || !Number(v)) ? 120 : Number(v); }
 function sessionsFor(date){
   const dh = hoursFor(date);
   if(dh.closed) return [];
@@ -4724,9 +4724,9 @@ function stayMinAt(date, time, seatId){
   const x = seatId ? seatById(seatId) : null;
   const isT = !!seatId && (isTablePref(seatId) || (x && isTable(x)));
   const stv = isT && sess.stayTable != null ? sess.stayTable : sess.stay;
-  if(sess.soft){   /* 경계까지, 늦게 온 팀은 최소 보장 — 마감은 안 넘김 */
+  if(sess.soft){   /* 브레이크 없는 날 점심: 정한 분만큼(10-14 누님 답 — 2시간, 한 룸에 점심 두 팀). 전엔 '경계까지·늦게 온 팀만 최소 N분' 이라 점심 두 번째 팀이 겹침이 됐음. 마감은 안 넘김 */
     const t = toMin(time), close = toMin(hoursFor(date).close);
-    return Math.max(30, Math.min(close - t, Math.max(sessionEnd(date, sess) - t, softGuar(stv))));
+    return Math.max(30, Math.min(close - t, softGuar(stv)));
   }
   if(stv === "end") return Math.max(30, sessionEnd(date, sess) - toMin(time));
   return Math.max(30, Number(stv) || 150);
@@ -6168,7 +6168,7 @@ function renderStoreCore(){
               ${isMobile() && view.date!==todayStr() ? `<button onclick="closeMore(); goToday()">${ICON.cal}<span>오늘로</span></button>` : ``}
               <button onclick="closeMore(); openHours()">${ICON.clock}<span>영업시간</span></button>
               <button onclick="closeMore(); openZoomAdj()">${ICON.search}<span>화면 보정</span></button>
-              <button onclick="closeMore(); openOwnerPage()">${ICON.staff}<span>사장님</span></button>
+              ${typeof myRole === "function" && myRole() === "staff" ? "" : `<button onclick="closeMore(); openOwnerPage()">${ICON.staff}<span>사장님</span></button>`}   <!-- 직원 PIN 은 사장님 메뉴 안 보임(10-14 누님 답 15) -->
               <button onclick="closeMore(); lockNow()">${ICON.exit}<span>로그아웃</span></button>
             </div>` : ""}
           </div>`}
@@ -7039,11 +7039,14 @@ function resWarn(r){
   /* 지워졌거나 그 날 없는 좌석에 잡힌 예약 — 전엔 경고도 없고 그래프에서도 사라졌음 */
   if(r.roomId && !seat && holdsSeat(r) && r.date >= todayStr()) out.push("없는 좌석");
   if(seat && resBlocked(r)) out.push("사용 중지 좌석");
-  /* 2명이 2인석에 앉게 되면 알립니다(2인석은 좁아 손님이 싫어함 — 규칙은 누님 답 대기, 그때까지 경고만) */
+  /* 2명이 2인석에 앉게 되면 알립니다(2인석은 좁아 손님이 싫어함 — 10-14 누님 답: 지금처럼 경고만) */
+  /* 1인 예약은 받지 않음(10-14 누님 답) — 막지는 않고 알리기만(사장 판단으로 받을 수 있게) */
+  if(pplOf(r) === 1 && r.status !== "취소") out.push("1인 예약");
   const tSeats = seat ? [seat] : (isTablePref(r.seatPref) && r.tentativeRoomId ? seatsOf(r).map(seatById).filter(Boolean) : []);
   if(pplOf(r) <= 2 && tSeats.length === 1 && isTable(tSeats[0]) && (tSeats[0].seats||4) <= 2 && r.status !== "취소") out.push("2인석 배정");
   if(seat){
-    /* 룸·테이블 모두: 묶음(합침 포함)의 최대·최소로 판단. 테이블은 최소가 없고(여포만 4), 정원 초과만 봅니다 */
+    /* 룸·테이블 모두: 묶음(합침 포함)의 최대·최소로 판단. 테이블은 최소가 없고(여포도 테이블과 같음 — 10-14 누님 답), 정원 초과만 봅니다.
+       룸 정원 초과(간이 의자 포함)는 받지 않는 것으로 — 막지 않고 경고(10-14 누님 답 4) */
     if(pplOf(r) > seatsMax(ids)) out.push("정원 초과");
     else if(adultCount(pplOf(r), r.infants) < seatsMin(ids, r.date)) out.push("최소 인원 미달");
     if(ids.length > 1 && joinOf(ids) && (joinOf(ids).split || /원탁/.test(joinOf(ids).note||""))) out.push("원탁 합침 · 손님 확인");
@@ -10921,6 +10924,7 @@ async function gsBlackToggle(edit){
    여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · 보안 · 홈페이지 관리.
    화면형(view.form={type:"owner", page:true}) — 큰 단추 격자. 폰에서는 두 줄. */
 async function openOwnerPage(){
+  if(typeof myRole === "function" && myRole() === "staff"){ await uiAlert("보기만 할 수 있는 PIN 입니다", "사장님 메뉴는 매니저 이상 권한의 PIN 으로 들어와 주세요.", "warn"); return; }   /* 주소(#owner)로 바로 열어도 막음 */
   /* 09-25(재아): 사장님 버튼을 누를 때 한 번 묻고, 안의 메뉴는 다시 안 물음(전엔 메뉴마다 물었음) */
   if(!OWNER_OK){ if(!await adminGate("사장님 메뉴")) return; OWNER_OK = true; }
   view.form = {type:"owner", page:true}; render();
@@ -12699,6 +12703,7 @@ function saveIssues(rec, excludeId){
     "합침 없어짐": `이 룸 합침은 설정에서 지워졌습니다`,
     "휴무일 예약": `그 날은 휴무일입니다`,
     "2인석 배정": `4인석이 없어 2인석에 앉게 됩니다 (2인석은 좁습니다)`,
+    "1인 예약": `1인 예약은 받지 않습니다(누님 10-14) — 받으려면 그대로 저장`,
     "테이블 자리 없음": `${seatLabel(rec.seatPref)}에 그 시간 ${pplOf(rec)}명이 앉을 자리가 없습니다 (한 자리 최대 ${floorMaxParty(prefFloor(rec.seatPref), rec.date, rec.time, excludeId)}명)`,
     "나눠 앉음": `${seatLabel(rec.seatPref)}에 붙일 수 있는 테이블이 없어 나눠 앉게 됩니다 (한 자리 최대 ${floorMaxParty(prefFloor(rec.seatPref), rec.date, rec.time, excludeId)}명)`
   };
@@ -13369,7 +13374,7 @@ function sheetRate(){
    네이버 파트너센터 '예약자 관리' 엑셀을 열어 표 전체를 복사(Ctrl+A, Ctrl+C)해 붙여 넣습니다. 탭으로 나뉜 줄이 들어옵니다.
    머리글 줄(예약번호 · 상태 · 예약자 · 이용일시 · 상품 · 인원 · 옵션 · 요청사항 …)을 찾아 열 이름으로 읽으므로 열 순서가 바뀌어도 됩니다.
    · 예약번호(naverNo)로 같은 예약을 찾아 있으면 고치고(상태·시각·인원·요청) 없으면 새로 넣습니다
-   · 전화번호는 뒷자리 4개만 오므로 phone 은 비우고 메모에 '네이버 ****1234' 를 남깁니다 — 노쇼 이력은 못 잇습니다
+   · 전화번호는 뒷자리 4개만 오므로 phone 은 비우고 메모에 '네이버 ****1234' 를 남깁니다. 단, 이름이 같고 그 4자리로 끝나는 손님이 한 명뿐이면 그 번호로 이음(10-14 누님 답 — naverGuessPhone)
    · 상품에 '룸' 이 있으면 룸 미정(room-any), '테이블' 이면 테이블(층 미정, table-any). 자리는 잠정 배정이 잡습니다
    · 옵션 열(주말 A 세트·주말 B 세트·한코스 …)은 수량이 있으면 코스 구성으로. 이름이 코스 항목과 안 맞으면 요청사항에 적어 둡니다 */
 var NAVER_GUIDE = false;
@@ -13478,12 +13483,22 @@ function naverParse(text){
     /* 신청일시 '2026-10-11 오후 3:21' — 10-13 흉내 점검: 전엔 [^0-9]* 가 '오후' 까지 삼켜 오후 3시가 새벽 3시로 들어갔음. 점(2026.10.11)도 받음 */
     const madeRaw = g(idx.made), mm = madeRaw.match(/(\d{4})[-.]\s*(\d{1,2})[-.]\s*(\d{1,2})\.?[^0-9오]*(오전|오후)?\s*(\d{1,2}):(\d{2})/);
     let made = null; if(mm){ let h = Number(mm[5]); if(mm[4]==="오후" && h < 12) h += 12; if(mm[4]==="오전" && h === 12) h = 0; made = new Date(`${mm[1]}-${pad(Number(mm[2]))}-${pad(Number(mm[3]))}T${pad(h)}:${mm[6]}:00`).toISOString(); }
+    const nm = vName || g(idx.name) || "네이버 손님", tail = fullPhone ? "" : (g(idx.phone).match(/(\d{4})\s*$/) || [,""])[1];
+    const linked = !fullPhone && tail ? naverGuessPhone(nm, tail) : "";   /* 10-14 누님 답: 뒷자리 + 이름이 같은 손님이면 같은 사람으로 — 노쇼·방문 이력이 이어짐 */
     rows.push({ n: rows.length + 1, text: `${no} · ${g(idx.name)} · ${g(idx.when)} · ${g(idx.ppl)} · ${prod} · ${stRaw}`,
-      no, when, name: vName || g(idx.name) || "네이버 손님", phone: fullPhone ? phoneFmt(fullPhone) : "", phoneTail: fullPhone ? "" : (g(idx.phone).match(/(\d{4})\s*$/) || [,""])[1],
+      no, when, name: nm, phone: fullPhone ? phoneFmt(fullPhone) : (linked ? phoneFmt(linked) : ""), phoneTail: fullPhone || linked ? "" : tail, phoneLinked: !!linked,
       status, isRoomProd, people: pp.people, infants: pp.infants, courses, unmatched, request: g(idx.req), cancelWhy: g(idx.cancelWhy),
       route: g(idx.route), staffMemo: g(idx.memo), made, black: /^Y/i.test(g(idx.black)) });
   }
   return { rows, headFound: true };
+}
+/* 네이버는 전화 뒷자리 4개만 줌 — 이름이 같고 전화가 그 4자리로 끝나는 손님이 딱 한 명이면 그 번호(둘 이상이면 모름 → 비움) */
+function naverGuessPhone(name, tail){
+  const nm = String(name || "").replace(/\s+/g, ""), s = store(), found = {};
+  if(!nm || !/^\d{4}$/.test(tail)) return "";
+  s.reservations.concat(s.trash || []).forEach(x => { const d = String(x.phone || "").replace(/\D/g, ""); if(d.length >= 9 && d.slice(-4) === tail && String(x.name || "").replace(/\s+/g, "") === nm) found[d] = 1; });
+  if(typeof CUST === "object" && CUST) Object.keys(CUST).forEach(d => { const c = CUST[d]; if(d.length >= 9 && d.slice(-4) === tail && c && String(c.name || "").replace(/\s+/g, "") === nm) found[d] = 1; });
+  const k = Object.keys(found); return k.length === 1 ? k[0] : "";
 }
 function naverPreview(){
   const ta = document.getElementById("naver-paste"); const text = ta ? ta.value : (view.naver ? view.naver.text : "");
@@ -13510,7 +13525,7 @@ function naverPreview(){
         else { const ff = floorFit(null, r.when.date, r.when.time, r.people); if(ff.state === "none") seatWarn = "테이블 자리 없음"; else if(ff.state === "split") seatWarn = "나눠 앉음"; }
       }
       return Object.assign({ok:true, kind:"new", seatWarn, seat: r.isRoomProd ? "room-any" : "table-any", skip:false,
-        msg:`${r.when.date} ${r.when.time} ${r.people}명${r.status!=="확정"?" · "+r.status:""}${r.request?" · ⚠ 요청사항 있음":""}${seatWarn?" · ⚠ "+seatWarn:""}`}, r);
+        msg:`${r.when.date} ${r.when.time} ${r.people}명${r.phoneLinked?" · 단골 전화 이어짐 "+r.phone:""}${r.status!=="확정"?" · "+r.status:""}${r.request?" · ⚠ 요청사항 있음":""}${seatWarn?" · ⚠ "+seatWarn:""}`}, r);
     }
     const diff = [];
     if(ex.date !== r.when.date || ex.time !== r.when.time) diff.push("시각");
@@ -13528,7 +13543,7 @@ async function naverApply(){
   if(readonlyBlock()) return;
   const s = store(); let added = 0, updated = 0;
   n.result.filter(x=>x.ok && x.kind !== "skip" && !x.skip).forEach(r=>{
-    const memoTail = `네이버 예약번호 ${r.no}${r.phoneTail?` · 전화 ****${r.phoneTail}`:""}${r.infants?" · 유아의자 확인 필요":""}${r.black?" · ⚠ 네이버 블랙리스트":""}${r.unmatched.length?` · 옵션 ${r.unmatched.join(", ")}`:""}${r.staffMemo?` · 직원메모: ${r.staffMemo}`:""}${r.cancelWhy?` · 취소사유: ${r.cancelWhy}`:""}`;
+    const memoTail = `네이버 예약번호 ${r.no}${r.phoneTail?` · 전화 ****${r.phoneTail}`:""}${r.black?" · ⚠ 네이버 블랙리스트":""}${r.unmatched.length?` · 옵션 ${r.unmatched.join(", ")}`:""}${r.staffMemo?` · 직원메모: ${r.staffMemo}`:""}${r.cancelWhy?` · 취소사유: ${r.cancelWhy}`:""}`;
     if(r.kind === "new"){
       const pick = r.seat || (r.isRoomProd ? "room-any" : "table-any"), pickedRoom = seatById(pick) ? pick : null;
       const rec = { id:newId("res"), naverNo:r.no, date:r.when.date, time:r.when.time, name:r.name, phone:r.phone||"", phoneTail:r.phoneTail||"", people:r.people, infants:r.infants, chairs:0,
@@ -13572,7 +13587,7 @@ const DOW = WD_KO;
 /* 운영시간 요약 한 줄에 붙는 세션 요약 — "점심 접수 ~14:00 · 저녁 접수 ~19:30" */
 function sessSummary(d){
   const ss = sessionsOfDay(d); if(!ss.length) return "";
-  const f = (v, se) => se.soft ? `경계까지·최소 ${softGuar(v)}분` : v === "end" ? "끝까지" : `${v||110}분`;
+  const f = (v, se) => se.soft ? `${softGuar(v)}분` : v === "end" ? "끝까지" : `${v||110}분`;
   return `<span class="sch-s">${ss.map(se=>`${esc(se.name)} 접수 ${esc(se.lastBook)} 전까지 (룸 ${f(se.stay, se)} · 테이블 ${f(se.stayTable, se)})`).join(" · ")}</span>`;
 }
 /* 운영시간 편집(8차-X, 재아) — 월요일부터, 요일 카드는 접혀 있고 눌러서 폅니다.
@@ -13580,9 +13595,9 @@ function sessSummary(d){
    라스트오더는 직접 입력하고 옆에 '마감 N분 전' 을 참고로만 보여 줍니다(자동 버튼 삭제) */
 function stayBox(i, seg, k, label){
   const v = dayOf(i).sess[seg][k];
-  /* 브레이크 없는 날 점심: 경계까지 앉되, 늦게 온 팀은 최소 N분 보장(09-25 재아) — '끝까지' 체크 없이 보장 분만 */
-  if(seg === "lunch" && !dayOf(i).bs) return `<div class="sf"><span>${label}</span><span class="sess-stay"><small>경계까지 · 최소</small>
-    <input type="number" min="30" step="10" data-title="${label} 최소 보장" data-unit="분" value="${softGuar(v)}" onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||110)"><small>분</small></span></div>`;
+  /* 브레이크 없는 날 점심: 정한 분만큼 앉음(10-14 누님 답 — 2시간) — '끝까지' 체크 없이 분만 */
+  if(seg === "lunch" && !dayOf(i).bs) return `<div class="sf"><span>${label}</span><span class="sess-stay">
+    <input type="number" min="30" step="10" data-title="${label} 자리 시간" data-unit="분" value="${softGuar(v)}" onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||120)"><small>분</small></span></div>`;
   return `<div class="sf"><span>${label}</span><span class="sess-stay"><label class="chk"><input type="checkbox" ${v==="end"?"checked":""} onchange="setSessV(${i},'${seg}','${k}',this.checked?'end':110)"><span>끝까지</span></label>
     <input type="number" min="30" step="10" value="${v==="end"?"":(v||110)}" ${v==="end"?"disabled":""} onchange="setSessV(${i},'${seg}','${k}',parseInt(this.value)||110)"><small>분</small></span></div>`;
 }
@@ -15439,7 +15454,7 @@ function wzStepExtra(){
       <div class="rv"><span>인원</span><b>총 ${WZ.people||0}명${WZ.infants?` (어린이 ${WZ.infants}명 포함)`:""} ${groupTag({people:WZ.people||0})}</b></div>
       <div class="rv"><span>좌석</span><b>${WZ.seat?esc(WZ.seatExtra&&WZ.seatExtra.length?seatLabelIds([WZ.seat].concat(WZ.seatExtra)):seatLabel(WZ.seat)):"-"}</b></div>
       <div class="rv"><span>예약자</span><b>${esc(WZ.name)||"-"}${tierTag({phone:WZ.phone})}${WZ.phone?` · ${esc(WZ.phone)}`:""}</b></div>
-      <div class="rv"><span>식사</span><b>${esc(WZ.menuType||"-")}${WZ.menuType==="코스"&&courseCount()?` · ${esc(courseSummary(WZ.courses))}`:""}</b></div>
+      <div class="rv"><span>식사</span><b>${esc(WZ.menuType==="코스"?"코스·세트":(WZ.menuType||"-"))}${WZ.menuType==="코스"&&courseCount()?` · ${esc(courseSummary(WZ.courses))}`:""}</b></div>
     </div>`;
 }
 
