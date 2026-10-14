@@ -3296,20 +3296,20 @@ const DEFAULT_DATA = {
         from:"2000-01-01",
         /* 세션(8차-X): 하루를 '점심 경계'(edge) 하나로 점심/저녁으로 나눕니다. 브레이크가 있는 날은 경계 = 브레이크 시작(자동, 잠김).
            점심·저녁마다 접수 마감(lastBook)과 점유(room/table: "end" = 세션 끝까지 한 팀, 숫자 = 분). 경계가 비면 하루가 한 세션(저녁 규칙).
-           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 저녁은 룸 끝까지 · 테이블 2시간(10-14 누님 답). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
+           토·일·공휴일 점심은 2시간(브레이크 없음, 15:30 경계 — 10-14 누님 답, 전엔 1시간 50분). 저녁은 매일 룸 끝까지 · 테이블 2시간(10-14 누님 답·재아 — 테이블은 회전). 경계 시각(15:30) 자체는 저녁으로 칩니다. 실제 세션 목록은 sessionsOfDay() 가 만듭니다 */
         days:[
           {open:"11:00", close:"20:30", lo:"19:40", bs:"",      be:"",
            sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"18:30", room:"end", table:120}}},   /* 일 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 월 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 월 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 화 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 화 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 수 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 수 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 목 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 목 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"15:30", be:"17:00",
-           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:"end"}}},   /* 금 */
+           sess:{edge:"15:30", lunch:{lastBook:"14:00", room:"end", table:"end"}, dinner:{lastBook:"19:30", room:"end", table:120}}},   /* 금 */
           {open:"11:00", close:"22:00", lo:"20:40", bs:"",      be:"",
            sess:{edge:"15:30", lunch:{lastBook:"15:30", room:120, table:120}, dinner:{lastBook:"19:30", room:"end", table:120}}}    /* 토 */
         ],
@@ -3341,7 +3341,7 @@ const DEFAULT_DATA = {
       fullscreenAuto:true,      /* 전체화면 자동(모든 기기 공통, 화면 보정에서 이 기기만 예외) */
       tvMaskName:false,         /* TV 손님 성함 가리기 */
       tvIdleFull:true,          /* 남은 예약이 없으면 광고 영상으로 */
-      minuteSteps:false,        /* 5분 단위 예약 — 10-14 누님 답: 30분 단위만 */
+      minuteSteps:true,         /* 분 조절 — 10-14 재아: 기본은 30분 칸, 10분 단위로 조절 가능(전엔 5분) */
       closeGapMin:60,           /* 예약 충돌 경고(분 안) */
       noshowCancelRule:"sameday",   /* 예약 취소 노쇼 적용 기준 */
       noshowWarnCount:1,        /* 노쇼 경고 기준(회부터) */
@@ -3962,7 +3962,7 @@ async function loadPublicOrCache(){
 /* 쓰기가 막혀 있으면 이유를 알리고 true. 막지 않는 것이 원칙이지만 이 경우는 진짜로 저장이 불가능합니다 */
 function readonlyBlock(){
   /* 직원 권한은 보기만(10-13 재아) — 예약을 바꾸는 길은 모두 이 문을 지남 */
-  if(typeof canEditRes === "function" && !canEditRes()){ uiAlert("보기만 할 수 있는 PIN 입니다", "예약 등록·수정·삭제는 매니저 이상 권한의 PIN 으로 들어와 주세요.", "warn"); return true; }
+  if(typeof canEditRes === "function" && !canEditRes()){ uiAlert("보기만 할 수 있는 PIN 입니다", "예약 등록·수정·삭제는 매니저 PIN 으로 들어오거나, 사장님 2차 PIN 을 넣은 뒤에 할 수 있습니다.", "warn"); return true; }
   if(!DATA || !DATA._readonly) return false;
   var why = READONLY_WHY === "offline" ? "서버와 연결이 끊겨 지금은 볼 수만 있습니다. 종이에 적어 두세요 — 연결되면 다시 시도하세요."
           : "데이터를 불러오지 못한 상태라 저장이 막혀 있습니다. 새로고침해 보세요.";
@@ -4561,10 +4561,11 @@ function scheduleFor(date){
 /* 내장 공휴일표 — 인터넷 없이도 돌아야 하고(외부 요청 0), 공공 API 는 키 갱신·장애 위험이 있어 표로 둡니다.
    대체공휴일 포함. 임시공휴일·선거일은 미리 알 수 없으니 사장님이 설정에서 추가합니다(2026-06-03 지방선거는 넣음).
    ★ 매년 11월에 다음 해가 이 표에 없으면 설정·확인 필요에 안내가 뜹니다 — 그때 한 줄 추가하거나 설정에서 직접 등록 ★ */
+/* 10-14: 2026년 법 개정으로 노동절(5/1)·제헌절(7/17)이 관공서 공휴일 — 2027 은 둘 다 토요일이라 5/3·7/19 대체(우주항공청 2027 월력요항) */
 var KR_HOLIDAYS = {
-  2026: ["2026-01-01","2026-02-16","2026-02-17","2026-02-18","2026-03-01","2026-03-02","2026-05-05","2026-05-24","2026-05-25","2026-06-03","2026-06-06",
+  2026: ["2026-01-01","2026-02-16","2026-02-17","2026-02-18","2026-03-01","2026-03-02","2026-05-01","2026-05-05","2026-05-24","2026-05-25","2026-06-03","2026-06-06","2026-07-17",
          "2026-08-15","2026-08-17","2026-09-24","2026-09-25","2026-09-26","2026-10-03","2026-10-05","2026-10-09","2026-12-25"],
-  2027: ["2027-01-01","2027-02-06","2027-02-07","2027-02-08","2027-02-09","2027-03-01","2027-05-05","2027-05-13","2027-06-06",
+  2027: ["2027-01-01","2027-02-06","2027-02-07","2027-02-08","2027-02-09","2027-03-01","2027-05-01","2027-05-03","2027-05-05","2027-05-13","2027-06-06","2027-07-17","2027-07-19",
          "2027-08-15","2027-08-16","2027-09-14","2027-09-15","2027-09-16","2027-10-03","2027-10-04","2027-10-09","2027-10-11","2027-12-25","2027-12-27"]
 };
 function isHoliday(date){
@@ -6168,7 +6169,7 @@ function renderStoreCore(){
               ${isMobile() && view.date!==todayStr() ? `<button onclick="closeMore(); goToday()">${ICON.cal}<span>오늘로</span></button>` : ``}
               <button onclick="closeMore(); openHours()">${ICON.clock}<span>영업시간</span></button>
               <button onclick="closeMore(); openZoomAdj()">${ICON.search}<span>화면 보정</span></button>
-              ${typeof myRole === "function" && myRole() === "staff" ? "" : `<button onclick="closeMore(); openOwnerPage()">${ICON.staff}<span>사장님</span></button>`}   <!-- 직원 PIN 은 사장님 메뉴 안 보임(10-14 누님 답 15) -->
+              ${typeof canSeeOwnerMenu === "function" && !canSeeOwnerMenu() ? "" : `<button onclick="closeMore(); openOwnerPage()">${ICON.staff}<span>사장님</span></button>`}   <!-- 공용 PIN·사장만(10-14 재아) -->
               <button onclick="closeMore(); lockNow()">${ICON.exit}<span>로그아웃</span></button>
             </div>` : ""}
           </div>`}
@@ -7722,6 +7723,9 @@ async function askNoshowOnCancel(rec){
             : rule === "day2" ? rec.date <= shiftDate(todayStr(), 2)
             : false;
   if(!hit) return "취소";
+  /* 당일에 받은 예약을 당일 취소하면 노쇼로 안 봄(10-14 재아) — 시각이 지나기 전까지만(지난 뒤면 오지 않은 것) */
+  const madeDay = rec.createdAt ? todayStr(new Date(rec.createdAt)) : "";
+  if(madeDay === rec.date && hoursLeft > 0) return "취소";
   const label = {sameday:"당일 취소", day1:"전날부터의 취소", day2:"이틀 전부터의 취소"}[rule];
   return noshowNotice("노쇼로 처리됩니다", `${label}입니다.\n${rec.time} ${rec.name} 손님 · ${pplText(rec)}`);
 }
@@ -8277,7 +8281,7 @@ function renderSettings(){
     <label class="f"><div class="lb">예약 충돌 경고</div>
       <button class="numbtn" onclick="openNum('closeGapMin','예약 충돌 경고',10,240,{step:10, def:60, noGrid:true, unit:'분 안'})">${st.closeGapMin != null ? st.closeGapMin : 60}<small>분 안</small></button></label>
     <label class="f"><div class="lb">분 단위 예약</div>
-      <div class="seg"><button class="${st.minuteSteps!==false?'on':''}" onclick="setSetting('minuteSteps', true)">5분 단위</button><button class="${st.minuteSteps===false?'on':''}" onclick="setSetting('minuteSteps', false)">30분 단위</button></div></label>
+      <div class="seg"><button class="${st.minuteSteps!==false?'on':''}" onclick="setSetting('minuteSteps', true)">10분 조절</button><button class="${st.minuteSteps===false?'on':''}" onclick="setSetting('minuteSteps', false)">30분 단위</button></div></label>
     <label class="f"><div class="lb">예약 취소 노쇼 적용 기준</div>
       <div class="seg">${[["none","안 함"],["sameday","당일"],["day1","전날부터"],["day2","이틀 전부터"]].map(([v,l])=>`<button class="${noshowRule(st)===v?'on':''}" onclick="setSetting('noshowCancelRule','${v}')">${l}</button>`).join("")}</div></label>
     <label class="f"><div class="lb">노쇼 경고 기준</div>
@@ -10924,7 +10928,7 @@ async function gsBlackToggle(edit){
    여기 모은 것: 디스플레이 모드 · 수기 예약지 · 워크시프트 · 손님 관리(노쇼 관리 포함) · 문자 · 보안 · 홈페이지 관리.
    화면형(view.form={type:"owner", page:true}) — 큰 단추 격자. 폰에서는 두 줄. */
 async function openOwnerPage(){
-  if(typeof myRole === "function" && myRole() === "staff"){ await uiAlert("보기만 할 수 있는 PIN 입니다", "사장님 메뉴는 매니저 이상 권한의 PIN 으로 들어와 주세요.", "warn"); return; }   /* 주소(#owner)로 바로 열어도 막음 */
+  if(typeof canSeeOwnerMenu === "function" && !canSeeOwnerMenu()){ await uiAlert("사장님 메뉴를 열 수 없는 PIN 입니다", "사장님 메뉴는 공용 PIN 기기에서 2차 PIN 으로 엽니다.", "warn"); return; }   /* 주소(#owner)로 바로 열어도 막음 */
   /* 09-25(재아): 사장님 버튼을 누를 때 한 번 묻고, 안의 메뉴는 다시 안 물음(전엔 메뉴마다 물었음) */
   if(!OWNER_OK){ if(!await adminGate("사장님 메뉴")) return; OWNER_OK = true; }
   view.form = {type:"owner", page:true}; render();
@@ -12562,7 +12566,7 @@ function sheetRes(){
     <input id="f-date" type="hidden" value="${f.date||""}"><input id="f-time" type="hidden" value="${f.time||""}">
     ${f.pickDate ? `<div class="card" style="padding:8px; margin-bottom:12px">${miniCal(f.date, "resPickDate")}</div>` : ""}
     ${f.pickTime ? `<div class="card" style="padding:8px; margin-bottom:12px">${f.date ? timeGrid({date:f.date, people:f.people||0, time:f.time, pick:"resPickSlot"}) : `<div class="empty">날짜를 먼저 고르세요</div>`}
-      ${store().settings.minuteSteps !== false && f.time ? `<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="resNudge(-5)">− 5분</button><span class="lbl-note">${hm(f.time)}</span><button class="btn sm" onclick="resNudge(5)">＋ 5분</button></div>` : ""}</div>` : ""}
+      ${store().settings.minuteSteps !== false && f.time ? `<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="resNudge(-10)">− 10분</button><span class="lbl-note">${hm(f.time)}</span><button class="btn sm" onclick="resNudge(10)">＋ 10분</button></div>` : ""}</div>` : ""}
     <div class="grid2">
       <label class="f"><div class="lb">예약자</div><input id="f-name" value="${esc(f.name)}" autocomplete="off"></label>
       <label class="f"><div class="lb">전화번호</div><input id="f-phone" type="tel" inputmode="tel" value="${esc(f.phone)}"></label>
@@ -14053,10 +14057,10 @@ async function pinUsersLoad(){
   catch(e){ view.pinErr = e.status === 404 ? "서버 준비 전(29차)" : (e.network ? "서버에 연결할 수 없습니다" : e.message); }
 }
 /* 권한(10-13 재아) — 사장: 전부(지금까지와 같음) · 매니저: 예약 등록·수정·삭제까지 · 직원: 보기만(예약 열람·검색·손님 검색).
-   PIN 마다 staff_pins.role(33차). 공용 PIN 은 카운터 태블릿이 쓰니 매니저(ROLE_SHARED). 2차 PIN 을 넣은 동안(OWNER_OK·10분 유지)은 사장.
+   PIN 마다 staff_pins.role(33차). 공용 PIN 은 여럿이 쓰는 기기라 직원(ROLE_SHARED, 10-14 재아). 2차 PIN 을 넣은 동안(OWNER_OK·10분 유지)은 사장.
    ※ 지금은 화면에서만 막음 — 서버 권한까지 나누는 건 '권한 구조 큰 것' 으로 미룸(10-09 재아) */
 var PIN_ROLE = { staff:"직원", manager:"매니저", owner:"사장" };
-var ROLE_SHARED = "manager";
+var ROLE_SHARED = "staff";   /* 10-14 재아: 공용 PIN(카운터 아이패드 등 여럿이 쓰는 기기)은 직원 권한 — 매니저 PIN 은 매니저 개인 PIN */
 function myRole(){
   if(!supaOn() || DEV_EMBED) return "owner";
   if(OWNER_OK || ADMIN_UNTIL > Date.now()) return "owner";
@@ -14067,6 +14071,8 @@ function myRole(){
   return (u && PIN_ROLE[u.role]) ? u.role : "staff";
 }
 function canEditRes(){ return myRole() !== "staff"; }
+/* 사장님 메뉴가 보이는 계정 — 공용 PIN(사장님이 카운터 기기에서 2차 PIN 을 넣고 씀) · 사장 권한. 직원·매니저 개인 PIN 에는 안 보임(10-14 재아) */
+function canSeeOwnerMenu(){ return myRole() === "owner" || !!(SESSION && SUPA_CFG && SESSION.email === SUPA_CFG.staffEmail); }
 function pinRoleSeg(cur){ return '<div class="seg">' + ["staff", "manager", "owner"].map(function(k){ return '<button type="button" class="' + (cur === k ? 'on' : '') + '" onclick="view.pinRole=\'' + k + '\'; render()">' + PIN_ROLE[k] + '</button>'; }).join("") + '</div>'; }
 function sheetPinList(){
   /* 워크시프트 직원 PIN(staff_id 있음)은 바꾸기만 — 지우기는 막고 퇴사 처리로 자동 비활성(30차) */
@@ -14961,7 +14967,7 @@ function wzStepDate(){
   const curT = WZ.time ? toMin(WZ.time) : null;
   const curSlot = curT===null ? null : Math.floor(curT/30)*30;   /* 고른 시각이 속한 30분 칸 */
   const base = curSlot===null ? 0 : curSlot%60;                  /* 분 레일의 시작(0 또는 30) */
-  const off = curT===null ? 0 : curT - curSlot;                  /* 칸 안에서의 분 (0~25) */
+  const off = curT===null ? 0 : curT - curSlot;                  /* 칸 안에서의 분 (0~29 — 레일은 0·10·20) */
 
   const isToday = WZ.date===todayStr();
   const isPastDate = WZ.date < todayStr();
@@ -14993,24 +14999,24 @@ function wzStepDate(){
   }).join("");
   /* (날짜가 없으면 slotCells 는 빈 문자열) */
 
-  /* 분 조절은 고른 30분 칸 안에서만 움직입니다 — 정각 칸이면 00~25, 30분 칸이면 30~55.
+  /* 분 조절은 고른 30분 칸 안에서만 움직입니다 — 정각 칸이면 00·10·20, 30분 칸이면 30·40·50(10-14 재아: 10분 단위. 전엔 5분).
      시각을 고르기 전에도 자리를 지킵니다(.idle) — 누르는 순간 레일이 생기며 화면이 내려앉지 않게 */
-  const pct = v => (v/25)*100;
+  const pct = v => (v/20)*100;
   const minuteRail = store().settings.minuteSteps === false ? "" : `
     <div class="mwrap ${curSlot===null?'idle':''}">
       <div class="mhead"><span class="lbl">분</span><span class="mnow">${curSlot===null?"시각을 먼저 고르세요":hm(WZ.time)}</span></div>
       <div class="mrail" id="mrail">
         <div class="mtrack"></div>
         <div class="mfill" style="width:${pct(off)}%"></div>
-        ${[0,5,10,15,20,25].map(v=>
-          `<span class="mnotch ${v%10===0?'big':''}" style="left:${pct(v)}%"></span>`).join("")}
+        ${[0,10,20].map(v=>
+          `<span class="mnotch big" style="left:${pct(v)}%"></span>`).join("")}
         <div class="mknob" style="left:${pct(off)}%">${pad(base+off)}</div>
-        ${[0,5,10,15,20,25].map(v=>
+        ${[0,10,20].map(v=>
           `<button class="mtick ${off===v?'on':''}" style="left:${pct(v)}%" aria-label="${pad(base+v)}분" onclick="wzPickMin(${v})">${pad(base+v)}</button>`).join("")}
       </div>
       <div class="mfine">
-        <button ${off<=0?"disabled":""} onclick="wzNudge(-5)">− 5분</button>
-        <button ${off>=25?"disabled":""} onclick="wzNudge(5)">＋ 5분</button>
+        <button ${off<=0?"disabled":""} onclick="wzNudge(-10)">− 10분</button>
+        <button ${off>=20?"disabled":""} onclick="wzNudge(10)">＋ 10분</button>
       </div>
     </div>`;
 
@@ -15060,16 +15066,16 @@ function wzMonth(n){
 }
 /* 30분 칸을 고르면 그 칸의 시작 시각(정각 또는 30분)이 됩니다. 세부 분은 아래 레일에서 */
 function wzPickSlot(t){ WZ.time = minToHM(t); render(); }   /* 마지막 접수 칸(19:50)처럼 30분 단위가 아닌 값도 그대로 — 분 레일이 자동으로 +20 위치 */
-/* 레일의 분(0~25)을 칸 시작에 더한 시각 */
+/* 레일의 분(0·10·20)을 칸 시작에 더한 시각 */
 function wzSlotBase(){ return WZ.time ? Math.floor(toMin(WZ.time)/30)*30 : 18*60; }
 function wzPickMin(v){
-  WZ.time = minToHM(wzSlotBase() + Math.min(25, Math.max(0, v))); render();
+  WZ.time = minToHM(wzSlotBase() + Math.min(20, Math.max(0, v))); render();
 }
 function wzNudge(d){
   if(!WZ.time) return;
   const base = wzSlotBase(), off = toMin(WZ.time) - base;
-  /* 칸 안(0~25분)에서만 — 칸을 바꾸는 것은 위 타일에서 */
-  const next = Math.min(25, Math.max(0, off + d));
+  /* 칸 안(0~20분)에서만 — 칸을 바꾸는 것은 위 타일에서. 19:50 처럼 10분 단위가 아닌 값에서 눌러도 10분 칸에 맞춤 */
+  const next = Math.min(20, Math.max(0, Math.round((off + d) / 10) * 10));
   if(next===off) return;
   WZ.time = minToHM(base + next); render();
 }
@@ -15146,7 +15152,7 @@ function afterRender(){
   const set = (e)=>{
     const r = rail.getBoundingClientRect();
     const x = Math.min(Math.max(e.clientX - r.left, 0), r.width);
-    const v = Math.min(25, Math.max(0, Math.round((x/r.width)*25/5)*5));   /* 5분 단위, 칸 안 0~25분 */
+    const v = Math.min(20, Math.max(0, Math.round((x/r.width)*20/10)*10));   /* 10분 단위, 칸 안 0~20분 */
     const nt = minToHM(wzSlotBase() + v);
     if(nt!==WZ.time){ WZ.time = nt; render(); }
   };
