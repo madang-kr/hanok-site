@@ -2433,13 +2433,17 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 /* 채워지면 원이 사라지고 그 자리에 큰 글자가 들어옵니다 (원 안의 작은 글자는 심심하다는 평 — 6차-F).
    글자마다 글꼴을 과할 만큼 다르게 — 내장 글꼴 두 벌(Pretendard·Noto Serif KR)만으로 기울임·외곽선·회전으로 변화를 줍니다 */
 .pdot.on{border-color:transparent; color:var(--text)}
-.pdot.f1{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 한 — 굵은 명조 */
-.pdot.f2{font-family:'Pretendard',sans-serif; font-weight:700; font-style:italic; letter-spacing:-.05em}      /* 옥 — 기울인 굵은 고딕(합성 이탤릭) */
-.pdot.f3{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 반 — 속이 빈 외곽선 명조 */
-.pdot.f3.on, body.theme-hanok .pdot.f3.on{color:transparent; -webkit-text-stroke:1.6px var(--text)}
-.pdot.f4{font-family:'Pretendard',sans-serif; font-weight:400; transform:rotate(-10deg)}                      /* 점 — 가는 고딕을 살짝 기울여 (회전은 배율과 무관) */
-.pdot.f5{font-family:'Noto Serif KR',serif; font-weight:400; font-style:italic}                                /* 분 — 가는 명조 기울임 */
-.pdot.f6{font-family:'Pretendard',sans-serif; font-weight:900; letter-spacing:-.05em}                             /* 당 — 아주 굵은 고딕 */
+/* 10-14 재아: '분당한옥반점' — 분당은 작고 옅은 머리말, 한옥반점은 글자마다 다른 모양. 내장 글꼴은 Pretendard(보통·세미·굵게)와
+   Noto Serif 굵게(900)뿐이라 굵기·기울임·외곽선·회전·색으로 변화를 줌. '당' 뒤에 조금 띄어 '분당 · 한옥반점' 으로 읽히게 */
+.pdot.f1, .pdot.f2{font-size:24px}
+.pdot.f1.on, .pdot.f2.on, body.theme-hanok .pdot.f1.on, body.theme-hanok .pdot.f2.on{color:var(--text-3)}
+.pdot.f1{font-family:'Pretendard',sans-serif; font-weight:400}                                                  /* 분 — 가는 고딕 */
+.pdot.f2{font-family:'Pretendard',sans-serif; font-weight:600; font-style:italic; margin-right:8px}            /* 당 — 기울인 고딕, 뒤에 띄움 */
+.pdot.f3{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 한 — 굵은 명조 */
+.pdot.f4{font-family:'Pretendard',sans-serif; font-weight:700; font-style:italic; letter-spacing:-.05em}      /* 옥 — 기울인 굵은 고딕(합성 이탤릭) */
+.pdot.f5{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 반 — 속이 빈 외곽선 명조 */
+.pdot.f5.on, body.theme-hanok .pdot.f5.on{color:transparent; -webkit-text-stroke:1.2px var(--text)}
+.pdot.f6{font-family:'Pretendard',sans-serif; font-weight:400; transform:rotate(-10deg)}                      /* 점 — 가는 고딕을 살짝 기울여 (회전은 배율과 무관) */
 .lk-err{height:20px; font-size:var(--fs-sub); color:var(--rust); font-weight:600; margin-bottom:var(--s16)}
 .lk-err.busy{color:var(--text-3)}   /* 서버 확인 중 — 오류가 아니라 회색 */
 /* 숫자 키패드 — 64px 높이, 카운터에서 손가락으로.
@@ -5802,8 +5806,8 @@ let PIN_ERR = "";
 function renderLock(){
   const s = view.storeKey ? DATA[view.storeKey] : null;
   /* 자리를 채울 때마다 매장 이름 한 글자씩 나타납니다 */
-  /* 10-14: PIN 6자리(4자리는 0000~9999 를 차례로 넣어 보면 뚫림) — 매장 이름 네 글자 뒤에 '분당' */
-  const marks = ((s && s.name.length>=4 ? s.name.slice(0,4) : "한옥반점") + "분당").split("");
+  /* 10-14: PIN 6자리(4자리는 0000~9999 를 차례로 넣어 보면 뚫림) — '분당' + 매장 이름 네 글자(재아: 분당한옥반점 순서) */
+  const marks = ("분당" + (s && s.name.length>=4 ? s.name.slice(0,4) : "한옥반점")).split("");
   const dots = [0,1,2,3,4,5].map(i=>
     `<span class="pdot f${i+1} ${i<PIN_BUF.length?'on':''}">${i<PIN_BUF.length?marks[i]:""}</span>`).join("");
   const keys = [1,2,3,4,5,6,7,8,9,"clear",0,"back"].map(k=>{
@@ -5918,7 +5922,7 @@ async function lockNow(){
   if(!await flushBeforeLeave()) return;
   resetOverlays();
   logEvent("잠금", "");
-  AUTHED=false; PIN_BUF=""; PIN_ERR=""; view.storeKey=null; view.draft=null; view.adminOk=false; ADMIN_UNTIL=0; OWNER_OK=false;
+  AUTHED=false; PIN_BUF=""; PIN_ERR=""; view.storeKey=null; view.draft=null; view.adminOk=false; ADMIN_UNTIL=0; OWNER_OK=false; OWNER_TOK=null; OWNER_TOK_EXP=0;
   DATA._session = {authed:false};
   /* 서버 쪽 로그인도 끝냄(10-14 보안 점검) — 기기에서만 지우면 갱신 토큰이 서버에 살아 있어, 그 값을 빼 간 사람이 계속 쓸 수 있었음.
      방금 남긴 '잠금' 기록이 먼저 나가도록 몇 초 뒤에. 실패해도(오프라인) 그대로 — 토큰은 1시간이면 끝남. 개발자 화면 안에선 개발자 세션이라 건드리지 않음 */
@@ -9085,7 +9089,8 @@ async function saSave(quiet){
   if(!SA || !SA.draft) return false;
   try{
     var key = view.storeKey || "hanok";
-    await sb("/rest/v1/site_draft?on_conflict=store", { method:"POST", body:{ store:key, data:saDiffData(), by:sessionBy() }, prefer:"resolution=merge-duplicates,return=minimal" });
+    var otk = await ownerTok("홈페이지 초안 저장"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 저장하지 않았습니다");
+    await sb("/rest/v1/site_draft?on_conflict=store", { method:"POST", token:otk, body:{ store:key, data:saDiffData(), by:sessionBy() }, prefer:"resolution=merge-duplicates,return=minimal" });
     SA.saved = JSON.stringify(SA.draft); SA.savedAt = new Date().toISOString(); SA.savedBy = sessionBy();
     if(!quiet) showToast("저장했습니다");
     return true;
@@ -9149,7 +9154,8 @@ async function saApplyDo(){
   view.saApply = null;
   try{
     var key = view.storeKey || "hanok";
-    await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:saDataWith(saLiveObj()), apply_at:at.toISOString(), note:"", by:sessionBy() }, prefer:"return=minimal" });
+    var otk = await ownerTok("홈페이지 적용"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 적용하지 않았습니다");
+    await sb("/rest/v1/site_versions", { method:"POST", token:otk, body:{ store:key, data:saDataWith(saLiveObj()), apply_at:at.toISOString(), note:"", by:sessionBy() }, prefer:"return=minimal" });
     logEvent("홈페이지 적용", a.sched ? "예약 " + d + " " + t : "즉시");
     showToast(a.sched ? "예약해 두었습니다 · " + pkShort(d) + " " + t : "홈페이지에 적용했습니다");
     SA.loading = true; render(); await saLoad(); render();
@@ -9159,9 +9165,10 @@ async function saApplyDo(){
    대기 중엔 그 판만 고침: 같은 시각으로 새 판을 넣고 옛 대기 판을 지움(서버 권한이 미래 판 '넣기·지우기' 만이라). 넣기가 먼저라 중간에 실패해도 내용은 안 사라짐 */
 async function saPendReplace(data, atIso, msg){
   var key = view.storeKey || "hanok", old = SA.pend;
-  await sb("/rest/v1/site_versions", { method:"POST", body:{ store:key, data:data, apply_at:atIso, note:old.note || "", by:sessionBy() }, prefer:"return=minimal" });
+  var otk = await ownerTok("홈페이지 적용 시각 바꾸기"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 바꾸지 않았습니다");
+  await sb("/rest/v1/site_versions", { method:"POST", token:otk, body:{ store:key, data:data, apply_at:atIso, note:old.note || "", by:sessionBy() }, prefer:"return=minimal" });
   if(new Date(old.apply_at).getTime() > Date.now()){
-    try{ await sb("/rest/v1/site_versions?id=eq." + old.id, { method:"DELETE", prefer:"return=minimal" }); }
+    try{ await sb("/rest/v1/site_versions?id=eq." + old.id, { method:"DELETE", token:otk, prefer:"return=minimal" }); }
     catch(e){ e.message = "새 판은 들어갔지만 옛 대기 판을 지우지 못했습니다 — 목록을 다시 읽었으니 확인해 주세요. (" + e.message + ")"; throw e; }
   }
   logEvent("홈페이지 적용 대기 판", msg);
@@ -9199,7 +9206,8 @@ async function saPendTime(){
 async function saCancelVersion(id){
   var v = (SA.versions || []).filter(function(x){ return x.id === id; })[0]; if(!v) return;
   if(!await uiConfirm("예약 적용을 취소할까요?", fmtWhen(v.apply_at) + (v.note ? " · " + v.note : ""), {ok:"취소하기", cancel:"두기"})) return;
-  try{ await sb("/rest/v1/site_versions?id=eq." + id, {method:"DELETE", prefer:"return=minimal"}); logEvent("홈페이지 예약 적용 취소", String(id)); SA.loading = true; render(); await saLoad(); render(); }
+  var otk = await ownerTok("예정된 적용 취소"); if(otk === null) return;
+  try{ await sb("/rest/v1/site_versions?id=eq." + id, {method:"DELETE", token:otk, prefer:"return=minimal"}); logEvent("홈페이지 예약 적용 취소", String(id)); SA.loading = true; render(); await saLoad(); render(); }
   catch(e){ await uiAlert("취소 실패", e.message, "warn"); }
 }
 /* 초안을 지금 보이는 판으로 되돌림 */
@@ -9494,7 +9502,8 @@ async function saNtPublish(msg){
   try{
     clearTimeout(SA_AUTOSAVE); if(saDirty()) await saSave(true);
     var o = saLiveObj(); o.notices = deepClone(SA.draft.notices || []);
-    await sb("/rest/v1/site_versions", { method:"POST", body:{ store:view.storeKey || "hanok", data:saDiff(SA.defaults || {}, o) || {}, apply_at:srvNowIso(), note:"팝업", by:sessionBy() }, prefer:"return=minimal" });
+    var otk = await ownerTok("팝업 저장"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 저장하지 않았습니다");
+    await sb("/rest/v1/site_versions", { method:"POST", token:otk, body:{ store:view.storeKey || "hanok", data:saDiff(SA.defaults || {}, o) || {}, apply_at:srvNowIso(), note:"팝업", by:sessionBy() }, prefer:"return=minimal" });
     if(SA.pend){ var po = saMerge(SA.defaults || {}, SA.pend.data || {}); po.notices = deepClone(SA.draft.notices || []); await saPendReplace(saDiff(SA.defaults || {}, po) || {}, SA.pend.apply_at, "팝업 같이"); }   /* 안 그러면 대기 판이 적용될 때 팝업이 옛것으로 돌아감 */
     logEvent("홈페이지 팝업", msg || "저장");
     var tab = SA.tab; SA.open = null; SA.loading = true; render(); await saLoad(); SA.tab = tab; render(); showToast(msg || "팝업을 저장했습니다");
@@ -9702,7 +9711,8 @@ async function saPostSave(status){
               images:p.images || [], files:p.files || [], pinned:!!p.pinned, status:status || p.status || "게시", by:sessionBy() };
   if(!p._new && !await staleAsk("site_posts", p.id, p.updated_at, "소식 글")) return;
   try{
-    await sb("/rest/v1/site_posts?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
+    var otk = await ownerTok("소식 저장"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 저장하지 않았습니다");
+    await sb("/rest/v1/site_posts?on_conflict=id", { method:"POST", token:otk, body:row, prefer:"resolution=merge-duplicates,return=minimal" });
     logEvent("소식 " + ({"게시":"게시", "초안":"초안 저장", "비공개":"비공개"})[row.status], row.title);
     showToast(row.status === "게시" ? "게시했습니다 — 홈페이지 소식에 바로 나옵니다" : row.status === "비공개" ? "비공개로 내렸습니다 — 홈페이지에서 안 보이고, 여기엔 그대로 있습니다" : "초안으로 저장했습니다");
     SA.post = null; await saPostsLoad();
@@ -9712,7 +9722,8 @@ async function saPostDelete(){
   var p = SA.post; if(!p || p._new){ SA.post = null; render(); return; }
   if(!await uiConfirm("이 글을 지울까요?", "홈페이지에서 사라집니다. 목록 맨 아래 '지운 글' 에서 다시 되살릴 수 있습니다. 잠깐 내리기만 하려면 '비공개' 를 쓰세요.", {ok:"지우기", cancel:"취소"})) return;
   try{
-    await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(p.id), { method:"PATCH", body:{status:"삭제"}, prefer:"return=minimal" });
+    var otk = await ownerTok("소식 지우기"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 지우지 않았습니다");
+    await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(p.id), { method:"PATCH", token:otk, body:{status:"삭제"}, prefer:"return=minimal" });
     logEvent("소식 삭제", p.title);
     SA.post = null; await saPostsLoad();
   }catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
@@ -9721,7 +9732,8 @@ async function saPostDelete(){
 function saPostFlip(){ var p = SA.post; if(!p) return; p.status = p.status === "비공개" ? "게시" : "비공개"; render(); }
 async function saPostRestore(id){
   try{
-    await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(id), { method:"PATCH", body:{status:"비공개"}, prefer:"return=minimal" });
+    var otk = await ownerTok("소식 되살리기"); if(otk === null) throw new Error("2차 PIN 을 넣지 않아 바꾸지 않았습니다");
+    await sb("/rest/v1/site_posts?id=eq." + encodeURIComponent(id), { method:"PATCH", token:otk, body:{status:"비공개"}, prefer:"return=minimal" });
     logEvent("소식 되살림", id); showToast("되살렸습니다 — 비공개로 두었으니 확인하고 게시하세요"); await saPostsLoad();
   }catch(e){ await uiAlert("되살리지 못했습니다", e.message || String(e), "warn"); }
 }
@@ -14418,9 +14430,25 @@ async function adminFailAlert(e){
 /* 사장님 계정 로그인 — 6자리면 '6자리+00' 먼저, 안 되면 친 그대로(6자리 자체를 비밀번호로 만든 서버도 있음 — 실서비스가 그렇게 만들어짐, 09-24 재아).
    PIN 바꾸기·2차 비밀번호 바꾸기·관리자 확인이 모두 이걸 씀(예전엔 관리자 확인만 두 번 시도해서 PIN 바꾸기에서 막혔음) */
 async function adminAuth(pw){
-  if(!/^\d{6}$/.test(pw)) return authToken(SUPA_CFG.adminEmail, pw);
-  try{ return await authToken(SUPA_CFG.adminEmail, adminToPassword(pw)); }
-  catch(e){ if(e.status !== 400) throw e; return authToken(SUPA_CFG.adminEmail, pw); }
+  var t;
+  if(!/^\d{6}$/.test(pw)) t = await authToken(SUPA_CFG.adminEmail, pw);
+  else{
+    try{ t = await authToken(SUPA_CFG.adminEmail, adminToPassword(pw)); }
+    catch(e){ if(e.status !== 400) throw e; t = await authToken(SUPA_CFG.adminEmail, pw); }
+  }
+  OWNER_TOK = t; OWNER_TOK_EXP = Date.now() + 50 * 60000;   /* 서버 토큰은 1시간 — 넉넉히 50분만 씀 */
+  return t;
+}
+/* 홈페이지 글·판 저장용 사장님 토큰(10-14 보안 점검 51차) — 서버가 이제 사장님(2차 PIN)·개발자 토큰만 받음.
+   예전엔 공용·직원 PIN 토큰으로도 서버에 바로 홈페이지 글을 고칠 수 있었음. 사장님 메뉴에 들어올 때 넣은 2차 PIN 의 토큰을 메모리에만 두고 씀.
+   개발자 화면 안(18b)은 개발자 토큰이 그대로 통과하므로 undefined(= 지금 세션). 토큰이 끝났으면 2차 PIN 을 한 번 더 물음. 취소하면 null */
+var OWNER_TOK = null, OWNER_TOK_EXP = 0;
+async function ownerTok(what){
+  if(!supaOn() || DEV_EMBED) return undefined;
+  /* 사장님 메뉴 안(OWNER_OK)이나 '10분간 다시 묻지 않기' 동안만 다시 씀 — 메뉴를 나간 뒤 같은 기기의 직원이 이어 쓰지 못하게 */
+  if(OWNER_TOK && OWNER_TOK_EXP > Date.now() && (OWNER_OK || ADMIN_UNTIL > Date.now())) return OWNER_TOK;
+  if(!await adminGate(what || "홈페이지 저장", {force:true})) return null;
+  return OWNER_TOK;
 }
 function sheetSetLog(){
   const log = (store().settings._setlog || []).slice().reverse();
