@@ -2433,14 +2433,12 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 /* 채워지면 원이 사라지고 그 자리에 큰 글자가 들어옵니다 (원 안의 작은 글자는 심심하다는 평 — 6차-F).
    글자마다 글꼴을 과할 만큼 다르게 — 내장 글꼴 두 벌(Pretendard·Noto Serif KR)만으로 기울임·외곽선·회전으로 변화를 줍니다 */
 .pdot.on{border-color:transparent; color:var(--text)}
-/* 10-14 재아: '분당한옥반점' — 분당은 작고 옅은 머리말, 한옥반점은 글자마다 다른 모양. 내장 글꼴은 Pretendard(보통·세미·굵게)와
-   Noto Serif 굵게(900)뿐이라 굵기·기울임·외곽선·회전·색으로 변화를 줌. '당' 뒤에 조금 띄어 '분당 · 한옥반점' 으로 읽히게 */
-.pdot.f1, .pdot.f2{font-size:24px}
-.pdot.f1.on, .pdot.f2.on, body.theme-hanok .pdot.f1.on, body.theme-hanok .pdot.f2.on{color:var(--text-3)}
-.pdot.f1{font-family:'Pretendard',sans-serif; font-weight:400}                                                  /* 분 — 가는 고딕 */
-.pdot.f2{font-family:'Pretendard',sans-serif; font-weight:600; font-style:italic; margin-right:8px}            /* 당 — 기울인 고딕, 뒤에 띄움 */
-.pdot.f3{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 한 — 굵은 명조 */
-.pdot.f4{font-family:'Pretendard',sans-serif; font-weight:700; font-style:italic; letter-spacing:-.05em}      /* 옥 — 기울인 굵은 고딕(합성 이탤릭) */
+/* 10-14 재아: '분당한옥반점' 여섯 글자 — 모두 같은 크기·같은 색, 글자마다 다른 모양. 내장 글꼴은 Pretendard(보통·세미·굵게)와
+   Noto Serif 굵게(900)뿐이라 굵기·기울임·외곽선·회전으로 변화를 줌(명조·고딕이 번갈아 오게) */
+.pdot.f1{font-family:'Pretendard',sans-serif; font-weight:600; transform:rotate(8deg)}                        /* 분 — 세미 고딕을 반대로 살짝 돌림 */
+.pdot.f2{font-family:'Noto Serif KR',serif; font-weight:900; font-style:italic}                               /* 당 — 기울인 굵은 명조 */
+.pdot.f3{font-family:'Pretendard',sans-serif; font-weight:700; letter-spacing:-.05em}                         /* 한 — 굵은 고딕 */
+.pdot.f4{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 옥 — 굵은 명조 */
 .pdot.f5{font-family:'Noto Serif KR',serif; font-weight:900}                                                  /* 반 — 속이 빈 외곽선 명조 */
 .pdot.f5.on, body.theme-hanok .pdot.f5.on{color:transparent; -webkit-text-stroke:1.2px var(--text)}
 .pdot.f6{font-family:'Pretendard',sans-serif; font-weight:400; transform:rotate(-10deg)}                      /* 점 — 가는 고딕을 살짝 기울여 (회전은 배율과 무관) */
