@@ -525,7 +525,7 @@ async function backup(){
   const btn = document.getElementById("bk"); if(btn){ btn.disabled = true; btn.textContent = "모으는 중…"; }
   try{
     const out = { kind:"hanok-backup", at:new Date().toISOString(), project:CFG.url };   /* kind·stores·reservations — 비상 페이지가 이 파일 하나로 엶(10-06) */
-    const all = async (t, q) => { let rows = [], from = 0; for(;;){ const r = await api("/rest/v1/" + t + "?select=*" + (q || ""), { range:from + "-" + (from + 999) }); rows = rows.concat(r || []); if(!r || r.length < 1000) return rows; from += 1000; } };
+    const all = async (t, q) => { let rows = [], from = 0; for(;;){ const r = await api("/rest/v1/" + t + "?select=" + (t === "staff_pins" ? "id,store,name,created_at,staff_id,active,role" : "*") + (q || ""), { range:from + "-" + (from + 999) }); rows = rows.concat(r || []); if(!r || r.length < 1000) return rows; from += 1000; } };
     /* 1,000행 넘게 이어 받을 땐 순서가 정해져 있어야 겹치거나 빠지지 않음 — 표마다 기본 키 순(10-09 점검) */
     const failed = [];
     for(const [t, q] of [["stores", "&order=key"], ["reservations", "&order=date,time,id"], ["requests", "&order=created_at,id"], ["customers", "&order=store,phone"], ["staff", "&order=id"], ["attendance", "&order=id"], ["hr_settings", "&order=store"], ["site_posts", "&order=id"], ["site_draft", "&order=store"], ["dev_requests", "&order=id"], ["thanks_sms", "&order=id"], ["staff_pins", "&order=id"], ["menu_boards", "&order=id"]]) {

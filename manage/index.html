@@ -3582,6 +3582,8 @@ function sessionSet(j, email){
    PIN 마다 서버 계정이 하나씩: 이메일 = 공용 계정 이메일에 'PIN 의 해시 12자리' 를 붙인 것, 비밀번호 = PIN+"00".
    PIN 만 치면 어느 계정인지 기기가 바로 압니다(목록을 미리 읽을 필요 없음 — 로그인 전엔 읽을 수도 없음).
    계정 만들기·지우기는 사장님 토큰으로만 되는 서버 함수(hanok_pin_add / hanok_pin_del)가 합니다 */
+/* staff_pins 에서 읽는 칸 — email(= PIN 해시라 PIN 을 거꾸로 알아낼 수 있음)은 52차부터 서버가 막아 둠, 읽으려 하면 오류 */
+var PIN_COLS = "id,store,name,created_at,staff_id,active,role";
 var PIN_USERS = [];   /* [{id, name, email, created_at}] — 로그인 뒤 staff_pins 에서 */
 async function pinEmail(pin){
   var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("madang-pin:" + pin));
@@ -3606,7 +3608,9 @@ function whoLabel(w){
   var cfg = SUPA_CFG || {};   /* 예시 데이터 모드(서버 설정 없음)에서 로그 화면이 죽던 것(10-06) */
   if(w === "admin" || w === cfg.adminEmail) return "사장님";
   if(w === "staff" || w === cfg.staffEmail) return "공용 PIN";
-  var u = PIN_USERS.find(function(x){ return x.email === w; });
+  /* 52차부터 서버가 직원별 PIN 기록을 'pin:번호표(id)' 로 적음 — 계정 이메일(PIN 해시)은 직원이 못 읽음 */
+  if(w.indexOf("pin:") === 0){ var p = PIN_USERS.find(function(x){ return x.id === w.slice(4); }); return p ? p.name : "지운 PIN"; }
+  var u = PIN_USERS.find(function(x){ return x.email && x.email === w; });
   if(u) return u.name;
   if(/-[0-9a-f]{12}@/.test(w)) return "지운 PIN";
   return w;
@@ -3630,8 +3634,9 @@ var PIN_CHECK_AT = 0;
 async function pinSessionCheck(force){
   if(!SESSION || !SESSION.email || !/-[0-9a-f]{12}@/.test(SESSION.email)) return;
   if(!force && Date.now() - PIN_CHECK_AT < 20000) return; PIN_CHECK_AT = Date.now();
-  var rows; try{ rows = await sb("/rest/v1/staff_pins?email=eq." + encodeURIComponent(SESSION.email) + "&select=active"); }catch(e){ return; }
-  if(rows && rows[0] && rows[0].active !== false) return;
+  /* 52차: staff_pins 의 email 칸은 직원이 못 읽음 → 서버 함수(hanok_pin_user — 그 계정이 살아 있는 PIN 인지)로 물음 */
+  var ok; try{ ok = await sb("/rest/v1/rpc/hanok_pin_user", { method:"POST", body:{ p_email:SESSION.email } }); }catch(e){ return; }
+  if(ok !== false) return;
   sessionClear(); AUTHED = false; view.storeKey = null; resetOverlays(); render();
   uiAlert("이 PIN은 더 이상 쓸 수 없습니다", "삭제되었거나 퇴사 처리된 PIN 입니다. 다른 PIN 으로 들어오세요.", "warn");
 }
@@ -3728,7 +3733,7 @@ async function loadFromServer(){
       else d[k].reservations.push(rec);
     });
   }
-  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=*&order=created_at")) || []; }catch(e){ PIN_USERS = PIN_USERS || []; }   /* 29차 전 서버면 표가 없음 — 무시 */
+  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=" + PIN_COLS + "&order=created_at")) || []; }catch(e){ PIN_USERS = PIN_USERS || []; }   /* 29차 전 서버면 표가 없음 — 무시 */
   var logs = await sb("/rest/v1/logs?select=*&order=at.desc&limit=300");
   d._logs = logs.reverse().map(function(l){ return { ts:l.at, ip:l.who || "", store:l.store, action:l.action, detail:l.detail, ua:l.ua }; });
   return d;
@@ -14203,7 +14208,7 @@ async function saveOverride(){
 async function openPinManage(){ view.form={type:"pinlist"}; render(); await pinUsersLoad(); render(); }
 async function pinUsersLoad(){
   if(!supaOn()) return;
-  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=*&order=created_at")) || []; view.pinErr = ""; }
+  try{ PIN_USERS = (await sb("/rest/v1/staff_pins?select=" + PIN_COLS + "&order=created_at")) || []; view.pinErr = ""; }
   catch(e){ view.pinErr = e.status === 404 ? "서버 준비 전(29차)" : (e.network ? "서버에 연결할 수 없습니다" : e.message); }
 }
 /* 권한(10-13 재아) — 사장: 전부(지금까지와 같음) · 매니저: 예약 등록·수정·삭제까지 · 직원: 보기만(예약 열람·검색·손님 검색).
