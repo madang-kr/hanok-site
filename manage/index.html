@@ -1988,6 +1988,11 @@ button.sa-card:hover{border-color:var(--text-3)}
   .hr-grid th, .hr-grid td{min-width:28px; height:40px}
   .hr-grid .hr-name{min-width:84px; padding:0 var(--s8)} .hr-grid .hr-sum{min-width:88px}
   .gs-stats{flex-wrap:wrap} .gs-stats span{flex:1 1 30%}
+  /* 주간표(table-layout:fixed + 이름·합계 칸 132px 둘)는 폰에서 요일 칸이 14px 로 쪼그라들어 '정규' 글자가 겹쳤음(10-14 점검) —
+     폭을 넉넉히 잡고 .hr-scroll 에서 옆으로 밀어 보게(이름 칸은 왼쪽에 붙어 있음) */
+  .hr-grid.week{min-width:520px; width:520px}
+  .hr-grid.week th.hr-name, .hr-grid.week td.hr-name{width:84px} .hr-grid.week th.hr-sum, .hr-grid.week td.hr-sum{width:76px}
+  .hr-grid.week th, .hr-grid.week td{min-width:0}
 }
 /* 사장님 메뉴(14f): 큰 단추 격자 */
 .own-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:var(--s12)}
@@ -3108,6 +3113,12 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
   .wz-dot:not(.on) .l{display:none}
   .wz-steps{scrollbar-width:none}
   .wz-steps::-webkit-scrollbar{display:none}
+}
+
+/* 10-14 배포 전 점검: 직원이 폰에서 쓰는 작은 단추 키움 — 목록/타임라인 스위치 26px · 빠른 입력의 선택 칩 27px 이라 손가락으로 빗나갔음(권장 최소 32~36px) */
+@media (max-width:767px){
+  .mswitch{height:34px} .mswitch span{height:28px; padding:0 9px}
+  .seg button, .page-wrap .seg button{min-height:34px !important}   /* .page-wrap .seg button 이 !important 로 0 을 줘서 같은 무게로 덮음 */
 }
 /* ============================================================
    12c. apple-design 2차 (2026-09-20) — 12b 뒤·13 앞. 새 화면(사장님·설정 목록·워크시프트·감사 문자)이 생긴 뒤 다시 맞춘 것.
@@ -14144,8 +14155,7 @@ function openAdminPw(){ view.form={type:"apwlist"}; render(); }
 function openAdminPwEdit(){ view.form={type:"apw"}; render(); }
 function sheetAdminPwList(){
   return sheetHead("2차 PIN 관리") +
-    '<div class="rowitem"><span class="grow"><span class="t">관리자(사장님) 2차 PIN <span class="tag pine sm">사용 중</span></span></span><button class="btn sm" onclick="openAdminPwEdit()">수정</button></div>' +
-    '<div class="rowitem"><span class="grow"><span class="t">매니저 2차 PIN <span class="tag sm">준비 중</span></span><span class="s">매니저 권한을 만들 때 함께 추가합니다</span></span><button class="btn sm" disabled>추가</button></div>';
+    '<div class="rowitem"><span class="grow"><span class="t">사장님 2차 PIN <span class="tag pine sm">사용 중</span></span></span><button class="btn sm" onclick="openAdminPwEdit()">수정</button></div>';   /* 10-14: '매니저 2차 PIN 준비 중' 줄을 뺌 — 매니저는 개인 PIN 으로 구분(권한 3단계), 2차 PIN 은 사장님 것 하나 */
 }
 function openLogs(){ view.form={type:"logs"}; render(); setLogLoad(); }   /* 보안 화면 안 — 들어올 때 이미 2차 PIN(09-25 재아) */
 /* ---------- 공용 PIN 변경 ----------
@@ -14210,7 +14220,7 @@ async function savePin(){
 /* 2차 PIN 변경 — 사장님 본인 토큰으로. 09-25(재아): '현재 2차 비밀번호' → '2차 PIN', 설명 글 뺌 */
 function sheetAdminPw(){
   return `
-    ${sheetHead("관리자 2차 PIN 수정")}
+    ${sheetHead("사장님 2차 PIN 수정")}
     <label class="f big"><div class="lb">2차 PIN</div>
       <input id="apw-cur" type="password" autocomplete="off" inputmode="numeric" maxlength="6">
     </label>
@@ -14255,7 +14265,7 @@ async function adminGate(what, opt){
   if(r == null) return false;
   if(!r || !r.code) return false;   /* 바깥 누름·취소 */
   const pw = r.code;
-  try{ await adminAuth(pw); logEvent("관리자 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
+  try{ await adminAuth(pw); logEvent("사장님 확인", what + (r.keep ? " · 10분 유지" : "")); if(r.keep) ADMIN_UNTIL = Date.now() + 10 * 60000; return true; }
   catch(e){ await adminFailAlert(e); return false; }
 }
 /* 연결이 없거나 서버 오류인데 'PIN 이 다릅니다' 로 보여 맞는 PIN 을 의심하게 하던 것(10-09 점검) */
