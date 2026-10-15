@@ -83,9 +83,9 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       try{ const r = await fetch(SUPA.url + path, {headers:H, signal:ctl.signal}); if(!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
       finally{ clearTimeout(t); }
     };
-    const okAt = (e, people, seat) => {
+    const okAt = (e, people, seat, loose) => {
       if(!e) return false;
-      const room = (e.rooms||[]).some(([mn, mx]) => people >= mn && people <= mx), table = people <= (e.tableMax||0);
+      const room = (e.rooms||[]).some(([mn, mx]) => (loose || people >= mn) && people <= mx), table = people <= (e.tableMax||0);   /* loose: 조건부 룸(10-15) — 최소 인원은 안 봄 */
       return seat === "room" ? room : seat === "table" ? table : (room || table);
     };
     const availCache = {};
@@ -102,7 +102,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       const d = await dayData(date); if(!d) return [];
       return leadCut(date, Object.keys(d).sort().filter(t => okAt(d[t], people, seat)));
     };
-    RES_API.seatOk = async (date, time, people, seat) => { const d = await dayData(date); return !!(d && okAt(d[time], people, seat)); };
+    RES_API.seatOk = async (date, time, people, seat, loose) => { const d = await dayData(date); return !!(d && okAt(d[time], people, seat, loose)); };
     RES_API.month = async (ym, people, seat) => {
       const rows = await get(`/rest/v1/public_avail?store=eq.${SUPA.store}&date=like.${ym}%25&select=date,data`);
       const out = {}; rows.forEach(r => { availCache[r.date] = r.data; markHol(r.date, r.data); out[r.date] = leadCut(r.date, Object.keys(r.data||{}).filter(t => okAt(r.data[t], people, seat))).length; });
@@ -144,7 +144,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
   const tooMany = () => total() > R().maxPeople;
   function reset(){
     S = {date:"", adults:0, kids:0, time:"", seat:"", course:"", courseLabel:"", name:"", phone:"",
-         sent:false, resendUsed:false, verified:false, req:"", allergy:"", agree:{rule:false, priv:false, age:false}};
+         sent:false, resendUsed:false, verified:false, req:"", allergy:"", drinks:[], agree:{rule:false, priv:false, age:false}};
     step = 1; monthCache = {};
     clearInterval(timer); timer = null; left = LIMIT_SEC(); extended = false;
   }
@@ -259,7 +259,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
 
   /* ---------- 온라인으로 못 받는 조합은 전화로 ---------- */
   function phoneOnly(){
-    if(S.seat === "room" && S.adults < roomMin(S.date)) return `룸 예약은 성인 기준 ${roomMin(S.date)}명부터 받고 있습니다.`;
+    if(S.seat === "room" && S.adults < roomMin(S.date) && !condRule()) return `룸 예약은 성인 기준 ${roomMin(S.date)}명부터 받고 있습니다.`;
     return "";
   }
   const telBox = msg => `<div class="rv-note">${esc(msg)}<a class="rv-tel-lnk" href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></div>`;
@@ -308,12 +308,30 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     const bits = [peopleText()];
     if(S.date) bits.push(dateText(S.date));
     if(S.time) bits.push(hm(S.time));
-    if(S.seat) bits.push(S.seat === "room" ? "룸" : "테이블");
+    if(S.seat) bits.push(S.seat === "room" ? "룸" : "홀");
     if(S.courseLabel) bits.push(S.courseLabel);
     return `<div class="rv-sum">${bits.map(x=>`<span>${esc(x)}</span>`).join("")}</div>`;
   };
   /* 룸 최소 인원 — 평일 / 주말·공휴일 따로(09-24 재아). 주말 값이 없으면 평일 값 */
   const roomMin = date => (date && isWeekend(date) && R().roomMinAdultsWeekend) ? R().roomMinAdultsWeekend : R().roomMinAdults;
+  /* 10-15 누님: 룸 최소 인원 미달이어도 정한 세트·코스 이상이면 룸 신청(online.roomCond). '이상' = 차림 가격이 같거나 비쌈 */
+  const slotOf = () => (isWeekend(S.date) ? "주말" : "평일") + (mins(S.time) < lunchEnd(S.date) ? "점심" : "저녁");
+  const condRule = () => {
+    if(!S.date || !S.time || S.adults >= roomMin(S.date)) return null;
+    const sl = slotOf();
+    return (R().roomCond || []).filter(c => c && c.slot === sl && Array.isArray(c.adults) && S.adults >= c.adults[0] && S.adults <= c.adults[1])[0] || null;
+  };
+  const normName = s => String(s || "").replace(/\s+/g, "");
+  /* 차림 가격 — 점심이면 그 날(평일·주말) 점심 세트 묶음에서 먼저, 없으면 저녁 코스에서(저녁 코스는 종일 됨) */
+  const priceOf = (name, sl) => {
+    const n = normName(name), day = sl.slice(0, 2), lists = [];
+    if(sl.indexOf("점심") > 0) (MENU.lunch || []).forEach(g => { const w = g.when || []; if(w.indexOf(day + "점심") >= 0 || (!w.length && String(g.title || "").indexOf(day) === 0)) lists.push(g.items || []); });
+    lists.push((MENU.courses && MENU.courses.items) || []);
+    for(const items of lists){ const it = items.find(x => x && normName(x.name) === n); if(it && Number(it.price)) return Number(it.price); }
+    return null;
+  };
+  /* 고른 메뉴가 조건을 채우나 — 기준 가격을 모르면(차림에 가격이 없음) 막지 않음(서버·가게가 확인) */
+  const condOk = (rule, label) => { const sl = slotOf(), th = priceOf(rule.min, sl); if(th == null) return true; const p = priceOf(label, sl); return p != null && p >= th; };
   const dayRange = () => { const t = Date.now(); return { min: kstYmd(R().sameDay ? t : t + 864e5), max: kstYmd(t + R().maxDays*864e5) }; };   /* 내일부터 — '당일 예약' 을 켜면 오늘부터 */
 
   /* ---------- ① 인원 ---------- */
@@ -463,7 +481,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     b.insertAdjacentHTML("beforeend", sumLine() + `<section class="rv-sec">
         <h3>좌석</h3>
         <div class="rv-pick two" id="rv-seat">
-          <button type="button" data-s="table" class="${S.seat==='table'?'on':''}" aria-pressed="${S.seat==='table'}"><b>테이블</b></button>
+          <button type="button" data-s="table" class="${S.seat==='table'?'on':''}" aria-pressed="${S.seat==='table'}"><b>홀</b></button>
           <button type="button" data-s="room" class="${S.seat==='room'?'on':''}" aria-pressed="${S.seat==='room'}"><b>룸</b></button>
         </div>
         <div id="rv-seat-hint"></div>
@@ -474,7 +492,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     const okBy = {};
     async function load(){
       /* 10-03: 조회가 실패해도 오류가 새지 않게 — 자리 확인을 못 한 채로 두면 접수할 때 서버가 다시 확인합니다 */
-      try{ for(const k of ["table", "room"]) okBy[k] = await RES_API.seatOk(S.date, S.time, total(), k); }
+      try{ for(const k of ["table", "room"]) okBy[k] = await RES_API.seatOk(S.date, S.time, total(), k, k === "room" && !!condRule()); }
       catch(e){ return; }
       if(!ov || step !== 4) return;
       seg.querySelectorAll("[data-s]").forEach(x => { x.disabled = !okBy[x.dataset.s]; x.classList.toggle("off", !okBy[x.dataset.s]); });
@@ -482,10 +500,12 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     }
     function draw(){
       seg.querySelectorAll("[data-s]").forEach(x => { x.classList.toggle("on", x.dataset.s === S.seat); x.setAttribute("aria-pressed", x.dataset.s === S.seat); });
-      const label = S.seat === "room" ? "룸" : "테이블";
+      const label = S.seat === "room" ? "룸" : "홀";
       const po = !S.seat ? "" : (okBy[S.seat] === false ? `이 시각에는 ${label} 자리가 없습니다. 유선으로 예약 도와드리겠습니다.` : phoneOnly());
-      const off = ["table", "room"].filter(k => okBy[k] === false).map(k => k === "room" ? "룸" : "테이블");
-      hint.innerHTML = off.length ? `<p class="rv-quiet">${esc(off.join("·"))}은 이 시각에 자리가 없어 고를 수 없습니다.</p>` : "";
+      const off = ["table", "room"].filter(k => okBy[k] === false).map(k => k === "room" ? "룸" : "홀");
+      const cr = condRule();
+      hint.innerHTML = (off.length ? `<p class="rv-quiet">${esc(off.join("·"))}은 이 시각에 자리가 없어 고를 수 없습니다.</p>` : "") +
+        (cr && okBy.room !== false ? `<p class="rv-quiet">성인 ${S.adults}명은 <b>${esc(cr.min)} 이상</b> 주문하시면 룸으로 예약하실 수 있습니다.</p>` : "");
       foot(f, true, next, "다음", !S.seat || !!po, po ? `${esc(po)} <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a>` : "");
     }
     seg.querySelectorAll("[data-s]").forEach(x => x.addEventListener("click", () => {
@@ -563,13 +583,15 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     return out;
   }
   function sMenu(b, f){
-    const room = S.seat === "room";
+    const room = S.seat === "room", cr = room ? condRule() : null;   /* 조건부 룸(10-15) — 조건을 채우는 세트·코스만 */
+    const groups = menuGroups().map(g => Object.assign({}, g, { items: cr ? g.items.filter(it => condOk(cr, it.name)) : g.items })).filter(g => g.items.length);
     b.insertAdjacentHTML("beforeend", sumLine() + `<section class="rv-sec">
         <h3>메뉴</h3>
         <div class="rv-pick" id="rv-cs">
-          ${menuGroups().map(g => `<div class="rv-pick-h">${esc(g.title)}${g.note ? `<small>${esc(g.note)}</small>` : ""}</div>` + g.items.map(it =>
+          ${cr ? `<p class="rv-quiet">성인 ${S.adults}명 룸 예약은 <b>${esc(cr.min)} 이상</b>으로 받습니다.</p>` : ""}
+          ${groups.map(g => `<div class="rv-pick-h">${esc(g.title)}${g.note ? `<small>${esc(g.note)}</small>` : ""}</div>` + g.items.map(it =>
               `<button type="button" data-c="${esc(it.key)}" data-l="${esc(it.name)}" class="${S.course===it.key?'on':''}"><b>${esc(it.name)}${it.cn?`<small>${esc(it.cn)}</small>`:""}</b><span class="qty">${S.adults}인분</span></button>`).join("")).join("")}
-          ${specialOf(S.date) ? "" : `<div class="rv-pick-h"></div>
+          ${specialOf(S.date) || cr ? "" : `<div class="rv-pick-h"></div>
           ${room ? `<button type="button" data-c="later" data-l="메뉴 미정" class="${S.course==='later'?'on':''}"><b>미정</b></button>`
                  : `<button type="button" data-c="none" data-l="단품 주문" class="${S.course==='none'?'on':''}"><b>단품 주문</b></button>`}`}
         </div>
@@ -583,6 +605,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     function go(){ step = 6; render(); }
     function next(){
       if(!S.course) return;
+      if(cr && !condOk(cr, S.courseLabel)) return;
       if(room && S.course === "later") ask("룸 이용 안내", "룸에서는 <b>코스</b>, 또는 그에 상응하는 금액의 단품 주문만 가능합니다.", "확인", go);
       else go();
     }
@@ -609,7 +632,16 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
         </div>
         <div class="rv-fld"><label for="rv-req">요청사항 <em>선택</em></label>
           <textarea id="rv-req" rows="3" maxlength="300" placeholder="알레르기, 유아용 의자, 기념일 등 요청하실 내용이 있다면 적어 주세요.">${esc(S.req)}</textarea></div>
+        ${(R().drinks || []).length ? `<div class="rv-fld"><span class="rv-lbl">음주 <em>선택 · 여럿 고를 수 있어요</em></span>
+          <div class="rv-pick rv-drinks" id="rv-drinks">${R().drinks.map(d => `<button type="button" data-d="${esc(d)}" class="${S.drinks.indexOf(d) >= 0 ? 'on' : ''}" aria-pressed="${S.drinks.indexOf(d) >= 0}"><b>${esc(d)}</b></button>`).join("")}</div></div>` : ""}
       </section>`);
+    /* 음주(10-15 누님) — 여럿 고름, '음주 안 함' 은 다른 것과 같이 못 고름 */
+    b.querySelectorAll("#rv-drinks [data-d]").forEach(el => el.addEventListener("click", () => {
+      const d = el.dataset.d, none = /안\s*함/.test(d), i = S.drinks.indexOf(d);
+      if(i >= 0) S.drinks.splice(i, 1);
+      else S.drinks = none ? [d] : S.drinks.filter(x => !/안\s*함/.test(x)).concat([d]);
+      b.querySelectorAll("#rv-drinks [data-d]").forEach(x => { const on = S.drinks.indexOf(x.dataset.d) >= 0; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); });
+    }));
     const name = $("#rv-name", b), phone = $("#rv-phone", b), send = $("#rv-send", b),
           codebox = $("#rv-codebox", b), code = $("#rv-code", b), verify = $("#rv-verify", b), hint = $("#rv-tel-hint", b), req = $("#rv-req", b), edit = $("#rv-tel-edit", b);
     if(S.sent && !S.verified) phone.disabled = true;
@@ -668,10 +700,11 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     const rows = [
       ["날짜", dateText(S.date)], ["시간", hm(S.time)],
       ["인원", S.kids ? `성인 ${S.adults}명 · 어린이 ${S.kids}명` : `성인 ${S.adults}명`],
-      ["좌석", S.seat === "room" ? "룸" : "테이블"],
+      ["좌석", S.seat === "room" ? "룸" : "홀"],
       ["메뉴", S.course === "later" ? "미정" : (S.course === "none" ? "단품 주문" : `${S.courseLabel} · ${S.adults}인분 (성인 기준)`)],
       ["예약자", S.name.trim()+" · "+S.phone]
     ];
+    if(S.drinks.length) rows.push(["음주", S.drinks.join(", ")]);
     if(S.req.trim()) rows.push(["요청사항", S.req.trim()]);
     /* body 가 없으면(만 14세) 펼치기 없이 제목만 — 펼쳐 봐야 할 말이 없음(재아) */
     const box = (key, title, body) => `<div class="rv-agree${S.agree[key]?" on":""}${body?"":" plain"}">
@@ -706,6 +739,8 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     b.querySelectorAll("button.rv-agree-t").forEach(t => t.addEventListener("click", () => t.setAttribute("aria-expanded", t.closest(".rv-agree").classList.toggle("open"))));
     const all = () => S.agree.rule && S.agree.priv && S.agree.age;
     const refoot = () => foot(f, true, submit, "접수하기", !all());
+    /* 요청사항 = [음주] 고른 것 + 손님이 적은 글. 서버 한도(300자) 안으로 — 음주 칸을 따로 두지 않고 요청사항에 붙여 예약 시스템이 그대로 보여 줌(10-15) */
+    function reqText(){ const dr = S.drinks.length ? "[음주] " + S.drinks.join(", ") : "", t = S.req.trim(); return (dr && t ? dr + "\n" + t : dr || t).slice(0, 300); }
     async function submit(){
       if(!all() || submitting) return;
       const btn = $("[data-next]", f); btn.disabled = true; btn.textContent = "접수 중…";
@@ -713,7 +748,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       clearInterval(timer); timer = null;   /* 응답을 기다리는 사이 제한 시간이 끝나 완료 화면이 깨지던 것(09-25) */
       const body = {date:S.date, time:S.time, adults:S.adults, kids:S.kids, people:total(),
                     seat:S.seat, course:S.course, courseLabel:S.courseLabel,
-                    name:S.name.trim(), phone:S.phone, request:S.req.trim(), allergy:S.allergy.trim()};
+                    name:S.name.trim(), phone:S.phone, request:reqText(), allergy:S.allergy.trim()};
       /* 같은 번호로 다시 보내는 건 내용이 그대로일 때만 — 끊긴 뒤 시각·인원을 바꿔 다시 누르면 서버엔 옛 내용이 남고(409 = 이미 받음)
          화면엔 새 내용으로 '접수됨' 이 떴음(10-09 점검). 바뀌었으면 새 번호로 */
       const sig = JSON.stringify(body);
@@ -741,7 +776,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     b.innerHTML = `<div class="rv-done">
         <div class="rv-tick"><svg viewBox="0 0 48 48"><path d="M14 25l7 7 14-15"/></svg></div>
         <h3>접수되었습니다</h3>
-        <p class="big">${esc(dateText(S.date))} ${esc(hm(S.time))} · ${esc(peopleText())} · ${S.seat==="room"?"룸":"테이블"}</p>
+        <p class="big">${esc(dateText(S.date))} ${esc(hm(S.time))} · ${esc(peopleText())} · ${S.seat==="room"?"룸":"홀"}</p>
         ${S.reqId ? `<p class="rv-code">예약번호 <b class="num">${resCode(S.reqId)}</b></p>` : ""}
         <p>가게에서 확인한 뒤 <b>${esc(S.phone)}</b> 로 확정을 알려드립니다.</p>
         <p class="rv-quiet">예약 변경 혹은 다른 문의사항은 <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a> 로 전화 주세요.</p>

@@ -332,6 +332,10 @@ body.rv-open{overflow:hidden}
 .rv-fld{margin-bottom:24px} .rv-fld:last-child{margin-bottom:0}
 .rv-fld label{display:block; font-size:13px; font-weight:600; color:var(--sub); letter-spacing:0; margin-bottom:8px}
 .rv-fld label em{font-style:normal; font-weight:400; color:#A69D93; margin-left:6px}
+.rv-fld .rv-lbl{display:block; font-size:13px; font-weight:600; color:var(--sub); margin-bottom:8px}   /* 음주(10-15) — 고르기 칸 제목(label 아님) */
+.rv-fld .rv-lbl em{font-style:normal; font-weight:400; color:#A69D93; margin-left:6px}
+.rv-pick.rv-drinks{grid-template-columns:repeat(auto-fill, minmax(110px, 1fr))}
+.rv-pick.rv-drinks button{padding:12px 14px; justify-content:center; text-align:center}
 .rv input, .rv textarea{width:100%; font:inherit; font-size:16px; padding:13px 14px; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:0; color-scheme:light; letter-spacing:-.01em}
 .rv textarea{line-height:1.7; resize:vertical}
 .rv input:focus, .rv textarea:focus{outline:none; border-color:var(--ink)}

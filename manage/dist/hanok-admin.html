@@ -2292,6 +2292,7 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
   .hr-period-nav{gap:2px} .hr-nb{min-width:32px; height:34px; padding:0 4px; font-size:16px}
   .hr-period-t b{font-size:var(--fs-title)}
 }
+.dq-grow{overflow:hidden; resize:none}   /* 개발자에게 글 칸 — dqGrow 로 길이를 맞춤(10-15) */
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -3415,6 +3416,7 @@ const DEFAULT_DATA = {
       lunchUntil:"16:00",   /* 이 시각 전 예약은 점심으로 계산 */
       lastBookingBuffer:60, /* 영업 종료 몇 분 전까지 예약을 받을지 */
       minCountAdultsOnly:true,  /* 룸 최소 인원을 성인 기준으로 볼지 */
+      roomMinHint:true,         /* 10-15 누님: 룸 최소 인원은 참고만 — 관리자 화면에 '최소 인원 미달' 경고·확인창을 안 띄움(false 면 예전처럼 경고). 홈페이지 예약 규칙과는 별개 */
       groupSize:8,              /* 이 인원부터 단체로 봅니다 */
       displayRows:null,         /* 디스플레이 모드 좌석 배치 (null이면 자동) */
       holidayMode:true,         /* 공휴일 별도 운영시간 사용 */
@@ -3511,6 +3513,15 @@ function adminToPassword(code){ return String(code) + "00"; }
 /* 호출 하나. 실패는 Error 로 던집니다 — e.network(연결 없음) / e.status(HTTP) 로 구분 */
 async function sb(path, opt){
   opt = opt || {};
+  /* 개발자 화면의 권한 미리보기(18b) — 개발자 토큰은 서버에서 뭐든 되므로 읽기(GET·읽기용 서버 함수) 말고는 보내지 않음.
+     readonlyBlock 을 거치지 않는 저장(설정·직원·홈페이지 등)도 여기서 막힘 → 각 화면의 '저장 실패' 창에 이 문구가 뜸 */
+  if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW){
+    var pm = String(opt.method || "GET").toUpperCase();
+    var readRpc = /^\/rest\/v1\/rpc\/(hanok_pin_user|hanok_tier|hanok_online_on|public_today_rows|hanok_gemini_status|backup_file_list|dev_[a-z_]+)$/;
+    if(pm !== "GET" && pm !== "HEAD" && !(pm === "POST" && readRpc.test(path))){
+      var pe = new Error("권한 미리보기라 저장하지 않았습니다"); pe.preview = true; throw pe;
+    }
+  }
   var headers = { "apikey": SUPA_CFG.anonKey,
                   "Authorization": "Bearer " + (opt.token ? opt.token : (opt.anon || !SESSION) ? SUPA_CFG.anonKey : SESSION.access_token),   /* token: 사장님 확인용 임시 토큰(보안 화면) */
                   "Content-Type": "application/json" };
@@ -4080,6 +4091,8 @@ async function loadPublicOrCache(){
 /* 쓰기가 막혀 있으면 이유를 알리고 true. 막지 않는 것이 원칙이지만 이 경우는 진짜로 저장이 불가능합니다 */
 function readonlyBlock(){
   /* 직원 권한은 보기만(10-13 재아) — 예약을 바꾸는 길은 모두 이 문을 지남 */
+  if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW && typeof canEditRes === "function" && !canEditRes()) return true;   /* 미리보기 중 직원 권한 — 평소처럼 조용히 */
+  if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW){ showToast("권한 미리보기 — 저장하지 않습니다"); return true; }   /* 개발자 화면 미리보기(18b): 단추는 그 권한대로 보이되 누르면 저장 안 함 */
   if(typeof canEditRes === "function" && !canEditRes()) return true;   /* 직원·공용 PIN — 바꾸는 단추는 화면에서 숨김(10-14 재아: 안내 창 대신). 단축키 등으로 들어와도 조용히 멈춤 */
   if(!DATA || !DATA._readonly) return false;
   var why = READONLY_WHY === "offline" ? "서버와 연결이 끊겨 지금은 볼 수만 있습니다. 종이에 적어 두세요 — 연결되면 다시 시도하세요."
@@ -4341,6 +4354,7 @@ function clockTzBad(){ try{ return new Date().getTimezoneOffset() !== -540; }cat
 function clockBad(){ return Math.abs(CLOCK_SKEW) > 10 * 60 * 1000 || clockTzBad(); }
 async function flush(){
   if(!SESSION || OFFLINE) return;
+  if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW) return;   /* 권한 미리보기(18b) — 밑에서 도는 저장(잠정 재계산 등)도 보내지 않음. 보냈다간 막혀서 '저장 실패' 띠가 뜸 */
   if(typeof thScrubKey === "function") thScrubKey();   /* 옛 판이 매장 설정에 넣었던 Gemini 키를 다시 서버로 올리지 않게(26차) */
   /* 이미 도는 중이면 그 저장(과 이어서 도는 한 번)이 끝날 때까지 기다림 — 전엔 바로 돌아와,
      'await flush()' 뒤 SAVE_FAIL·hasDirty 를 보는 곳(새로고침 전·잠그기 전·재접속)이 옛 상태를 봤음(10-09 점검) */
@@ -4943,7 +4957,7 @@ function resFloor(r){
 function floorSeats(fl, date, time){
   return floorTables(fl, date).filter(t => !(date && time && blockedAt(t, date, time))).reduce((a, t) => a + (t.seats || 4), 0);
 }
-function floorLabel(fl){ return `${fl || ""} 테이블`.trim(); }
+function floorLabel(fl){ return `${fl || ""} 홀`.trim(); }   /* 10-15 누님: 종류 이름 테이블 → 홀(개별 자리는 테이블 그대로) */
 /* 그 시각에 그 층에서 한 자리(붙임 포함)로 앉힐 수 있는 최대 인원 — 마법사 안내용. 20명부터 내려가며 찾습니다 */
 /* fl == null 은 '층 상관없음' — findSeat 에 floor 를 안 넘겨 전체 테이블(사장님 순서)로 */
 function floorMaxParty(fl, date, time, excludeId){
@@ -5044,6 +5058,9 @@ function resBlocked(r){
   return null;
 }
 /* 최소 인원 판정에 쓸 인원 — 설정에 따라 성인만 셉니다 */
+/* 룸 최소 인원을 경고할지 — 10-15 누님 요청으로 기본은 안 함(roomMinHint). 자동(임시) 배정은 여전히 최소 인원이 맞는 룸만 고름 —
+   맞는 룸이 없으면 '자리 확정 필요(자리 없음)' 으로 두고 사장·매니저가 직접 고름(10-15: 미달 룸까지 임시로 잡게 했더니 다른 팀 배정까지 흔들려 되돌림) */
+function minWarnOn(){ return !!(store() && store().settings && store().settings.roomMinHint === false); }
 function adultCount(people, infants, date){
   return (date ? settingsAt(date) : store().settings).minCountAdultsOnly === false
     ? (people||0) : Math.max(0,(people||0)-(infants||0));
@@ -6614,7 +6631,7 @@ function renderDashMobile(d, m){
   /* 10-14 재아: 예약률 칩은 뺌 — 칩이 두 줄로 넘어가 보기 싫었음. 예약률은 더보기 → 예약률 추이에서 */
   const kpi = `<div class="mkpi">
     ${chip(m.active.length + "건", "확정", "", "")}
-    ${chip(m.unassigned, "미배정", "warn", "openUnassigned()")}
+    ${chip(m.unassigned, "자리 확정 필요", "warn", "openUnassigned()")}   <!-- 10-15 누님: 자동 배정은 임시, 사장·매니저가 확정 -->
     ${chip(m.warnCnt, "경고", "warn", "openPick('warn')")}
     ${chip(m.checkCnt, "확인 필요", "amber", "openCheck()")}
   </div>`;
@@ -6669,7 +6686,7 @@ function resRowMobile(r){
       <div class="mr-2">
         <span>${pplOf(r)}명${r.infants?`(어린이${r.infants})`:""}</span>
         <span class="${room||r.tentativeRoomId?'':'none'}">${esc(seat)}</span>
-        ${r.phone?`<span>${esc(r.phone)}</span>`:""}
+        ${r.phone?`<span>${esc(phoneShow(r.phone))}</span>`:""}
         ${pills?`<span class="mr-p">${esc(pills)}</span>`:""}
       </div>
     </button>`;
@@ -6763,7 +6780,7 @@ function rateChart(endDate, days){
       <rect class="rb-room" x="${c-w/2}" y="${T+ih-hr}" width="${w}" height="${Math.max(0,hr)}" rx="1.5">
         <title>${x.date} 룸 ${Math.round(x.room)}%p (룸만 보면 ${x.roomRate}%)</title></rect>
       <rect class="rb-hall" x="${c-w/2}" y="${T+ih-hr-hh}" width="${w}" height="${Math.max(0,hh)}" rx="1.5">
-        <title>${x.date} 테이블 ${Math.round(x.hall)}%p (테이블만 보면 ${x.hallRate}%)</title></rect>`;
+        <title>${x.date} 홀 ${Math.round(x.hall)}%p (홀만 보면 ${x.hallRate}%)</title></rect>`;
   }).join("");
 
   const pts = list.map((x,i)=>`${cx(i)},${y(x.rate)}`).join(" ");
@@ -6786,7 +6803,7 @@ function rateChart(endDate, days){
   return `
     <div class="legend">
       <span><i class="sw rb-room"></i>룸</span>
-      <span><i class="sw rb-hall"></i>테이블</span>
+      <span><i class="sw rb-hall"></i>홀</span>
       <span><i class="sw ln total"></i>전체 예약률</span>
     </div>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="예약률 추이">
@@ -6863,7 +6880,7 @@ function resRow(r){
       <span class="rr-n">${tierTag(r)}${groupTag(r)}<span class="rr-nm">${esc(r.name)}</span></span>
       <span class="rr-p">${pplOf(r)}명${r.infants?`(어린이${r.infants})`:""}</span>
       <span class="rr-seat ${room||r.tentativeRoomId?'':'none'}">${esc(seat)}</span>
-      <span class="rr-ph">${esc(r.phone||"-")}</span>
+      <span class="rr-ph">${esc(phoneShow(r.phone)||"-")}</span>
       ${rest?`<span class="rr-rest">${rest}</span>`:""}
     </button>`;
 }
@@ -7187,7 +7204,7 @@ function resWarn(r){
     /* 룸·테이블 모두: 묶음(합침 포함)의 최대·최소로 판단. 테이블은 최소가 없고(여포도 테이블과 같음 — 10-14 누님 답), 정원 초과만 봅니다.
        룸 정원 초과(간이 의자 포함)는 받지 않는 것으로 — 막지 않고 경고(10-14 누님 답 4) */
     if(pplOf(r) > seatsMax(ids)) out.push("정원 초과");
-    else if(adultCount(pplOf(r), r.infants) < seatsMin(ids, r.date)) out.push("최소 인원 미달");
+    else if(minWarnOn() && adultCount(pplOf(r), r.infants) < seatsMin(ids, r.date)) out.push("최소 인원 미달");   /* 10-15 누님: 기본은 경고 안 함 */
     if(ids.length > 1 && joinOf(ids) && (joinOf(ids).split || /원탁/.test(joinOf(ids).note||""))) out.push("원탁 합침 · 손님 확인");
     if(ids.length > 1 && isRoom(seat) && !joinOf(ids) && holdsSeat(r) && r.date >= todayStr()) out.push("합침 없어짐");   /* 설정에서 합침을 지운 뒤(09-25) */
   }
@@ -7195,7 +7212,7 @@ function resWarn(r){
   /* 테이블 예약(층): 숨은 배정 결과로 — 자리가 아예 없으면, 붙일 수 없어 나눠 앉으면 */
   if(!seat && isTablePref(r.seatPref) && r.status!=="취소"){
     /* 지난 날짜는 잠정 배정을 다시 계산하지 않으므로(reflowFuture 는 오늘 이후만) '자리 없음' 을 말할 수 없습니다 — 이미 다녀간 손님 */
-    if(!r.tentativeRoomId){ if(r.date >= todayStr()) out.push("테이블 자리 없음"); }
+    if(!r.tentativeRoomId){ if(r.date >= todayStr()) out.push("홀 자리 없음"); }
     else if(r.tentativeSplit) out.push("나눠 앉음");
   }
   {
@@ -7265,7 +7282,7 @@ function checkItems(date){
   }
 
   const un = list.filter(isUnassigned);   /* 테이블 예약은 층이 자리 — 미배정 아님 */
-  if(un.length) items.push(["amber", `좌석 미배정 ${un.length}건`,
+  if(un.length) items.push(["amber", `자리 확정 필요 ${un.length}건`,   /* 10-15 누님: 룸은 시스템이 임시(잠정)로만 잡고 사장·매니저가 확정 */
     un.slice(0,3).map(r=>`${r.time} ${r.name}`).join(", "), `openUnassigned()`]);
 
   const allergy = list.filter(r=>r.allergy);
@@ -7294,7 +7311,7 @@ function checkItems(date){
     const f = floorFit(prefFloor(r.seatPref), r.date, r.time, pplOf(r), r.id);
     return f.state === "ok";
   });
-  if(better.length) items.push(["pine", `자리 개선 가능 ${better.length}건`, "나눠 앉거나 자리 없던 테이블 예약에 한 자리가 났습니다. 새로고침하면 다시 배정됩니다.", "openPick('better')"]);
+  if(better.length) items.push(["pine", `자리 개선 가능 ${better.length}건`, "나눠 앉거나 자리 없던 홀 예약에 한 자리가 났습니다. 새로고침하면 다시 배정됩니다.", "openPick('better')"]);
   if(ns.length) items.push(["rust", `노쇼 이력 손님 ${ns.length}건`,
     ns.slice(0,3).map(r=>`${r.time} ${r.name}`).join(", "), `openPick('noshow')`]);
 
@@ -7351,7 +7368,7 @@ function sheetPick(){
     <button class="rowitem tap" onclick="openMark('${r.id}')">
       <span class="time-col">${esc(r.time)}</span>
       <span class="grow"><span class="t">${esc(r.name)}${tierTag(r)}</span>
-        <span class="s">${kind==="warn"?`<span class="rust">${esc(resWarn(r).join(", "))}</span> · `:""}${kind==="blocked"||kind==="closed"||kind==="gone"?`${dateLabel(r.date)} · `:""}${pplText(r)}${r.phone?` · ${esc(r.phone)}`:""}${
+        <span class="s">${kind==="warn"?`<span class="rust">${esc(resWarn(r).join(", "))}</span> · `:""}${kind==="blocked"||kind==="closed"||kind==="gone"?`${dateLabel(r.date)} · `:""}${pplText(r)}${r.phone?` · ${esc(phoneShow(r.phone))}`:""}${
           kind==="blocked"&&resBlocked(r)?` · ${esc(blockLabelText(resBlocked(r).blk))}`:""}${
           kind==="allergy"&&r.allergy?` · ${esc(r.allergy)}`:""}${
           kind==="noshow"&&noshowOf(r.phone)?` · 노쇼 ${noshowOf(r.phone).count}회`:""}${
@@ -7530,7 +7547,7 @@ function renderTimeline(date, compact){
   };
 
   /* 09-20(재아): '룸'·'테이블' 구분 글자는 뺌. 테이블 묶음 앞에 빈 줄 하나로만 나눔 */
-  const groupRow = (label) => label === "테이블" ? `<div class="tl-row gap"></div>` : "";
+  const groupRow = (label) => label === "홀" ? `<div class="tl-row gap"></div>` : "";
   /* 테이블은 층 한 줄 — 겹치는 예약을 층(lane)으로 쌓고, 예약률은 손님 수 / 자리 수 (8차-H) */
   const floorRow = (fl)=>{
     /* 층 한 줄의 높이는 그 층 테이블 수만큼(테이블 하나 = 한 칸). 여러 테이블이 필요한 팀은 그만큼 칸을 병합해 그립니다 —
@@ -7593,7 +7610,7 @@ function renderTimeline(date, compact){
     </div>`;
   };
   const unknownFloor = list.some(r=>resFloor(r) === null);
-  const tableRows = groupRow("테이블") + tableFloors(date).map(floorRow).join("") + (unknownFloor ? floorRow(null) : "");
+  const tableRows = groupRow("홀") + tableFloors(date).map(floorRow).join("") + (unknownFloor ? floorRow(null) : "");
 
   /* 전체 가동률 */
   const st2 = dayStat(date);
@@ -7952,7 +7969,7 @@ function reqWarns(q){
       /* 테이블은 붙여 앉을 수 있으니 홈페이지(availOfDay)와 같은 기준인 층별 최대 일행(floorMaxParty)으로 — 테이블 하나 정원으로 보면 6명이 늘 '없음' 이 됐음 */
       free = 0; tableFloors(q.date).forEach(f => { if(floorMaxParty(f, q.date, q.time) >= q.people) free++; });
     }
-    if(!free) out.push(q.seat === "room" ? "룸 없음" : "테이블 없음");
+    if(!free) out.push(q.seat === "room" ? "룸 없음" : "홀 자리 없음");
   }catch(e){}
   const dup = store().reservations.find(r => r.date === q.date && r.status !== "취소" && (r.phone||"").replace(/\D/g,"") === (q.phone||"").replace(/\D/g,""));
   if(dup) out.push(`같은 날 같은 번호 예약 있음 (${dup.time} ${dup.name})`);
@@ -7969,7 +7986,7 @@ function sheetRequests(){
     const w = reqWarns(q);
     return `<button class="rowitem tap" onclick="openRequest('${q.id}')">
       <span class="grow"><span class="t">${esc(q.name)}${tierTag(q)}${w.length?` <span class="tag rust sm">${esc(w[0])}</span>`:""}</span>
-        <span class="s">${dateLabel(q.date)} ${hm(q.time)} · ${reqPeopleText(q)} · ${q.seat==="room"?"룸":"테이블"} · ${esc(reqMenuText(q))}</span></span>
+        <span class="s">${dateLabel(q.date)} ${hm(q.time)} · ${reqPeopleText(q)} · ${q.seat==="room"?"룸":"홀"} · ${esc(reqMenuText(q))}</span></span>
       <span class="s left ${reqLeftClass(q)}" style="white-space:nowrap; text-align:right">${reqLeft(q)}</span>
     </button>`; }).join("")
     : `<div class="empty">확정 대기 중인 예약이 없습니다.</div>`;
@@ -7995,7 +8012,7 @@ function sheetRequest(){
     <div class="card" style="padding:12px 14px">
       ${row("날짜", `${dateLabel(q.date)} ${hm(q.time)}`)}
       ${row("인원", q.kids ? `성인 ${q.adults != null ? q.adults : q.people - q.kids} · 어린이 ${q.kids}` : `성인 ${q.adults != null ? q.adults : q.people}`)}
-      ${row("좌석", q.seat === "room" ? "룸" : "테이블")}
+      ${row("좌석", q.seat === "room" ? "룸" : "홀")}
       ${row("메뉴", esc(reqMenuText(q)))}
       ${row("예약자", `${esc(q.name)}${tierTag(q)} · ${esc(q.phone)}${(custStat(q).visit || custStat(q).noshow) ? ` <small class="muted">방문 ${custStat(q).visit}회${custStat(q).noshow ? ` · 노쇼 ${custStat(q).noshow}회` : ""}</small>` : ""}`)}
       ${custStat(q).memo ? row("손님 메모", esc(custStat(q).memo)) : ""}
@@ -8036,7 +8053,7 @@ async function reqAcceptGo(id){
   if(readonlyBlock && readonlyBlock()) return;
   const warns = reqWarns(q);
   const pr = reqAsRes(q);   /* 잠정 좌석 계산 */
-  if(!pr.tentativeRoomId) warns.push(q.seat === "room" ? "빈 룸이 없어 미배정으로 들어갑니다" : "빈 테이블이 없어 자리 없음으로 들어갑니다");
+  if(!pr.tentativeRoomId) warns.push(q.seat === "room" ? "빈 룸이 없어 미배정으로 들어갑니다" : "홀에 빈 자리가 없어 자리 없음으로 들어갑니다");
   const cr = reqCourses(q);
   if(cr.isCourse && !cr.matched && q.course !== "later") warns.push(`코스 이름을 설정에서 못 찾음 (${q.courseLabel}) — 미정으로 넣습니다`);
   if(warns.length){
@@ -8221,6 +8238,7 @@ function availOfDayCalc(date){
   return out;
 }
 async function publishAvail(force){
+  if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW) return;   /* 권한 미리보기(18b) — 남은 자리 올리기도 안 함 */
   if(!supaOn() || !SESSION || OFFLINE || !DATA || DATA._readonly || !AUTHED || !view.storeKey || !store()) return;   /* 잠금 화면(세션은 있으나 매장 진입 전)에서 타이머가 돌면 store() 가 없음 */
   if(!force && Date.now() - AVAIL_LAST < 45000){ AVAIL_DIRTY = true; return; }
   /* 1분 넘게 서버를 못 읽은 기기(화면 꺼짐·창 열림)는 옛 자료로 홈페이지 남은 자리를 덮지 않게(09-25 전수검토) */
@@ -8899,7 +8917,7 @@ function seatMapHtml(st){
   const cols = [];   /* [{title, items:[seat…], kind:"room"|"table"}] — 룸 한 기둥 + 층마다 테이블 기둥 */
   const rs = rooms.filter(isRoom); if(rs.length) cols.push({ title:"룸", items:rs, kind:"room" });
   const floors = []; rooms.filter(isTable).forEach(t => { const f = t.floor || ""; if(floors.indexOf(f) < 0) floors.push(f); });
-  floors.forEach(fl => cols.push({ title:(fl || "층 미정") + " 테이블", items:rooms.filter(t => isTable(t) && (t.floor || "") === fl), kind:"table" }));
+  floors.forEach(fl => cols.push({ title:(fl || "층 미정") + " 홀", items:rooms.filter(t => isTable(t) && (t.floor || "") === fl), kind:"table" }));
   const colSvg = col => {
     const n = col.items.length, W = 300, STEP = 64, H = 40 + n * STEP + 10, R = 24;
     const pos = {}; col.items.forEach((t, i) => { pos[t.id] = { x: 60 + (i % 3) * 90, y: 40 + i * STEP }; });   /* 위에서부터 순서, 좌우는 세 줄로 번갈아 */
@@ -9375,6 +9393,7 @@ async function saUploadOne(f, p, count){
     try{ safe = "x-" + btoa(unescape(encodeURIComponent(base))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
     catch(x){ safe = base.replace(/[^0-9A-Za-z_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "file"; }
     var path = (view.storeKey || "hanok") + "/" + p.kind + "/" + Date.now().toString(36) + "_" + safe + "." + ext;
+    if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW) throw new Error("권한 미리보기라 올리지 않았습니다");   /* sb() 를 안 거쳐 미리보기 막기도 여기서(18b) */
     /* sb() 를 안 거치니 토큰 갱신도 여기서 — 잠들었다 깬 태블릿의 첫 올리기가 401 로 실패하던 것(10-09 점검) */
     if(SESSION && SESSION.expires_at - Date.now() / 1000 < 300){ try{ await sbRefresh(); }catch(x){} }
     var up = function(){ return fetch(SUPA_CFG.url + "/storage/v1/object/site/" + path, { method:"POST", headers:{ "apikey":SUPA_CFG.anonKey, "Authorization":"Bearer " + SESSION.access_token, "Content-Type":type, "x-upsert":"true", "Cache-Control":"max-age=31536000" }, body:blob }); };
@@ -9673,7 +9692,7 @@ function saTabImages(){
       '<div class="grid2">' + saI("about.head.img", "위 큰 사진") + saI("about.chef.img", "주방장 사진", "배경 없는 PNG 가 어울립니다") + pics.map(function(p, i){ return saI("about.story.pics." + i + ".img", "집 이야기 사진 " + (i+1)); }).join("") + '</div>') +
     saBox("공간 · 차림 · 오시는 길",
       '<div class="grid2">' + saI("space.head.img", "공간 위 사진") + saI("menuPage.head.img", "차림 위 사진") + saI("menuPage.chefBand.img", "차림 주방장 띠") + saI("visit.head.img", "오시는 길 위 사진") + '</div>') +
-    saBox("룸 · 테이블",
+    saBox("룸 · 홀",
       '<div class="grid2">' + rooms.map(function(r, i){ return saI("rooms." + i + ".img", r.name + " 룸"); }).join("") + halls.map(function(h, i){ return saI("halls." + i + ".img", h.name); }).join("") + '</div>' +
 
       '<div class="grid2">' + rooms.map(function(r, i){ return saF("rooms." + i + ".cap", r.name + " 인원"); }).join("") + '</div>');
@@ -10965,7 +10984,7 @@ function gsList(){
   }
   return all;
 }
-function gsPhoneHtml(d){ var f = phoneNorm(d); var i = f.lastIndexOf("-"); return i > 0 ? esc(f.slice(0, i + 1)) + '<b>' + esc(f.slice(i + 1)) + '</b>' : '<b>' + esc(f) + '</b>'; }
+function gsPhoneHtml(d){ var f = phoneShow(phoneNorm(d));   /* 직원 권한이면 뒷자리 4개만(16c phoneShow) */ var i = f.lastIndexOf("-"); return i > 0 ? esc(f.slice(0, i + 1)) + '<b>' + esc(f.slice(i + 1)) + '</b>' : '<b>' + esc(f) + '</b>'; }
 function gsSetQ(v){ GS.q = v; var box = document.getElementById("gs-list"); if(box) box.innerHTML = gsRows(); }
 function gsRows(){
   var list = gsList().slice(0, 200);
@@ -10985,6 +11004,8 @@ function gsOpen(phone){
   GS.base = { name:c.name || "", memo:c.memo || "", tier:c.tier || "", visit_adj:Number(c.visit_adj) || 0, black:!!c.black, black_note:c.black_note || "" };   /* 열 때 모양 — 저장 때 내가 안 바꾼 칸은 서버 값을 씀 */
   render();
 }
+/* 10-15 누님: 현장 손님은 아직 기록 안 함 → '손님 추가' 단추를 숨김(기능 최소화). 다시 쓰려면 true — 코드는 그대로 둠 */
+var GS_ADD_ON = false;
 /* 손님 추가 — 예약 없이 바로 오신 손님(전화번호만 받아 방문을 세거나 블랙리스트로, 09-29 재아) */
 async function gsAdd(){
   var ph = await uiPrompt("손님 추가", "전화번호", {numeric:true, maxlen:13}); if(ph == null) return;
@@ -11040,7 +11061,7 @@ function sheetGuests(){
   /* 09-25 재아: 검색칸은 좁게('손님 검색'), 정렬은 그 옆, 노쇼 관리는 오른쪽 끝. 설명 글은 뺌(등급 숫자는 설정 → 운영 판단) */
   return '<div class="gs-top"><input id="gs-q" value="' + esc(GS.q || "") + '" placeholder="손님 검색" oninput="gsSetQ(this.value)" autocomplete="off">' +
     '<div class="seg">' + seg("vip", "VIP") + seg("recent", "최근") + seg("visits", "방문 횟수") + seg("black", "블랙리스트") + '</div>' +
-    '<button class="btn sm ghost gs-add" onclick="gsAdd()">손님 추가</button><button class="btn sm ghost gs-ns" onclick="openNoshow(\'guests\')">노쇼 관리</button></div>' +
+    (GS_ADD_ON ? '<button class="btn sm ghost gs-add" onclick="gsAdd()">손님 추가</button>' : '') + '<button class="btn sm ghost gs-ns" onclick="openNoshow(\'guests\')">노쇼 관리</button></div>' +
     '<div class="card searchbox" id="gs-list">' + gsRows() + '</div>' +
     (GS.open ? gsDetailHtml() : "");
 }
@@ -11366,12 +11387,12 @@ async function exportCsv(){
 function sheetOwner(){
   var item = function(fn, icon, title, sub){ return '<button class="own-it" onclick="' + fn + '">' + icon + '<b>' + title + '</b><small>' + sub + '</small></button>'; };
   var st = store().settings;
-  if(DEV_EMBED){   /* 개발자 화면 안 — 설정 모음만 */
+  if(DEV_EMBED && !DEV_PREVIEW){   /* 개발자 화면 안 — 설정 모음만(권한 미리보기 때는 평소 사장님 메뉴) */
     var pend = typeof reqPending === "function" ? reqPending().length : 0;
     return '<div class="own-section"><h2>설정</h2><div class="own-grid">' +
       item("openOwnerSetting('hours')", ICON.clock, "운영시간", hoursFor(todayStr()).open + " ~ " + hoursFor(todayStr()).close) +
       item("openOwnerSetting('rules')", ICON.rules, "예약 규칙", "단체 " + (st.groupSize||8) + "명") +
-      item("openOwnerSetting('seats')", ICON.dash, "좌석", "룸·테이블·배정 순서") +
+      item("openOwnerSetting('seats')", ICON.dash, "좌석", "룸·홀·배정 순서") +
       item("openOwnerSetting('course')", ICON.bowl, "코스·세트", "코스와 적용 기간") +
       item("openOwnerSetting('source')", ICON.route, "예약경로", "전화·네이버·방문") +
       item("openOwnerSetting('sms')", ICON.mail, "문자 설정", "예약 문자 안내 · 감사 문자") +
@@ -11432,7 +11453,7 @@ function sheetWalkIn(){
     '</div>' +
     '<div class="wk-opt">선택</div>' +
     '<div class="grid2">' +
-      '<div class="f"><div class="lb">자리</div><div class="seg">' + seg("seat", "", "선택 안 함") + seg("seat", "table", "테이블") + seg("seat", "room", "룸") + '</div></div>' +
+      '<div class="f"><div class="lb">자리</div><div class="seg">' + seg("seat", "", "선택 안 함") + seg("seat", "table", "홀") + seg("seat", "room", "룸") + '</div></div>' +
       '<label class="f"><div class="lb">코스</div><select onchange="view.wk.course=this.value">' + opts + '</select></label>' +
     '</div>' +
     '<label class="f"><div class="lb">요청사항</div><input value="' + esc(w.request) + '" oninput="wkSet(\'request\', this.value)"></label>' +
@@ -11722,7 +11743,7 @@ function thMakeHtml(){
   if(!list.length) return head + '<div class="empty">' + dateLabel(TH.date) + ' 에 \'방문\' 으로 확인된 예약이 없습니다.</div>';
   var rows = list.map(function(r){
     var it = thItem(r), q = thQueued(r.id), c = custStat(r);
-    var info = hm(r.time) + ' · ' + pplText(r) + ' · ' + (r.roomId ? (isRoom(seatById(r.roomId) || {}) ? "룸" : "테이블") : "테이블") + (r.menuType === "코스" ? ' · 코스' : '') + (c.visit >= 2 ? ' · 방문 ' + c.visit + '회' : ' · 첫 방문');
+    var info = hm(r.time) + ' · ' + pplText(r) + ' · ' + (r.roomId ? (isRoom(seatById(r.roomId) || {}) ? "룸" : "홀") : "홀") + (r.menuType === "코스" ? ' · 코스' : '') + (c.visit >= 2 ? ' · 방문 ' + c.visit + '회' : ' · 첫 방문');
     var extra = (r.request ? '요청: ' + esc(r.request) : '') + (c.memo ? (r.request ? ' · ' : '') + '메모: ' + esc(c.memo) : '');
     /* 예약 발송된 건: 얇게, 잠김 — 누르면 '보낸 문자' 에서 취소해야 열린다고 안내 */
     if(q) return '<div class="th-card queued ' + (q.status === "보냄" ? "sent" : "") + '" onclick="thLockedTap(\'' + jsq(q.id) + '\', \'' + jsq(q.status) + '\')"><div class="th-h"><span class="th-lock">' + ICON.key + '</span><b>' + esc(r.name) + '</b><small class="muted">' + esc(phoneNorm(r.phone)) + ' · ' + info + '</small>' +
@@ -11896,6 +11917,8 @@ function dqKind(k){ if(!DQ.draft) return; var d = DQ.draft;
   if(k === "setting" && !d.body.trim()) d.body = DQ_SET_TPL;
   else if(k !== "setting" && d.body === DQ_SET_TPL) d.body = "";
   d.kind = k; d.urgent = (k === "urgent"); render(); }
+/* 글이 길어지면 칸이 같이 길어짐(10-15 재아: 안쪽 스크롤로는 고치기 어려움) */
+function dqGrow(el){ el.style.height = "auto"; el.style.height = (el.scrollHeight + 2) + "px"; }
 function dqNew(){ DQ.draft = { title:"", body:"", urgent:false, kind:"ask", area:"", images:[] }; render(); setTimeout(function(){ var el = document.getElementById("dq-title"); if(el) el.focus(); }, 50); }
 function dqSet(k, v){ if(DQ.draft) DQ.draft[k] = v; }
 function dqFormHtml(){
@@ -11910,7 +11933,7 @@ function dqFormHtml(){
       '<span class="f-note' + (d.urgent ? ' rust' : '') + '">' + (d.kind === "urgent" ? '기능 결함, 시스템 오류, 오늘·내일 급한 휴무·영업시간 변경 등' : d.kind === "setting" ? '' : '개선 요청, 시스템 문의 등') + '</span></div>' +
     /* 10-07 재아: 설정 변경도 제목 칸을 둠 · '무엇을 바꿀까요' 단추는 뺌(기본 양식으로) */
     '<label class="f"><div class="lb">제목</div><input id="dq-title" type="text" value="' + esc(d.title) + '" oninput="dqSet(\'title\', this.value)"></label>' +
-    '<label class="f big"><div class="lb">내용</div><textarea rows="' + (d.kind === "setting" ? 10 : 6) + '" oninput="dqSet(\'body\', this.value)">' + esc(d.body) + '</textarea></label>' +
+    '<label class="f big"><div class="lb">내용</div><textarea rows="' + (d.kind === "setting" ? 10 : 6) + '" class="dq-grow" oninput="dqSet(\'body\', this.value); dqGrow(this)">' + esc(d.body) + '</textarea></label>' +
     /* 사진 첨부 단추는 '화면 사진(선택)' 오른쪽, 여러 장 한 번에(09-25 재아) */
     '<div class="f"><div class="dq-photo-h"><div class="lb">화면 사진(선택)</div><button class="btn sm" onclick="saPickFile(\'image\', function(u){ if(DQ.draft) DQ.draft.images.push(u); render(); }, true)">사진 첨부</button></div>' +
       (d.images.length ? '<div class="dq-imgs">' + d.images.map(function(u, i){ return '<span class="dq-img"><img src="' + esc(u) + '" alt=""><button class="x" onclick="DQ.draft.images.splice(' + i + ',1); render()" aria-label="빼기">×</button></span>'; }).join("") + '</div>' : '') + '</div>' +
@@ -12618,7 +12641,7 @@ function closeSheet(){
   if(view.form && view.form.type === "site" && typeof saLeaveGuard === "function" && saLeaveGuard()) return;   /* 홈페이지 관리: 적용 안 한 수정은 나갈 때 버림(09-25) */
   view.cdStaff = false; view.cdThanks = false;
   if(view.form && view.form.ret){ view.form = view.form.ret; render(); return; }   /* 좌석 고치기 창에서 연 숫자·사용 중지 → 그 창으로(09-25) */
-  if(view.form && view.form.type === "owner"){ if(DEV_EMBED) return; OWNER_OK = false; }   /* 개발자 화면 안에서는 설정 모음이 첫 화면이라 닫지 않음(18b) */   /* 사장님 메뉴를 닫고 나감 — 다음엔 다시 물음 */
+  if(view.form && view.form.type === "owner"){ if(DEV_EMBED && !DEV_PREVIEW) return; OWNER_OK = false; }   /* 개발자 화면 안에서는 설정 모음이 첫 화면이라 닫지 않음(18b) */   /* 사장님 메뉴를 닫고 나감 — 다음엔 다시 물음 */
   if(view.form && view.form.type === "menu"){ mbBack(); return; }   /* 메뉴판 편집 → 저장하고 목록으로 */
   if(view.form && view.form.page) view.under = null;
   if(view.form && view.form.page && view.form.back === "owner"){ view.form = {type:"owner", page:true}; render(); window.scrollTo(0,0); return; }
@@ -12693,7 +12716,7 @@ function sheetRes(){
   const opt = (v, label, sel) => `<option value="${esc(v)}" ${sel?'selected':''}>${label}</option>`;
   const roomOpts = `<optgroup label="룸">${roomsAt(f.date).filter(isRoom).map(r=>opt(r.id, `${esc(r.name)} · ${roomMin(r, f.date)}~${r.capacity}인`, !curJoin && f.roomId===r.id)).join("")}</optgroup>` +
     `<optgroup label="룸 합침">${joinsAt(f.date).map(j=>opt(j.id, `${esc(seatLabel(j.id))} · ${j.min}~${j.max}인`, !!curJoin && curJoin.id===j.id)).join("")}</optgroup>` +
-    `<optgroup label="테이블 (층만)">${opt("table-any", "테이블 · 층 상관없음", !f.roomId && (f.seatPref==="table-any" || f.seatPref==="hall-any"))}${tableFloors().map(fl=>opt("table:"+fl, `${esc(floorLabel(fl))} · 자리 ${floorSeats(fl)}석`, !f.roomId && f.seatPref==="table:"+fl)).join("")}</optgroup>` +
+    `<optgroup label="홀 (층만)">${opt("table-any", "홀 · 층 상관없음", !f.roomId && (f.seatPref==="table-any" || f.seatPref==="hall-any"))}${tableFloors().map(fl=>opt("table:"+fl, `${esc(floorLabel(fl))} · 자리 ${floorSeats(fl)}석`, !f.roomId && f.seatPref==="table:"+fl)).join("")}</optgroup>` +
     `<optgroup label="특정 테이블 (파셜룸 등 꼭 잡아야 할 때)">${roomsAt(f.date).filter(isTable).map(r=>opt(r.id, `${esc(r.floor||"")} ${esc(r.name)} · ${roomMin(r)?roomMin(r)+"~":""}${seatMax(r)}인`, !curJoin && f.roomId===r.id)).join("")}</optgroup>` +
     ((f.extraIds||[]).length && !curJoin ? `<optgroup label="현재">${opt("__keep", esc(seatLabelIds([f.roomId].concat(f.extraIds))) + " (붙임 유지)", true)}</optgroup>` : "");
   const srcs = [...new Set([...(st.sources||["전화 예약","네이버 예약","기타"]), f.source||"전화 예약"])];
@@ -12853,7 +12876,7 @@ function saveIssues(rec, excludeId){
         out.push(`${seat.name}에 겹치는 예약이 있습니다 — ` + rs.hits.map(x=>`${hm(x.time)} ${x.name} 손님`).join(", "));
     });
     if(ppl > seatsMax(ids)) out.push(`${label} 정원 ${seatsMax(ids)}명을 넘습니다 (지금 ${ppl}명)`);
-    else if(ad < seatsMin(ids, rec.date)) out.push(`${label} 최소 인원 ${seatsMin(ids, rec.date)}명에 못 미칩니다 (지금 ${ad}명)`);
+    else if(minWarnOn() && ad < seatsMin(ids, rec.date)) out.push(`${label} 최소 인원 ${seatsMin(ids, rec.date)}명에 못 미칩니다 (지금 ${ad}명)`);
     const j = ids.length > 1 ? joinOf(ids) : null;
     if(j && j.note) out.push(`${label}: ${j.note}`);
   }
@@ -12871,7 +12894,7 @@ function saveIssues(rec, excludeId){
     "휴무일 예약": `그 날은 휴무일입니다`,
     "2인석 배정": `4인석이 없어 2인석에 앉게 됩니다 (2인석은 좁습니다)`,
     "1인 예약": `1인 예약은 받지 않습니다(누님 10-14) — 받으려면 그대로 저장`,
-    "테이블 자리 없음": `${seatLabel(rec.seatPref)}에 그 시간 ${pplOf(rec)}명이 앉을 자리가 없습니다 (한 자리 최대 ${floorMaxParty(prefFloor(rec.seatPref), rec.date, rec.time, excludeId)}명)`,
+    "홀 자리 없음": `${seatLabel(rec.seatPref)}에 그 시간 ${pplOf(rec)}명이 앉을 자리가 없습니다 (한 자리 최대 ${floorMaxParty(prefFloor(rec.seatPref), rec.date, rec.time, excludeId)}명)`,
     "나눠 앉음": `${seatLabel(rec.seatPref)}에 붙일 수 있는 테이블이 없어 나눠 앉게 됩니다 (한 자리 최대 ${floorMaxParty(prefFloor(rec.seatPref), rec.date, rec.time, excludeId)}명)`
   };
   if(!rec.roomId && isTablePref(rec.seatPref)){
@@ -13070,7 +13093,7 @@ function sheetMark(){
     /* 숨은 잠정 배정을 '추천 좌석' 으로 — 4명 이하도(8차-Y 재아). 어디 앉힐지는 사장 자유, 참고용 */
     const recNames = r.tentativeRoomId ? seatsOf(r).map(id=>{ const x = seatById(id); return x ? x.name : ""; }).filter(Boolean) : [];
     const rec = recNames.length ? `<div class="lbl" style="margin:12px 0 4px">추천 좌석 <span class="lbl-note">참고용 · 당일 사장님이 정합니다</span></div><div class="f-note" style="margin:0">${esc(recNames.join(" + "))}${r.tentativeSplit ? " (나눠 앉음)" : ""}</div>` : "";
-    seatPick = `<div class="lbl" style="margin:16px 0 8px">테이블 자리</div>
+    seatPick = `<div class="lbl" style="margin:16px 0 8px">홀 자리</div>
       <p class="f-note">${esc(floorLabel(fl))} · ${st8}. 어느 테이블에 앉을지는 당일 현장에서 정합니다. 특정 테이블(파셜룸 등)을 잡으려면 '수정' 에서 고르세요.</p>${rec}`;
   }else if(!r.roomId || seatGone){
     const kind = seatGone ? (isTable(seatById(r.roomId)) ? "table-any" : "room-any") : (r.seatPref==="hall-any" ? "table-any" : (r.seatPref||"any"));
@@ -13081,7 +13104,7 @@ function sheetMark(){
       if(kind==="room-any" && !isRoom(x)) return false;
       return ppl <= seatMax(x);
     }).map(x=>{
-      const ok = roomStatus(r.date,r.time,x.id,r.id).state==="free" && !blockedDuring(x, r.date, r.time) && adultCount(ppl, r.infants||0, r.date) >= roomMin(x, r.date);   /* 공사 중인 방·최소 인원 미달이 1순위로 뜨던 것(09-25) */
+      const ok = roomStatus(r.date,r.time,x.id,r.id).state==="free" && !blockedDuring(x, r.date, r.time) && (!minWarnOn() || adultCount(ppl, r.infants||0, r.date) >= roomMin(x, r.date));   /* 공사 중인 방·최소 인원 미달이 1순위로 뜨던 것(09-25) */
       const first = x.id===r.tentativeRoomId && !(r.tentativeExtra||[]).length;
       const waste = (ppl <= 2 && isTable(x) && (x.seats||4) >= 4) ? -1 : (seatMax(x) - ppl);
       return {x, ok, first, waste, ids:[x.id]};
@@ -13109,6 +13132,7 @@ function sheetMark(){
     seatPick = `
       ${seatGone ? `<div class="menu-warn" style="margin-top:12px">지금 좌석(${esc((seatById(r.roomId)||{}).name||r.roomId)})은 그 날짜에 없습니다 — 아래에서 다시 고르세요</div>` : ""}
       <div class="lbl" style="margin:16px 0 8px">좌석 배정 ${r.tentativeRoomId?`<span class="tag amber">${esc(resTentLabel(r))} 잠정</span>`:""}</div>
+      ${r.tentativeRoomId && !r.roomId && !isTablePref(r.seatPref) && canEditRes() ? `<div class="seatconfirm"><span>시스템이 임시로 잡은 자리: <b>${esc(resTentLabel(r))}</b></span><button class="btn primary" onclick="assignSeat('${r.id}','__tent')">자리 확정</button></div>` : ""}   <!-- 10-15 누님: 룸 자동 배정은 임시 — 한 번에 확정(다른 자리는 아래에서 골라 확정) -->
       <div class="seatpick">${shown.map(({x,ok,rank,ids})=>`
         <button class="spick ${ok?'':'busy'} ${rank===1?'first':''} ${view.pickSeat===x.id?'picked':''} ${x.type==="join"?'join':''}"
           onclick="pickSeatCand('${r.id}','${x.id}')" ${x.note?`title="${esc(x.note)}"`:""}>
@@ -13132,7 +13156,7 @@ function sheetMark(){
       ${custStat(r).black ? `<div class="mi-s rust"><b>블랙리스트</b>${custStat(r).blackNote ? ` · ${esc(custStat(r).blackNote)}` : ""}</div>` : ""}
       ${custStat(r).total > 1 ? `<div class="mi-s">방문 ${custStat(r).visit}회${custStat(r).noshow ? ` · <span class="rust">노쇼 ${custStat(r).noshow}회</span>` : ""}</div>` : ""}
       <div class="mi-s">${pplText(r)} · ${esc(seat)}</div>
-      ${r.phone?`<div class="mi-s">${esc(r.phone)}</div>`:(r.phoneTail?`<div class="mi-s">***-****-${esc(r.phoneTail)} <small class="muted">(네이버 예약 — 번호는 네이버에서)</small></div>`:"")}
+      ${r.phone?`<div class="mi-s">${esc(phoneShow(r.phone))}</div>`:(r.phoneTail?`<div class="mi-s">***-****-${esc(r.phoneTail)} <small class="muted">(네이버 예약 — 번호는 네이버에서)</small></div>`:"")}
       ${custOf(r.phone)&&custOf(r.phone).memo?`<div class="mi-s"><b>손님 메모</b> · ${esc(custOf(r.phone).memo)}</div>`:""}
       <div class="mi-s">식사 · <b>${esc(r.menuType||"해당 없음")}</b>${
         r.courseUndecided?" (구성 미정)":(r.courses&&Object.keys(r.courses).length?` (${esc(courseSummary(r.courses))})`:"")}</div>
@@ -13246,11 +13270,12 @@ async function assignSeat(id, seatId){
     }else if(rs.state==="warn" && !await uiConfirm2(`${seat.name}에 겹치는 예약이 있습니다. 그래도 배정할까요?`)) return;
   }
   if(ppl > seatsMax(ids) && !await uiConfirm2(`${label} 정원(${seatsMax(ids)}명)을 넘습니다. 배정할까요?`)) return;
-  if(adultCount(ppl, r.infants||0) < seatsMin(ids, r.date) && !await uiConfirm2(`${label}은 최소 ${seatsMin(ids, r.date)}명부터입니다. 지금 ${adultCount(ppl, r.infants||0)}명입니다. 배정할까요?`)) return;
+  if(minWarnOn() && adultCount(ppl, r.infants||0) < seatsMin(ids, r.date) && !await uiConfirm2(`${label}은 최소 ${seatsMin(ids, r.date)}명부터입니다. 지금 ${adultCount(ppl, r.infants||0)}명입니다. 배정할까요?`)) return;
   if(j && (j.split || j.note) && !await uiConfirm(`${label} — ${j.note || "공간이 나뉩니다"}`, j.split ? "테이블이 나뉘어 앉게 됩니다. 손님께 확인하셨나요?" : "손님께 확인하셨나요?", {ok:"확인했음 · 배정", cancel:"다시 고르기"})) return;
   logEvent("좌석 배정", `${r.date} ${r.time} ${r.name} → ${label}`);
   if(!r.roomId) r.assignedLater = {from:r.seatPref||"any", at:new Date().toISOString()};
-  addChange(r, "변경", [{n:"좌석", a:resSeatLabel(r), b:label}]);
+  /* 임시(잠정) 자리를 그대로 확정하는 건 자리가 바뀐 게 아니라 '변동'(파란 띠)으로 남기지 않음(10-15) — 기록은 위 logEvent 에 */
+  if(seatId !== "__tent") addChange(r, "변경", [{n:"좌석", a:resSeatLabel(r), b:label}]);
   r.roomId = ids[0]; r.extraIds = ids.slice(1); r.tentativeRoomId = null; r.tentativeExtra = []; r.tentativeSplit = false; r.seatPref = null;
   view.pickSeat = null;
   reflowTentatives(r.date);
@@ -13267,13 +13292,13 @@ function sheetUnassigned(){
     <button class="rowitem tap" onclick="openMark('${r.id}')">
       <span class="time-col">${esc(r.time)}</span>
       <span class="grow"><span class="t">${esc(r.name)}</span>
-        <span class="s">${pplText(r)} · 희망 ${esc(seatLabel(r.seatPref||"any"))}${r.phone?` · ${esc(r.phone)}`:""}</span></span>
+        <span class="s">${pplText(r)} · 희망 ${esc(seatLabel(r.seatPref||"any"))}${r.phone?` · ${esc(phoneShow(r.phone))}`:""}</span></span>
       <span class="tag ${r.tentativeRoomId?'amber':'rust'}">${r.tentativeRoomId?`잠정 ${esc(resTentLabel(r))}`:"자리 없음"}</span>
     </button>`).join("") : `<div class="empty">배정할 예약이 없습니다.</div>`;
   return `
-    ${sheetHead(`룸 미배정 · ${dateLabel(d)}`)}
+    ${sheetHead(`자리 확정 필요 · ${dateLabel(d)}`)}
     <div class="card" style="margin-bottom:12px">${rows}</div>
-    <p class="f-note">예약을 누르면 좌석을 배정할 수 있습니다. ‘잠정’은 시스템이 잡아둔 1순위 자리입니다.</p>
+    <p class="f-note">예약을 누르면 자리를 확정할 수 있습니다. ‘잠정’은 시스템이 임시로 잡아 둔 1순위 자리라, 사장·매니저가 확정해야 자리가 정해집니다.</p>
     <div class="sheet-actions"><button class="btn primary" onclick="closeSheet()">닫기</button></div>`;
 }
 
@@ -13561,7 +13586,7 @@ function sheetNaver(){
   const seatOpts = (x) => `<select class="nv-seat" onchange="view.naver.result[${x.n-1}].seat=this.value">
       <option value="room-any" ${x.seat==="room-any"?"selected":""}>룸 미정(자동)</option>
       ${st.rooms.filter(isRoom).map(rm=>`<option value="${rm.id}" ${x.seat===rm.id?"selected":""}>${esc(rm.name)} 룸</option>`).join("")}
-      <option value="table-any" ${x.seat==="table-any"?"selected":""}>테이블(층 상관없음)</option>
+      <option value="table-any" ${x.seat==="table-any"?"selected":""}>홀(층 상관없음)</option>
       ${tableFloors().map(fl=>`<option value="table:${esc(fl)}" ${x.seat==="table:"+fl?"selected":""}>${esc(floorLabel(fl))}</option>`).join("")}
     </select>`;
   const res = n.result ? `<div class="bulk-res">${n.result.map(x=>`<div class="bulk-row ${x.ok?(x.kind==="skip"?"":(x.seatWarn||x.request?"warn":"ok")):"bad"} ${x.skip?"skipped":""}"><span class="bulk-ln">${x.n}</span><span class="grow">${esc(x.text)}${x.request?`<div class="nv-req">요청: ${esc(x.request)}</div>`:""}${x.ok&&x.kind==="new"?`<div class="nv-ctl"><label class="chk" style="margin:0"><input type="checkbox" ${x.skip?"checked":""} onchange="view.naver.result[${x.n-1}].skip=this.checked"><span>건너뛰기</span></label>${seatOpts(x)}</div>`:""}</span><span class="bulk-msg">${x.ok?`${x.kind==="new"?"＋ 새로":x.kind==="update"?"↻ 고침":"＝ 같음"} · ${esc(x.msg)}`:`✗ ${esc(x.msg)}`}</span></div>`).join("")}</div>` : "";
@@ -13691,7 +13716,7 @@ function naverPreview(){
       let seatWarn = "";
       if(r.status === "확정"){
         if(r.isRoomProd){ if(!findSeat({date:r.when.date, time:r.when.time, people:r.people, kind:"room-any"})) seatWarn = "빈 룸 없음"; }
-        else { const ff = floorFit(null, r.when.date, r.when.time, r.people); if(ff.state === "none") seatWarn = "테이블 자리 없음"; else if(ff.state === "split") seatWarn = "나눠 앉음"; }
+        else { const ff = floorFit(null, r.when.date, r.when.time, r.people); if(ff.state === "none") seatWarn = "홀 자리 없음"; else if(ff.state === "split") seatWarn = "나눠 앉음"; }
       }
       return Object.assign({ok:true, kind:"new", seatWarn, seat: r.isRoomProd ? "room-any" : "table-any", skip:false,
         msg:`${r.when.date} ${r.when.time} ${r.people}명${r.phoneLinked?" · 단골 전화 이어짐 "+r.phone:""}${r.status!=="확정"?" · "+r.status:""}${r.request?" · ⚠ 요청사항 있음":""}${seatWarn?" · ⚠ "+seatWarn:""}`}, r);
@@ -13757,7 +13782,7 @@ const DOW = WD_KO;
 function sessSummary(d){
   const ss = sessionsOfDay(d); if(!ss.length) return "";
   const f = (v, se) => se.soft ? `${softGuar(v)}분` : v === "end" ? "끝까지" : `${v||110}분`;
-  return `<span class="sch-s">${ss.map(se=>`${esc(se.name)} 접수 ${esc(se.lastBook)} 전까지 (룸 ${f(se.stay, se)} · 테이블 ${f(se.stayTable, se)})`).join(" · ")}</span>`;
+  return `<span class="sch-s">${ss.map(se=>`${esc(se.name)} 접수 ${esc(se.lastBook)} 전까지 (룸 ${f(se.stay, se)} · 홀 ${f(se.stayTable, se)})`).join(" · ")}</span>`;
 }
 /* 운영시간 편집(8차-X, 재아) — 월요일부터, 요일 카드는 접혀 있고 눌러서 폅니다.
    세션은 '점심 경계' 하나 + 점심/저녁 접수 마감·점유(룸/테이블 따로). 브레이크가 있으면 경계는 브레이크 시작으로 잠깁니다.
@@ -13776,7 +13801,7 @@ function segBox(i, seg, title, note){
     ${seg === "lunch" && !dayOf(i).bs ? `<div class="sf"><span>접수 마감</span><span class="sess-auto">점심 경계 전까지</span></div>`
       : `<div class="sf"><span>접수 마감 <small>이 시각 전까지</small></span><input type="time" data-title="${esc(title)} 접수 마감" value="${esc(dayOf(i).sess[seg].lastBook||"")}" onchange="setSessV(${i},'${seg}','lastBook',this.value)"></div>`}
     ${stayBox(i, seg, "room", "점유 · 룸")}
-    ${stayBox(i, seg, "table", "점유 · 테이블")}
+    ${stayBox(i, seg, "table", "점유 · 홀")}
   </div>`;
 }
 function ovrTouch(i){ if(i === 8 && view.ovrDraft) view.ovrDraft.dayTouched = true; }
@@ -14227,8 +14252,19 @@ async function pinUsersLoad(){
 var PIN_ROLE = { staff:"직원", manager:"매니저", owner:"사장" };
 var ROLE_SHARED = "staff";   /* 10-14 재아: 공용 PIN(카운터 아이패드 등 여럿이 쓰는 기기)은 직원 권한 — 매니저 PIN 은 매니저 개인 PIN */
 function myRole(){
+  if(DEV_EMBED && DEV_PREVIEW){   /* 개발자 화면의 권한 미리보기(18b) — 고른 권한 그대로. 공용 PIN 은 2차 PIN(사장님 메뉴 안)일 때만 사장 */
+    if(DEV_PREVIEW === "shared") return (OWNER_OK || ADMIN_UNTIL > Date.now()) ? "owner" : ROLE_SHARED;
+    return DEV_PREVIEW;
+  }
   if(!supaOn() || DEV_EMBED) return "owner";
   if(OWNER_OK || ADMIN_UNTIL > Date.now()) return "owner";
+  return accountRole();
+}
+/* 로그인한 계정 자체의 권한 — 2차 PIN(사장님 메뉴 안·10분 유지)은 빼고. 전화번호 가리기가 이걸 씀(10-15 재아: 2차 PIN 과 번호 보기는 상관없게,
+   사장·매니저 계정으로 들어왔을 때만 전체 번호 — 공용 PIN 기기에서 2차 PIN 을 넣어도 뒷자리만) */
+function accountRole(){
+  if(DEV_EMBED && DEV_PREVIEW) return DEV_PREVIEW === "shared" ? ROLE_SHARED : DEV_PREVIEW;
+  if(!supaOn() || DEV_EMBED) return "owner";
   if(!SESSION) return "staff";
   if(SESSION.who === "admin") return "owner";
   if(SESSION.email === SUPA_CFG.staffEmail) return ROLE_SHARED;
@@ -14356,6 +14392,7 @@ async function authToken(email, password){
   return j.access_token;
 }
 async function setPassword(token, password){
+  if(typeof DEV_PREVIEW !== "undefined" && DEV_PREVIEW) throw new Error("권한 미리보기라 바꾸지 않았습니다");   /* sb() 를 안 거침(18b) */
   var res = await fetch(SUPA_CFG.url + "/auth/v1/user", { method:"PUT",
     headers:{ "apikey":SUPA_CFG.anonKey, "Authorization":"Bearer " + token, "Content-Type":"application/json" },
     body: JSON.stringify({ password:password }) });
@@ -14550,8 +14587,8 @@ function srDate(ds){ var d = new Date(ds + "T00:00:00"); return (d.getMonth()+1)
 /* 자리는 '룸' / '테이블' 만 — 어느 방·어느 테이블인지는 눌러서 상세에서(09-24 재아) */
 function seatKindText(r){
   var id = r.roomId || r.tentativeRoomId, x = id ? seatById(id) : null;
-  if(x) return isTable(x) ? "테이블" : "룸";
-  if(isTablePref(r.seatPref)) return "테이블";
+  if(x) return isTable(x) ? "홀" : "룸";
+  if(isTablePref(r.seatPref)) return "홀";
   if(r.seatPref === "room-any") return "룸";
   return "미정";
 }
@@ -14562,7 +14599,7 @@ function srRow(r, when){
     '<span class="sr-n">' + tierTag(r) + groupTag(r) + '<span class="sr-nm">' + esc(r.name) + '</span>' + (r.status === "노쇼" || r.status === "취소" ? '<span class="tag sm ' + (r.status === "노쇼" ? "rust" : "") + '">' + r.status + '</span>' : '') + '</span>' +
     '<span class="sr-p">' + pplOf(r) + '명</span>' +
     '<span class="sr-k">' + seatKindText(r) + '</span>' +
-    '<span class="sr-ph">' + esc(r.phone || "-") + '</span>' + (when ? '<span class="sr-when">' + esc(when) + '</span>' : '') + '</button>';
+    '<span class="sr-ph">' + esc(phoneShow(r.phone) || "-") + '</span>' + (when ? '<span class="sr-when">' + esc(when) + '</span>' : '') + '</button>';
 }
 function searchResHits(q){
   var digits = q.replace(/\D/g,""), lower = q.toLowerCase().replace(/\s/g,"");
@@ -14673,7 +14710,7 @@ function sheetNoshow(){
   const rows = list.length ? list.map(r=>{ const k=(r.phone||"").replace(/\D/g,""); const ex = k && excluded.includes(k); return `
     <div class="rowitem">
       <button class="grow tap-plain" onclick="openMark('${r.id}')" title="예약 상세"><span class="t">${dateLabel(r.date)} ${esc(r.time)} · ${esc(r.name)}${k && cnt[k]>1?`<span class="ns-cnt"> · 노쇼 ${cnt[k]}회</span>`:""}${ex?` <span class="tag sm" title="이 번호는 새 예약 때 노쇼 경고를 띄우지 않음">경고 제외</span>`:""}</span>
-        <span class="s">${pplText(r)} · ${esc(r.phone||(r.phoneTail?`***-****-${r.phoneTail} (네이버)`:"연락처 없음"))} · ${esc(resSeatLabel(r))}</span></button>
+        <span class="s">${pplText(r)} · ${esc(phoneShow(r.phone)||(r.phoneTail?`***-****-${r.phoneTail} (네이버)`:"연락처 없음"))} · ${esc(resSeatLabel(r))}</span></button>
       <button class="btn sm" onclick="undoNoshow('${r.id}')">노쇼 취소</button>
       ${k ? (ex ? `<button class="btn sm ghost" onclick="unclearNoshow('${k}')" title="다시 노쇼 경고를 띄움">경고 제외 해제</button>` : `<button class="btn sm ghost" onclick="clearNoshow('${k}')" title="이 번호는 다음 예약 때 노쇼 경고를 띄우지 않음">경고 제외</button>`) : ""}
     </div>`; }).join("") : `<div class="empty">${nq ? "찾는 노쇼 기록이 없습니다." : "노쇼 기록이 없습니다."}</div>`;
@@ -14732,7 +14769,7 @@ const WZ_STEPS = [
   "어떤 경로로 온 예약인가요?",
   "\u201C날짜와 시간은 언제로 해 드릴까요?\u201D",
   "몇 분이서 오시나요?",
-  "\u201C룸과 테이블 중 어디로 해 드릴까요?\u201D",
+  "\u201C룸과 홀 중 어디로 해 드릴까요?\u201D",
   "\u201C식사는 코스나 세트로 준비해 드릴까요?\u201D",
   "\u201C예약자 성함과 연락처 부탁드립니다.\u201D",
   "\u201C따로 요청하실 사항 있으세요?\u201D"
@@ -15002,14 +15039,14 @@ function wzWarnReason(){
       if(states.indexOf("blocked") >= 0) out.push(`${hmDur(cg != null ? cg : 60)} 안에 다른 예약${who?` - ${who}`:""}`);
       else if(states.indexOf("warn") >= 0) out.push(`식사 시간이 겹침${who?` - ${who}`:""}`);
       if((WZ.people||0) > seatsMax(ids)) out.push(`정원 초과 - ${label} 최대 ${seatsMax(ids)}명`);
-      else if(adultCount(WZ.people, WZ.infants, WZ.date) < seatsMin(ids, WZ.date)) out.push(`최소 인원 미달 - ${label} ${seatsMin(ids, WZ.date)}명부터`);
+      else if(minWarnOn() && adultCount(WZ.people, WZ.infants, WZ.date) < seatsMin(ids, WZ.date)) out.push(`최소 인원 미달 - ${label} ${seatsMin(ids, WZ.date)}명부터`);
       ids.forEach(id => { const bk = blockedDuring(seatById(id), WZ.date, WZ.time); if(bk) out.push(`사용 중지 - ${seatLabel(id)}${bk.note?` · ${bk.note}`:""}`); });
     }
     /* 테이블(층): 같은 시간대 손님 수가 자리 수를 넘으면 — 막지 않고 이 화면에 빨갛게 */
     const fl = prefFloor(WZ.seat);
     if(fl != null && WZ.time){
       const fit = floorFit(fl, WZ.date, WZ.time, WZ.people||0);
-      if(fit.state === "none") out.push(`테이블 자리 없음 - ${floorLabel(fl)} 한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명 (지금 ${WZ.people}명)`);
+      if(fit.state === "none") out.push(`홀 자리 없음 - ${floorLabel(fl)} 한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명 (지금 ${WZ.people}명)`);
       else if(fit.state === "split") out.push(`나눠 앉음 - ${floorLabel(fl)}에 붙일 테이블이 없어 옆 테이블에 나눠 앉습니다`);
     }
   }
@@ -15120,7 +15157,7 @@ function timeGrid(ctx){
       const gone = isPastDate || (isToday && t+30 <= nowM);
       const freeRooms = rooms.filter(x=>!blockedDuring(x, ctx.date, hmS) && (!people || (adultCount(people, (WZ && WZ.infants) || 0, ctx.date) >= roomMin(x, ctx.date) && people <= seatMax(x))) && roomStatus(ctx.date, hmS, x.id).state === "free").length;
       const tf = people ? floorFit(null, ctx.date, hmS, people) : null;
-      const tTxt = !people ? "" : tf.state==="ok" ? "테이블 가능" : tf.state==="split" ? "테이블 나눠" : "테이블 없음";
+      const tTxt = !people ? "" : tf.state==="ok" ? "홀 가능" : tf.state==="split" ? "홀 나눠" : "홀 없음";
       const cnt = s.reservations.filter(r=>r.date===ctx.date && holdsSeat(r) && Math.floor(toMin(r.time)/30)*30===t).length;
       const bad = (people && freeRooms===0 && (!tf || tf.state==="none"));
       cells.push(`<button class="hcell big ${curSlot===t?'on':''} ${gone?'gone':''} ${bad?'busy':''}" onclick="${ctx.pick}(${t})">
@@ -15438,7 +15475,7 @@ function wzStepSeat(){
     let statuses = ids.map(id=>roomStatus(WZ.date, WZ.time, id));
     const state = statuses.some(r=>r.state==="blocked") ? "blocked" : statuses.some(r=>r.state==="warn") ? "warn" : "free";
     const blocked = ids.some(id=>blockedDuring(seatById(id), WZ.date, WZ.time));
-    const over = total > seatsMax(ids), under = adults < seatsMin(ids, WZ.date);
+    const over = total > seatsMax(ids), under = minWarnOn() && adults < seatsMin(ids, WZ.date);   /* 10-15: 미달은 기본으로 어둡게 안 함 */
     /* 2명이 2인석에 — 좁아서 손님이 싫어합니다. 고르는 단계부터 알립니다(8차-Y 재아). 규칙은 누님 질문 1번 대기 */
     const two = ids.length === 1 && isTable(x) && total > 0 && total <= 2 && (x.seats||4) <= 2;
     /* 10-07 재아: '인원 부족' 같은 글은 칸에 안 띄움 — 안 되는 칸은 어둡게만, 누르면 왜 안 되는지 창이 뜸 */
@@ -15493,13 +15530,13 @@ function wzStepSeat(){
         ${open ? `<div class="sgrid tables">${cb.map(ids=>{ const k = "tj:" + ids.join(","); return cell(ids, {id:k, name:"", type:"table", capacity:seatsMax(ids)}, "join"); }).join("")}</div>` : ""}`; })() : ""}`; }).join("") : ""}`;   /* 10-07 재아: 붙이기 조합도 룸 합침처럼 한 번 더 접음 */
   }
   return `
-    ${(()=>{ if(!WZ.time) return `<div class="seat-main"><button class="${kind==='room'?'on':''}" onclick="wzSeatKind('room')">룸</button><button class="${kind==='table'?'on':''}" onclick="wzSeatKind('table')">테이블</button></div>`;
+    ${(()=>{ if(!WZ.time) return `<div class="seat-main"><button class="${kind==='room'?'on':''}" onclick="wzSeatKind('room')">룸</button><button class="${kind==='table'?'on':''}" onclick="wzSeatKind('table')">홀</button></div>`;
       /* 고르는 순간부터 자리 여부를 — 종류 버튼에 '자리 없음' 을 붙입니다(재아). 룸: 이 인원이 앉을 빈 룸 하나라도, 테이블: 층 무관 */
       const roomOk = !!findSeat({date:WZ.date, time:WZ.time, people:total, kind:"room-any"});
       const tf = floorFit(null, WZ.date, WZ.time, total);
       return `<div class="seat-main">
         <button class="${kind==='room'?'on':''} ${roomOk?'':'warned'}" onclick="wzSeatKind('room')">룸${roomOk?"":" · 빈 방 없음"}</button>
-        <button class="${kind==='table'?'on':''} ${tf.state==='none'?'warned':''}" onclick="wzSeatKind('table')">테이블${tf.state==='none'?" · 자리 없음":tf.state==='split'?" · 나눠 앉기":""}</button>
+        <button class="${kind==='table'?'on':''} ${tf.state==='none'?'warned':''}" onclick="wzSeatKind('table')">홀${tf.state==='none'?" · 자리 없음":tf.state==='split'?" · 나눠 앉기":""}</button>
       </div>`; })()}
     ${kind?`<button class="wz-adv seat-detail-toggle ${WZ.seatDetail?'on':''}" onclick="WZ.seatDetail=!WZ.seatDetail; render()">${WZ.seatDetail?"▲":"▼"} ${kind==='room'?"룸 지정":"테이블 지정"}</button>`:""}
     ${kind&&WZ.seatDetail?body:""}`;
@@ -15551,7 +15588,7 @@ async function wzSeatPick(v){
   if(/^table:/.test(v) || v === "table-any"){
     const fl = v === "table-any" ? null : v.slice(6), fit = floorFit(fl, WZ.date, WZ.time, people);
     if(fit.state === "none" && !await uiConfirm(`${floorLabel(fl)}에 ${people}명 자리가 없습니다`,
-      `${hm(WZ.time)} 기준으로 비는 테이블을 붙여도 한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명입니다.\n\n회전·합석으로 감당 가능하면 접수하세요. '테이블 자리 없음' 경고로 남습니다.`,
+      `${hm(WZ.time)} 기준으로 비는 테이블을 붙여도 한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명입니다.\n\n회전·합석으로 감당 가능하면 접수하세요. '홀 자리 없음' 경고로 남습니다.`,
       {ok:"그래도 접수", cancel:"다시 고르기"})) return;
     if(fit.state === "split" && !await uiConfirm(`${floorLabel(fl)}에서는 나눠 앉게 됩니다`,
       `붙일 수 있는 테이블이 없습니다 (한 자리 최대 ${floorMaxParty(fl, WZ.date, WZ.time)}명). 옆 테이블에 나눠 앉는 것으로 접수합니다.\n손님께 안내하셨나요?`,
@@ -15587,7 +15624,7 @@ async function wzSeatPick(v){
       if(!await uiConfirm2(`${label}은 최대 ${seatsMax(ids)}명입니다. 지금 ${people}명입니다.\n간이 의자 등으로 감당 가능한 경우에만 배정하세요.`)) return;
     }else{
       const adults = adultCount(people, WZ.infants);
-      if(adults < seatsMin(ids, WZ.date)){
+      if(minWarnOn() && adults < seatsMin(ids, WZ.date)){
         const basis = store().settings.minCountAdultsOnly===false ? "총 인원" : "성인";
         if(!await uiConfirm(`${label} 최소 인원 미달`, `최소 ${seatsMin(ids, WZ.date)}명부터 받습니다.\n지금 ${basis} ${adults}명입니다${WZ.infants?` (어린이 ${WZ.infants}명 제외)`:""}.`, {ok:"그래도 배정", cancel:"다시 고르기"})) return;
       }
@@ -16047,7 +16084,7 @@ function hm(t){
 function seatLabel(seat){
   const st = store().settings;
   if(seat==="any") return "좌석 상관없음";
-  if(seat==="hall-any" || seat==="table-any") return "테이블 (층 상관없음)";
+  if(seat==="hall-any" || seat==="table-any") return "홀 (층 상관없음)";
   if(/^table:/.test(seat||"")) return floorLabel(seat.slice(6));
   if(seat==="room-any") return "룸";   /* 10-07 재아: '룸 중 아무곳' → '룸'(방을 안 정한 경우가 더 많음) */
   const j = allJoinsEver().find(g=>g.id===seat);   /* 예정으로 생기는 합침도(09-25) */
@@ -16085,7 +16122,7 @@ function seatTagText(r){
   var live = holdsSeat(r);   /* 취소·노쇼는 자리를 안 잡으니 '자리 없음' 이라고 붉게 쓰지 않습니다 */
   var names = r.tentativeRoomId ? seatsOf(r).map(function(id){ var x = seatById(id); return x ? x.name : ""; }).filter(Boolean) : [];
   if(isTablePref(r.seatPref)){
-    var fl = prefFloor(r.seatPref), head = fl ? floorLabel(fl) : "테이블 (층 상관없음)";
+    var fl = prefFloor(r.seatPref), head = fl ? floorLabel(fl) : "홀 (층 상관없음)";
     return names.length ? { ok:true, text: head + " · " + names.join("+") + (r.tentativeSplit ? " 나눠" : "") + "(잠정)" } : { ok:!live, text: live ? head + " · 자리 없음" : head };
   }
   return names.length ? { ok:true, text: seatLabelIds([r.tentativeRoomId].concat(r.tentativeExtra||[])) + "(잠정)" } : { ok:!live, text:"미배정" };
@@ -16139,6 +16176,14 @@ function phoneNorm(v){
 /* 09-25 재아: 시작 번호마다 하이픈 자리·길이가 다름
    010 3-4-4 · 011/016~019 3-3-4(10자리)·3-4-4 · 02 2-3-4·2-4-4 · 031 등 지역·070·080 3-3-4·3-4-4
    0502~0508 안심번호 4-3-4·4-4-4 · 1588 류 4-4 · 서버에서 온 '+81…'(해외)는 그대로 */
+/* 10-15 누님: 직원·공용 PIN 계정에는 전화번호 뒷자리 4개만 — 동명이인 구분용. 사장·매니저 계정만 전체(2차 PIN 을 넣어도 계정이 직원·공용이면 뒷자리만).
+   ⚠ 화면에서만 가림 — 기기로 받는 자료에는 전체 번호가 있음. 진짜로 막는 건 서버 권한별 막기 때(hanok-deferred 메모) */
+function phoneMasked(){ return typeof accountRole === "function" && accountRole() === "staff"; }   /* 계정 권한만 봄 — 2차 PIN 은 상관없음(10-15 재아) */
+function phoneShow(p){
+  p = p == null ? "" : String(p); if(!p || !phoneMasked()) return p;
+  var d = p.replace(/[^0-9]/g, ""); if(d.length < 4) return "****";
+  return (d.length >= 10 ? d.slice(0, 3) + "-****-" : "****-") + d.slice(-4);
+}
 function phoneFmt(d){
   if(!d) return "";
   if(/^\+/.test(d)) return d;
@@ -16689,7 +16734,7 @@ function renderTvGrid(){
     return `<div class="tvg-col${hasHall ? "" : " nohall"}${rs.length ? "" : " norooms"}">
       <div class="tvg-fl">${esc(fl || "룸")}</div>
       ${rs.length ? `<div class="tvg-rooms" style="grid-template-rows:repeat(${Math.ceil(rs.length/2)},minmax(0,1fr))">${rs.map(r => card(r.name, roomRows(r), false)).join("")}</div>` : ""}
-      ${hasHall ? card(`${fl} 테이블`, hallRows(fl), true) : ""}
+      ${hasHall ? card(`${fl} 홀`, hallRows(fl), true) : ""}
     </div>`;
   };
 
@@ -16775,6 +16820,11 @@ document.addEventListener("keydown", function(e){
 var DEV_EMBED = (function(){
   try{ return window.parent !== window && /[?&]devset=1/.test(location.search); }catch(e){ return false; }
 })();
+/* 권한 미리보기(10-15 재아: "개발자 화면에서 사장/매니저/직원 권한으로 확인") — ?devset=1&as=owner|manager|staff|shared.
+   설정 모음 대신 평소 화면(대시보드)이 그 권한으로 뜸. 개발자 토큰은 서버에서 뭐든 되는 권한이라 **저장은 전부 막음**(sb·readonlyBlock).
+   화면에서 무엇이 보이고 숨는지 보는 용도 — 서버가 그 권한을 실제로 막는지는 개발 서버에서 진짜 PIN 으로 확인 */
+var DEV_PREVIEW = DEV_EMBED ? ((location.search.match(/[?&]as=(owner|manager|staff|shared)\b/) || [])[1] || "") : "";
+var DEV_PREVIEW_LABEL = { owner:"사장", manager:"매니저", staff:"직원", shared:"공용 PIN" };
 var DEV_EMBED_ERR = "";
 var DEV_EMBED_BUSY = false;    /* 들어가는 중(서버 읽는 중) */
 var DEV_EMBED_TRIED = false;   /* 한 번 시도했음 — 실패한 뒤에 오는 토큰으로 저절로 다시 들어가지 않게 */
@@ -16797,9 +16847,13 @@ async function devEmbedEnter(m){
   DEV_EMBED_BUSY = true; DEV_EMBED_TRIED = true; DEV_EMBED_ERR = "";
   try{
     await enterStore();
-    view.storeKey = "hanok"; view.adminOk = true; OWNER_OK = true;
-    view.form = { type:"owner", page:true };
-    logEvent("개발자 화면에서 설정 열기", "");
+    if(DEV_PREVIEW){   /* 권한 미리보기 — 평소 첫 화면(대시보드), 사장님 메뉴는 닫힌 채로 시작. 기록도 남기지 않음(저장 막힘) */
+      view.storeKey = "hanok"; view.adminOk = false; OWNER_OK = false; view.form = null;
+    }else{
+      view.storeKey = "hanok"; view.adminOk = true; OWNER_OK = true;
+      view.form = { type:"owner", page:true };
+      logEvent("개발자 화면에서 설정 열기", "");
+    }
   }catch(e){
     AUTHED = false;
     DEV_EMBED_ERR = e && e.network ? "서버에 연결할 수 없습니다." : ("불러오지 못했습니다: " + ((e && e.message) || e));
