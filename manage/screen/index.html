@@ -436,6 +436,17 @@ button.rowitem:hover{background:var(--surface-2)}
 .pinpad-field{display:flex; align-items:center; width:100%; min-height:48px; padding:0 var(--s12); border:1px solid var(--border-strong); border-radius:var(--r-md); background:var(--surface); font:inherit; color:var(--text); text-align:left; cursor:pointer}
 .pinpad-field .pp-ph{color:var(--text-3); font-size:var(--fs-sub)}
 .pinpad-field .pp-dots{letter-spacing:.35em; font-size:14px}
+/* 10-17 누님: 인원 세 칸(총·어린이·영유아) · 거동불편 체크 · 특수 요청 아이콘 */
+.grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--s12)}
+.chk-line{display:flex; align-items:center; gap:6px; margin-top:8px; font-size:var(--fs-label); color:var(--text-2); font-weight:400; cursor:pointer}
+.chk-line input{width:18px; height:18px; margin:0; flex:none}
+.ppl-n{font-weight:700}
+.ppl-d{font-weight:400}
+/* 아이콘은 글자처럼 한 줄에 이어 붙게(inline · 글자 기준선에 맞춤) — 따로 떠 보이던 것(10-17 재아). 색은 글자색 그대로(빨강은 경고처럼 보여 뺌) */
+.sp-ic{display:inline; margin-left:4px; white-space:nowrap; font-weight:600}
+.sp-ic svg{width:1.2em; height:1.2em; vertical-align:-0.25em; margin-right:1px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round}
+.sp-line{display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px}
+.sp-line .sp-ic{margin-left:0}
 /* ============================================================
    4. 레이아웃 (상단바 / shell / content)
    ============================================================ */
@@ -620,6 +631,20 @@ body.notoday .card{box-shadow:none}
 .tl-scroll{overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; margin:0; padding:0; position:relative; z-index:0}
 .tl{display:flex; flex-direction:column; gap:var(--s4); min-width:660px}
 /* 좌석 이름이 두 줄이면 행이 그래프보다 커져 어긋납니다. 이름은 한 줄(nowrap)로, 행 높이는 그래프(30px)가 정합니다 */
+/* 세트 집계 바(10-17 누님) — 화면 아래에 붙어 있음. 줄이 넘치면 옆으로 밀어서 봄 */
+/* 세트 집계(10-17 누님) — 타임라인 카드 아래 제자리(고정 안 함, 10-17 재아). 줄이 길면 다음 줄로 */
+.menusum{margin:var(--s12) 0 var(--s16); background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md, 12px); padding:6px var(--s12)}
+.ms-row{display:flex; align-items:flex-start; gap:14px; padding:6px 0; font-size:var(--fs-body)}
+.ms-row + .ms-row{border-top:1px solid var(--border)}
+.ms-l{flex:none; font-weight:700; color:var(--text-2); min-width:2.6em}
+.ms-is{display:flex; flex-wrap:wrap; gap:4px 14px; min-width:0}
+.ms-i{white-space:nowrap} .ms-i b{font-weight:700}
+.menusum.m{padding:0 var(--s12)}
+.ms-head{display:flex; align-items:center; gap:8px; width:100%; background:none; border:none; padding:10px 0; font:inherit; color:var(--text); text-align:left; cursor:pointer}
+.ms-head span{flex:1; min-width:0; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-label)}
+.ms-head i{font-style:normal; color:var(--text-3); font-size:var(--fs-label); flex:none}
+.menusum.m.open .ms-head{border-bottom:1px solid var(--border)}
+.ms-i.un{color:var(--text-3)}
 .tl-row{display:flex; gap:var(--s8); align-items:center; min-height:34px}
 .tl-row.gap{min-height:14px}   /* 룸 묶음과 테이블 묶음 사이 빈 줄(09-20 — 글자 대신) */
 /* 고정된 좌석 이름 칸 — 가로 스크롤해도 '흰 열'로 보이게
@@ -684,6 +709,10 @@ button.blk{border:1px solid rgba(255,255,255,.3); box-sizing:border-box; cursor:
    안쪽 span(.blk-in)이 한 칸 높이(line-height)로 맨 위에 놓이고 말줄임(…)도 여기서 */
 .blk-in{display:block; width:100%; max-width:100%; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}   /* 딱지가 있어도 칸 너비 안에서 먼저 … 처리되어 마지막 글자가 잘리지 않습니다 */
 button.blk:hover{filter:brightness(1.15)}
+/* 폰 그래프(compact) 두 줄 — 1줄: 시간·인원·이름, 2줄: 식사·아기의자·거동불편(10-17 누님). 줄마다 따로 말줄임 */
+.tl-scroll.compact .blk-in{white-space:normal; line-height:20px; padding-top:2px}
+.tl-scroll.compact .tl-l1, .tl-scroll.compact .tl-l2{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.tl-scroll.compact .tl-l2:empty{display:none}
 button.blk b{font-weight:700; font-size:18px}
 /* 그래프 칸 안의 VIP 알약 — 칸이 21px 이라 알약도 납작하게 */
 .blk .tier{margin-left:0; margin-right:4px; padding:0 6px; font-size:11px; line-height:1.5; vertical-align:middle}   /* 시각 뒤·이름 앞(09-24) */
@@ -3062,9 +3091,13 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
   .mrow:active{background:var(--surface-2)}
   .mrow.s-취소, .mrow.s-방문{opacity:.45} .mrow.s-노쇼{opacity:.6}
   .mrow.late{background:var(--amber-soft)}
-  .mr-1{display:flex; align-items:center; gap:var(--s8); min-width:0; flex-wrap:wrap}
+  .mr-1{display:flex; align-items:center; gap:var(--s8); min-width:0; flex-wrap:nowrap}   /* 10-17: 1줄을 지킴 — 길면 이름이 … (상태·경고 딱지는 2줄 끝으로) */
   .mr-t{font-size:var(--fs-body); font-weight:700; color:var(--text); flex:none}
-  .mr-n{font-size:var(--fs-title); font-weight:700; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%}
+  .mr-n{font-size:var(--fs-title); font-weight:700; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto}
+  .mr-ppl{font-size:var(--fs-body); color:var(--text); flex:none; white-space:nowrap}   /* 10-17: 인원을 1줄로(시간 → 인원 → 이름 → 자리) */
+  .mr-seat{font-size:var(--fs-sub); color:var(--text-2); font-weight:500; white-space:nowrap; flex:none}
+  .mr-2{align-items:center}
+  .mr-seat.none{color:var(--rust)}
   .mr-bang{color:var(--rust); font-weight:700}
   .mr-2{display:flex; gap:var(--s8); flex-wrap:wrap; margin-top:var(--s4); font-size:var(--fs-sub); color:var(--text-2); font-weight:500}
   .mr-2 .none{color:var(--rust)}
@@ -3692,7 +3725,9 @@ function rowToRes(row){
   rec.tentativeExtra = Array.isArray(rec.tentativeExtra) ? rec.tentativeExtra.filter(okId) : [];
   if(rec.seatPref != null && ["any","room-any","table-any","hall-any"].indexOf(rec.seatPref) < 0 && !/^table:[\w가-힣 -]{0,20}$/.test(String(rec.seatPref))) rec.seatPref = null;
   /* data 안의 숫자·고르기 값도 모양을 맞춤 — 글자가 섞이면 화면에 그대로 나가거나 합계가 '2'+'3'='23' 이 됐음(10-09 점검) */
-  ["infants", "chairs", "adults"].forEach(function(k){ if(rec[k] != null) rec[k] = Math.max(0, parseInt(rec[k]) || 0); });
+  ["infants", "chairs", "adults", "babies"].forEach(function(k){ if(rec[k] != null) rec[k] = Math.max(0, parseInt(rec[k]) || 0); });
+  if(rec.mobility != null) rec.mobility = rec.mobility === true;   /* 거동불편(10-17) — 글자 'false' 가 참으로 보이지 않게 */
+  if(rec.warnAck != null && !(rec.warnAck && Array.isArray(rec.warnAck.keys))) delete rec.warnAck;   /* 경고 해제(10-17) — 모양이 틀리면 버림 = 경고가 다시 보임 */
   if(rec.courses && typeof rec.courses === "object" && !Array.isArray(rec.courses)){ var cs = {}; Object.keys(rec.courses).forEach(function(k){ var v = Number(rec.courses[k]); if(isFinite(v) && v > 0) cs[k] = Math.floor(v); }); rec.courses = cs; } else if(rec.courses != null) rec.courses = {};
   if(rec.menuType != null && ["코스", "코스 상당", "확인 필요", "해당 없음"].indexOf(rec.menuType) < 0) rec.menuType = "확인 필요";
   if(Array.isArray(rec.sms)) rec.sms = rec.sms.filter(function(m){ return m && typeof m === "object"; }).map(function(m){ if(m.at != null) m.at = String(m.at).replace(/[^0-9TZ:.+-]/g, ""); return m; });
@@ -4695,9 +4730,32 @@ if(window.addEventListener) window.addEventListener("unhandledrejection", functi
    (예전에는 자기 자신을 다시 부르게 돼 있어 people 이 없으면 무한 재귀로 멈췄습니다) */
 function pplOf(r){ return r.people != null ? r.people : ((r.adults||0) + (r.infants||0)); }
 /* 인원 표기 — "6명 (어린이 1명 포함)" */
-function pplText(r){
-  const n = pplOf(r), i = r.infants||0;
-  return i ? `${n}명(어린이${i})` : `${n}명`;
+/* 인원 — infants 는 예전처럼 '어린이+영유아 전부'(성인 수 계산이 이걸 씀), babies 는 그중 영유아(10-17 누님 · 재아).
+   옛 예약은 babies 가 없어 어린이로만 보임 */
+function babiesOf(r){ const i = Math.max(0, parseInt(r && r.infants) || 0); return Math.min(i, Math.max(0, parseInt(r && r.babies) || 0)); }
+function kidsOf(r){ return Math.max(0, (parseInt(r && r.infants) || 0) - babiesOf(r)); }
+function pplDetail(r){
+  const i = r.infants||0; if(!i) return "";
+  const k = kidsOf(r), b = babiesOf(r), parts = ["성인" + Math.max(0, pplOf(r) - i)];
+  if(k) parts.push("어린이" + k); if(b) parts.push("영유아" + b);
+  return "(" + parts.join("+") + ")";
+}
+function pplText(r){ return `${pplOf(r)}명${pplDetail(r)}`; }
+/* 타임라인·목록용 — 전체 인원은 굵게, 괄호는 보통(10-17 누님: 홀 세팅·주방 준비에 인원이 먼저) */
+function pplHtml(r){ return `<b class="ppl-n">${pplOf(r)}명</b>${pplDetail(r) ? `<span class="ppl-d">${pplDetail(r)}</span>` : ""}`; }
+/* 특수 요청 아이콘 — 이모지는 기기마다 모양이 다르고 구형 TV 에서 네모로 나와 선 아이콘으로(10-17 재아) */
+function specialIcons(r){
+  if(!r) return "";
+  const c = Math.max(0, parseInt(r.chairs) || 0);
+  return (c ? `<span class="sp-ic" title="아기의자 ${c}개">${ICON.babychair}${c}</span>` : "") +
+    (r.mobility ? `<span class="sp-ic mob" title="거동이 불편한 손님 — 1층 배치">${ICON.wheel}</span>` : "");   /* 아이콘만(10-17 재아) */
+}
+/* 식사 짧게 — (오 코스 6) · 정하지 않았으면 (메뉴 미정) */
+function menuShort(r){
+  if(!r || r.menuType === "해당 없음" || !r.menuType) return "";
+  if(r.courseUndecided || r.menuType === "확인 필요") return "(메뉴 미정)";
+  const items = Object.keys(r.courses || {}).filter(function(k){ return r.courses[k] > 0; }).map(function(k){ return (k.split("|")[1] || k) + " " + r.courses[k]; });
+  return items.length ? "(" + items.join(", ") + ")" : "";
 }
 
 /* ---------- 좌석 판정 (체류시간 기준) ---------- */
@@ -5304,6 +5362,10 @@ function shopState(st){
 
 /* 아이콘 (선으로만 그린 최소한의 아이콘) */
 const ICON = {
+  /* 10-17 누님: 아기의자·거동불편 표시 */
+  /* 아기의자 = 아기 얼굴(누님 요청 예시가 👶1 — 의자 모양은 글자 크기에서 알아보기 어려웠음, 10-17 재아) */
+  babychair:'<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 5c0-1.6 1.7-2.5 3-1.5"/><circle cx="9.2" cy="12.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.8" cy="12.6" r="1.1" fill="currentColor" stroke="none"/><path d="M9.6 16.1c1.4 1.1 3.4 1.1 4.8 0"/></svg>',
+  wheel:'<svg viewBox="0 0 24 24"><circle cx="10" cy="4" r="1.6"/><path d="M10 7v6h6l2 5"/><path d="M10 10h5"/><path d="M7.5 11.5a5.5 5.5 0 1 0 8 6"/></svg>',
   edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
   trash:'<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
   copy:'<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
@@ -5622,7 +5684,8 @@ function custStat(x){
 /* 이름 옆 알약. TV 처럼 tier 문자열만 있을 때는 tierTagOf. 블랙리스트는 '주의'(손님이 화면을 볼 수도 있어 글자는 짧게 — 09-29) */
 function tierTag(x){ var c = custStat(x); return c.black ? '<span class="tier tblk" title="블랙리스트' + (c.blackNote ? ' — ' + esc(c.blackNote) : '') + '">주의</span>' : tierTagOf(c.tier); }
 /* 단체 딱지(09-20 재아) — 설정 groupSize(기본 8명) 이상. 예약 객체를 받음 */
-function groupTag(r){ return r && pplOf(r) >= (store().settings.groupSize || 8) ? '<span class="tier grp" title="단체">단체</span>' : ""; }
+/* 10-17 누님: 인원이 이미 보여 '단체' 딱지는 중복 — 모든 화면에서 뗌. 부르는 곳은 그대로 두고 빈 값(확인 목록의 '단체 손님 N건' 은 groupSize 로 따로 셈) */
+function groupTag(r){ return ""; }
 function tierTagOf(t){ return t === "VVIP" ? '<span class="tier vvip" title="VVIP — 방문 5회 이상">VVIP</span>' : t === "VIP" ? '<span class="tier vip" title="VIP — 방문 2회 이상">VIP</span>' : ""; }
 /* ============================================================
    렌더링
@@ -6605,6 +6668,45 @@ function renderOfflineCard(){
       <div class="btn-row"><button class="btn primary" onclick="reconnect()">다시 연결</button></div>
     </section>`;
 }
+/* ---------- 세트·코스 집계 바(10-17 누님) — 주방·홀이 재료·차림을 미리 준비하려고 ----------
+   그날 확정·방문 예약의 코스·세트 수를 점심/저녁으로 나눠 셈(나누는 시각은 타임라인 점심/저녁 버튼과 같은 tlParts).
+   취소·노쇼는 뺌. 메뉴를 아직 안 정한 예약(구성 미정·확인 필요)은 '미정 N팀(N명)' — 명은 어른 수(코스 인원 기준과 같게) */
+function menuSum(d){
+  const p = tlParts(d), out = { lunch:{ c:{}, un:0, unP:0 }, dinner:{ c:{}, un:0, unP:0 } };
+  store().reservations.forEach(function(r){
+    if(r.date !== d || (r.status !== "확정" && r.status !== "방문")) return;
+    const o = out[toMin(r.time) < p.dinner.o ? "lunch" : "dinner"];
+    if(r.menuType === "확인 필요" || (r.menuType === "코스" && r.courseUndecided)){ o.un++; o.unP += adultCount(pplOf(r), r.infants || 0); return; }
+    Object.keys(r.courses || {}).forEach(function(k){ const v = Number(r.courses[k]) || 0; if(v > 0){ const nm = k.split("|")[1] || k; o.c[nm] = (o.c[nm] || 0) + v; } });
+  });
+  return out;
+}
+/* 순서는 설정의 코스·세트 순서(오 촉 한 위 → 요리사 동한 서한 → B A, 10-17 재아) — 같은 이름은 처음 나온 자리. 설정에 없는 이름(옛 코스·특별 기간)은 뒤에.
+   PC 는 제자리에 펼쳐 두고, 폰은 한 줄 요약을 눌러 펼침(view.msOpen — 10초마다 다시 그려도 유지) */
+function menuSumBar(d){
+  const m = menuSum(d), order = [];
+  courseGroups(d).forEach(function(g){ (g.items || []).forEach(function(it){ const nm = typeof it === "string" ? it : (it && it.name) || ""; if(nm && order.indexOf(nm) < 0) order.push(nm); }); });
+  const rank = function(k){ const i = order.indexOf(k); return i < 0 ? 999 : i; };
+  const total = function(o){ return Object.keys(o.c).reduce(function(a, k){ return a + o.c[k]; }, 0); };
+  const row = function(label, o){
+    const items = Object.keys(o.c).filter(function(k){ return o.c[k] > 0; }).sort(function(a, b){ return rank(a) - rank(b) || (a < b ? -1 : 1); })
+      .map(function(k){ return `<span class="ms-i">${esc(k)} <b>${o.c[k]}</b>인분</span>`; });
+    if(o.un) items.push(`<span class="ms-i un">미정 <b>${o.un}팀</b>(${o.unP}명)</span>`);
+    return items.length ? `<div class="ms-row"><span class="ms-l">${label}</span><span class="ms-is">${items.join("")}</span></div>` : "";
+  };
+  /* 10-17 재아: 점심 · 저녁 · 총 세 줄. 총은 둘 다 있을 때만(한쪽뿐이면 같은 줄이 두 번) */
+  const all = { c:{}, un:m.lunch.un + m.dinner.un, unP:m.lunch.unP + m.dinner.unP };
+  [m.lunch, m.dinner].forEach(function(o){ Object.keys(o.c).forEach(function(k){ all.c[k] = (all.c[k] || 0) + o.c[k]; }); });
+  const both = (total(m.lunch) || m.lunch.un) && (total(m.dinner) || m.dinner.un);
+  const html = row("점심", m.lunch) + row("저녁", m.dinner) + (both ? row("총", all) : "");
+  if(!html) return "";
+  if(isMobile()){
+    const sum = [["점심", m.lunch], ["저녁", m.dinner]].filter(function(x){ return total(x[1]) || x[1].un; })
+      .map(function(x){ return x[0] + " " + total(x[1]) + "인분" + (x[1].un ? ` · 미정 ${x[1].un}팀` : ""); }).join(" · ") + (both ? ` · 총 ${total(all)}인분` : "");
+    return `<div class="menusum m ${view.msOpen ? "open" : ""}"><button class="ms-head" onclick="view.msOpen=!view.msOpen; render()"><b>메뉴 집계</b><span>${esc(sum)}</span><i>${view.msOpen ? "접기" : "펼치기"}</i></button>${view.msOpen ? html : ""}</div>`;
+  }
+  return `<div class="menusum" title="그날 확정·방문 예약의 코스·세트 수(취소·노쇼 빼고)">${html}</div>`;
+}
 function renderDash(){
   const s = store(), d = view.date;
   if(OFFLINE && AUTHED) return renderOfflineCard() + (view.calOpen ? renderCal() : "");
@@ -6617,9 +6719,10 @@ function renderDash(){
     const warnCnt = dayRes.filter(r=>holdsSeat(r) && resWarn(r).length).length;   /* 타임라인 위 '경고 N건' 과 같은 기준(확정+방문) */
     return renderDashMobile(d, {active, unassigned, warnCnt, checkCnt:checkItems(d).length, stat:dayStat(d)});
   }
-  /* 순서: 타임라인(오늘 상황이 한눈에) → 예약 목록 */
+  /* 순서: 타임라인(오늘 상황이 한눈에) → 세트 집계(아래 고정) → 예약 목록 */
   return `
     <div class="card"><div class="card-b">${renderTimeline(d)}</div></div>
+    ${menuSumBar(d)}
     ${foldCard("list", "예약 목록", `${dayRes.length}건`, renderResList(d))}
     ${view.calOpen ? renderCal() : ""}`;
 }
@@ -6639,7 +6742,7 @@ function renderDashMobile(d, m){
   const body = graph
     ? `<section class="card mgraph"><div class="card-b">${renderTimeline(d, true)}</div></section>`
     : `<section class="card"><div class="card-b">${renderAgenda(d)}</div></section>`;
-  return `${kpi}${body}
+  return `${kpi}${menuSumBar(d)}${body}`   /* 폰: 세트 집계는 접힌 한 줄로 칩 아래(목록 끝까지 내려가지 않게) */ + `
     ${canEditRes() ? `<button class="fab" onclick="openWizard()" aria-label="예약 등록">${ICON.plus}</button>` : ""}
     ${view.calOpen ? renderCal() : ""}`;
 }
@@ -6663,31 +6766,36 @@ function renderAgenda(date){
     : `<div class="empty">${eff === "예정" ? "앞으로 남은 예약이 없습니다. 지난 것은 '지난·방문' 또는 '전체'." : "해당 조건의 예약이 없습니다."}</div>`;
   return `<div class="filters">${filters}</div><div class="mlist">${rows}</div>`;
 }
+/* 목록에 쓰는 자리 — 룸은 룸 이름(합침·잠정 표시 그대로), 테이블은 층 홀까지만(몇 번 테이블인지는 상세에서) */
+function seatPlace(r){
+  const id = r.roomId || (!isTablePref(r.seatPref) ? null : r.tentativeRoomId), x = id ? seatById(id) : null;
+  if(x && isTable(x)) return floorLabel(x.floor);
+  return seatText(r);
+}
 function resRowMobile(r){
   const room = store().settings.rooms.find(x=>x.id===r.roomId);
   const seat = seatText(r);
   const late = r.status==="확정" && r.date<=todayStr() && (r.date<todayStr() || toMin(r.time)+60 < toMin(nowHM()));
   const warn = holdsSeat(r) && resWarn(r).length;
   const chg = changeTag(r);
-  const pills = [
-    r.menuType==="코스" ? (r.courseUndecided ? "코스·세트 미정" : "코스·세트") : r.menuType==="코스 상당" ? "코스상당" : r.menuType==="확인 필요" ? "메뉴확인" : "",
-    r.allergy ? "알러지" : "", r.request ? "요청" : "", r.memo ? "메모" : ""
-  ].filter(Boolean).join(" · ");
+  /* 10-17 누님·재아: 폰 목록은 두 줄 — 1줄 시간·인원·이름, 2줄 메뉴·아기의자·거동불편·자리(룸 이름 또는 층 홀). 전화번호는 상세에서.
+     '방문' 딱지는 뺌(방문한 줄은 이미 흐리게 보임) — 취소·노쇼 딱지는 그대로 */
+  const pills = [r.allergy ? "알러지" : "", r.request ? "요청" : "", r.memo ? "메모" : ""].filter(Boolean).join(" · ");
   return `
     <button class="mrow s-${r.status} ${late?'late':''}" onclick="openMark('${r.id}')">
       <div class="mr-1">
         <span class="mr-t">${esc(r.time)}</span>
+        <span class="mr-ppl">${pplHtml(r)}</span>
         <span class="mr-n">${tierTag(r)}${groupTag(r)}<span class="rr-nm">${esc(r.name)}</span></span>
         ${late?`<span class="mr-bang">!</span>`:""}
-        ${r.status!=="확정"?`<span class="tag ${r.status==="노쇼"?"rust":""}">${r.status}</span>`:""}
-        ${warn?`<span class="tag rust">경고</span>`:""}
-        ${chg?`<span class="chg-tag ${chg.kind==="취소"||chg.kind==="노쇼"?"off":""}">${esc(chg.label)}</span>`:""}
       </div>
       <div class="mr-2">
-        <span>${pplOf(r)}명${r.infants?`(어린이${r.infants})`:""}</span>
-        <span class="${room||r.tentativeRoomId?'':'none'}">${esc(seat)}</span>
-        ${r.phone?`<span>${esc(phoneShow(r.phone))}</span>`:""}
+        ${menuShort(r)||r.menuType==="코스 상당"?`<span>${esc(menuShort(r)||"(코스상당)")}</span>`:""}${specialIcons(r)?`<span>${specialIcons(r)}</span>`:""}
+        <span class="mr-seat ${room||r.tentativeRoomId||isTablePref(r.seatPref)?'':'none'}">${esc(seatPlace(r))}</span>
         ${pills?`<span class="mr-p">${esc(pills)}</span>`:""}
+        ${r.status!=="확정"&&r.status!=="방문"?`<span class="tag ${r.status==="노쇼"?"rust":""}">${r.status}</span>`:""}
+        ${warn?`<span class="tag rust">경고</span>`:""}
+        ${chg?`<span class="chg-tag ${chg.kind==="취소"||chg.kind==="노쇼"?"off":""}">${esc(chg.label)}</span>`:""}
       </div>
     </button>`;
 }
@@ -6878,7 +6986,7 @@ function resRow(r){
       <span class="rr-bang">${late?"!":""}</span>
       <span class="rr-t">${esc(r.time)}</span>
       <span class="rr-n">${tierTag(r)}${groupTag(r)}<span class="rr-nm">${esc(r.name)}</span></span>
-      <span class="rr-p">${pplOf(r)}명${r.infants?`(어린이${r.infants})`:""}</span>
+      <span class="rr-p">${pplHtml(r)}${specialIcons(r)}</span>
       <span class="rr-seat ${room||r.tentativeRoomId?'':'none'}">${esc(seat)}</span>
       <span class="rr-ph">${esc(phoneShow(r.phone)||"-")}</span>
       ${rest?`<span class="rr-rest">${rest}</span>`:""}
@@ -6906,7 +7014,9 @@ var CHANGE_FIELDS = [
   {k:"time",     n:"시간",   f:function(v){ return v ? hm(v) : "-"; }},
   {k:"people",   n:"인원",   f:function(v){ return (v||0)+"명"; }},
   {k:"infants",  n:"어린이",   f:function(v){ return (v||0)+"명"; }},
-  {k:"chairs",   n:"유아의자", f:function(v){ return (v||0)+"개"; }},
+  {k:"babies",   n:"영유아",   f:function(v){ return (v||0)+"명"; }},   /* 10-17 — 어린이(infants) 안에 포함 */
+  {k:"chairs",   n:"아기의자", f:function(v){ return (v||0)+"개"; }},
+  {k:"mobility", n:"거동불편", f:function(v){ return v ? "있음" : "없음"; }},
   {k:"roomId",   n:"좌석",   f:function(v){ return v ? seatLabel(v) : "미배정"; }},
   {k:"extraIds", n:"붙임 좌석", f:function(v){ return v && v.length ? seatLabelIds(v) : "없음"; }},   /* 장비+관우 → 장비만: 관우가 빈 걸 모르던 것(09-25) */
   {k:"phone",    n:"전화",   f:function(v){ return v || "없음"; }},
@@ -7176,8 +7286,38 @@ function smsLog(){
   return out;
 }
 
-/* 예약 한 건의 경고 사유 — 지표와 목록에서 함께 씁니다 */
+/* 예약 한 건의 경고 사유 — 지표와 목록에서 함께 씁니다.
+   10-17 누님: 사장·매니저가 사유를 보고 '경고 해제' 할 수 있음 — 해제할 때의 사유(warnAck.keys)는 빼고 돌려줌.
+   새 사유가 생기면 그것만 다시 보여 경고 예약으로 돌아감. '좌석 겹침' 은 겹친 상대 예약까지 키에 넣어 다른 예약과 또 겹치면 다시 뜸 */
 function resWarn(r){
+  const all = resWarnAll(r);
+  const ack = r && r.warnAck && Array.isArray(r.warnAck.keys) ? r.warnAck.keys : null;
+  if(!ack || !all.length) return all;
+  return all.filter(function(w){ return ack.indexOf(warnKey(r, w)) < 0; });
+}
+function warnKey(r, w){
+  if(w !== "좌석 겹침" || !r.roomId) return w;
+  const ids = [r.roomId].concat(r.extraIds || []), hit = [];
+  ids.forEach(function(id){ roomStatus(r.date, r.time, id, r.id).hits.forEach(function(x){ if(byCreated(x, r) < 0 && hit.indexOf(x.id) < 0) hit.push(x.id); }); });
+  return w + ":" + hit.sort().join(",");
+}
+function warnAckOn(r){ return !!(r && r.warnAck && Array.isArray(r.warnAck.keys) && r.warnAck.keys.length); }
+async function warnAckSet(id, on){
+  if(readonlyBlock()) return;
+  if(!canEditRes()){ await uiAlert("사장·매니저만 할 수 있습니다", "", "warn"); return; }
+  const r = store().reservations.find(function(x){ return x.id === id; }); if(!r) return;
+  if(on){
+    const all = resWarnAll(r); if(!all.length) return;
+    if(!await uiConfirm("경고를 해제할까요?", all.join("\n") + "\n\n해제한 뒤 새로운 경고 사유가 생기면 다시 경고로 표시됩니다.", {ok:"경고 해제", cancel:"그대로 두기"})) return;
+    r.warnAck = { keys: all.map(function(w){ return warnKey(r, w); }), by: sessionBy() || "", at: new Date().toISOString() };
+    logEvent("경고 해제", `${r.date} ${r.time} ${r.name} · ${all.join(", ")}`);
+  }else{
+    delete r.warnAck;
+    logEvent("경고 해제 취소", `${r.date} ${r.time} ${r.name}`);
+  }
+  touch(r); saveData(); render();
+}
+function resWarnAll(r){
   const st = store().settings;
   const out = [];
   const h = hoursFor(r.date);
@@ -7209,6 +7349,13 @@ function resWarn(r){
     if(ids.length > 1 && isRoom(seat) && !joinOf(ids) && holdsSeat(r) && r.date >= todayStr()) out.push("합침 없어짐");   /* 설정에서 합침을 지운 뒤(09-25) */
   }
   if((r.infants||0) >= pplOf(r) && pplOf(r)>0) out.push("성인 없음");
+  /* 거동불편 손님은 1층(10-17 누님) — 배정·임시 자리·층 희망 중 1층이 아닌 게 있으면 */
+  if(r.mobility && r.status !== "취소" && r.status !== "노쇼"){
+    const fl = [], sids = r.roomId ? ids : (r.tentativeRoomId ? [r.tentativeRoomId].concat(r.tentativeExtra || []) : []);
+    sids.forEach(function(id){ const x = seatById(id); if(x) fl.push(x.floor || ""); });
+    if(!sids.length && /^table:/.test(r.seatPref || "")) fl.push(String(r.seatPref).slice(6));
+    if(fl.some(function(f){ return String(f).replace(/\s/g, "") !== "1층"; })) out.push("거동불편 · 1층 아님");
+  }
   /* 테이블 예약(층): 숨은 배정 결과로 — 자리가 아예 없으면, 붙일 수 없어 나눠 앉으면 */
   if(!seat && isTablePref(r.seatPref) && r.status!=="취소"){
     /* 지난 날짜는 잠정 배정을 다시 계산하지 않으므로(reflowFuture 는 오늘 이후만) '자리 없음' 을 말할 수 없습니다 — 이미 다녀간 손님 */
@@ -7473,7 +7620,7 @@ function renderTimeline(date, compact){
       ${dh.bs&&dh.be&&part==="day"?`<span class="breakband" style="left:${pos(toMin(dh.bs))}%; width:${((toMin(dh.be)-toMin(dh.bs))/span)*100}%"></span>`:""}
       ${ext?`<span class="extband ${part==="dinner"?"l":""}" style="left:${pos(ext[0])}%; width:${((ext[1]-ext[0])/span)*100}%" title="${part==="lunch"?"저녁 시간대 — 이어지는 예약만 흐리게":"점심 시간대 — 이어지는 예약만 흐리게"}"><i>${part==="lunch"?"저녁":"점심"}</i></span>`:""}
     `}`;
-  const LANE = compact ? 32 : 38;   /* 층 하나의 높이(px). 트랙은 border-box 라 높이에 테두리 2px 를 더함(09-20 — 위 칸이 테두리를 넘던 것). 09-20 재아: 21 → 32 — 카운터에서 보기에 너무 작았음(눈이 침침). 폰 압축판은 30 */
+  const LANE = compact ? 46 : 38;   /* 10-17 누님: 폰 그래프는 두 줄(시간·인원·이름 / 식사·아이콘) — 칸을 32 → 46 */   /* 층 하나의 높이(px). 트랙은 border-box 라 높이에 테두리 2px 를 더함(09-20 — 위 칸이 테두리를 넘던 것). 09-20 재아: 21 → 32 — 카운터에서 보기에 너무 작았음(눈이 침침). 폰 압축판은 30 */
 
 
   const ticks = [];
@@ -7494,7 +7641,8 @@ function renderTimeline(date, compact){
   /* 이름 뒤 VIP·VVIP 알약(tierTag) — 그래프에서도 단골이 보이게(재아 09-20). 칸이 좁으면 잘려도 시각·이름이 먼저 */
   const blockLabel = (r, short) => short
     ? `<b>${esc(r.time)}</b> ${esc(r.name)}`   /* 합침 예약의 아래 방 줄: 시각·이름만(09-20) — 위 방 줄이 본 칸 */
-    : `${r._req?`<i class="rq">홈페이지</i> `:""}<b>${esc(r.time)}</b> ${tierTag(r)}${groupTag(r)}${esc(r.name)} ${pplOf(r)}명${r.infants?`(어린이${r.infants})`:""}${r._req?" · 확정 전":""}`;
+    /* 10-17 누님: 시간 → 인원(굵게) → 이름 → 식사 → 특수 요청. 폰에서는 이름 뒤에서 줄을 바꿈(tl-l2) */
+    : `<span class="tl-l1">${r._req?`<i class="rq">홈페이지</i> `:""}<b>${esc(r.time)}</b> ${pplHtml(r)} ${tierTag(r)}${esc(r.name)}</span><span class="tl-l2">${menuShort(r)?` ${esc(menuShort(r))}`:""}${specialIcons(r)}${r._req?" · 확정 전":""}</span>`;
 
   /* 좌석 사용 중지 구간을 그 줄에만 덮습니다.
      영업시간 밖(.offband)과 같은 빗금 계열이되, 사람이 일부러 잠근 것이므로 더 진하게. */
@@ -12755,14 +12903,18 @@ function sheetRes(){
       ${store().settings.minuteSteps !== false && f.time ? `<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="resNudge(-10)">− 10분</button><span class="lbl-note">${hm(f.time)}</span><button class="btn sm" onclick="resNudge(10)">＋ 10분</button></div>` : ""}</div>` : ""}
     <div class="grid2">
       <label class="f"><div class="lb">예약자</div><input id="f-name" value="${esc(f.name)}" autocomplete="off"></label>
-      <label class="f"><div class="lb">전화번호</div><input id="f-phone" type="tel" inputmode="tel" value="${esc(f.phone)}"></label>
+      <label class="f"><div class="lb">전화번호</div><input id="f-phone" type="tel" inputmode="tel" value="${esc(f.phone)}" onfocus="phonePre(this)" oninput="phoneTyped(this, event)" onblur="phoneBlur(this)"></label>
     </div>
-    <div class="grid2">
-      <label class="f"><div class="lb">총 인원 (어린이 포함)</div>
+    <div class="grid3">
+      <label class="f"><div class="lb">총 인원 <span class="lbl-note">아이 포함</span></div>
         <input id="f-people" type="number" min="1" value="${esc(pplOf(f))}"></label>
       <label class="f"><div class="lb">어린이</div>
-        <input id="f-infants" type="number" min="0" value="${esc(f.infants||0)}"></label>
+        <input id="f-kids" type="number" min="0" value="${esc(kidsOf(f))}"></label>
+      <label class="f"><div class="lb">영유아</div>
+        <input id="f-babies" type="number" min="0" value="${esc(babiesOf(f))}" oninput="var c=document.getElementById('f-chairs-w'); if(c) c.style.display=(parseInt(this.value)||0)>0||(parseInt((document.getElementById('f-chairs')||{}).value)||0)>0?'':'none'"></label>
     </div>
+    <label class="f" id="f-chairs-w" style="display:${babiesOf(f)||f.chairs?"":"none"}"><div class="lb">아기의자 <span class="lbl-note">기본 0개</span></div>
+      <input id="f-chairs" type="number" min="0" value="${esc(f.chairs||0)}"></label>
     <label class="f"><div class="lb">좌석</div>
       <select id="f-room" onchange="pickRoom(this.value)"><option value="">미배정</option>${roomOpts}</select></label>
     <div class="f"><div class="lb">경로</div><div class="seg">${srcSeg}</div>
@@ -12781,7 +12933,8 @@ function sheetRes(){
         </div>`:""}
     </div>
     ${f.allergy?`<label class="f"><div class="lb">알러지 <span class="lbl-note">옛 예약</span></div><input id="f-allergy" value="${esc(f.allergy)}"></label>`:""}
-    <label class="f"><div class="lb">요청사항</div><input id="f-request" value="${esc(f.request||'')}"></label>
+    <label class="f"><div class="lb">요청사항</div><input id="f-request" value="${esc(f.request||'')}">
+      <label class="chk-line"><input id="f-mobility" type="checkbox" ${f.mobility?"checked":""}> 거동이 불편한 손님이 있습니다</label></label>
     <label class="f"><div class="lb">메모 <span class="lbl-note">선택</span></div>
       <input id="f-memo" value="${esc(f.memo||'')}"></label>
     <div class="f"><div class="lb">상태</div><div class="seg">${stSeg}</div></div>
@@ -12852,8 +13005,15 @@ function syncRes(){
    ["sourceDetail","f-src-detail"],["request","f-request"],["allergy","f-allergy"],
    ["memo","f-memo"]]
     .forEach(([k,id])=>{ const x=g(id); if(x!==undefined) v[k]=x; });
-  [["people","f-people"],["infants","f-infants"]]
+  [["people","f-people"],["kids","f-kids"],["babies","f-babies"],["chairs","f-chairs"]]
     .forEach(([k,id])=>{ const x=g(id); if(x!==undefined) v[k]=Math.max(0,parseInt(x)||0); });
+  /* 어린이·영유아 칸 → infants(둘 합, 성인 수 계산용) + babies. kids 는 화면 칸일 뿐 저장 안 함 */
+  if(v.kids !== undefined || v.babies !== undefined){
+    const b = v.babies !== undefined ? v.babies : babiesOf(tmpRes), k = v.kids !== undefined ? v.kids : kidsOf(tmpRes);
+    v.infants = k + b; v.babies = b;
+  }
+  delete v.kids;
+  const mob = document.getElementById("f-mobility"); if(mob) v.mobility = !!mob.checked;
   tmpRes = Object.assign({}, tmpRes, v);
 }
 /* 저장하기 전에 걸리는 문제를 모아 돌려줍니다.
@@ -12925,14 +13085,14 @@ async function saveRes(){
   if(!closing && !(f.people > 0)) return uiAlert("인원을 입력하세요","1명 이상이어야 합니다","warn");
   /* 어린이 > 총원은 마법사처럼 막지 않고 아래 saveIssues 에서 경고만 합니다(점검 R8 — 2-4 원칙) */
   const old = view.form.id ? s.reservations.find(r=>r.id===view.form.id) : null;
-  const rec = Object.assign({}, (old||{}), {id: view.form.id || newId("res"), date:f.date, time:f.time, name:(f.name||"").trim(), phone:phoneNorm(f.phone), people: Math.max(1, f.people||1), infants: f.infants||0, chairs: f.chairs||0, roomId: f.roomId || null, extraIds: f.roomId ? (f.extraIds || []) : [], seatPref: f.roomId ? null : (f.seatPref || (old ? old.seatPref : "room-any")), tentativeRoomId: f.roomId ? null : (old ? old.tentativeRoomId : null), tentativeExtra: f.roomId ? [] : (old ? (old.tentativeExtra || []) : []), tentativeSplit: f.roomId ? false : (old ? !!old.tentativeSplit : false), source:f.source || "전화 예약", sourceDetail:f.source==="기타"?(f.sourceDetail||"").trim():"", request:(f.request||"").trim(), allergy:(f.allergy||"").trim(), memo:(f.memo||"").trim(), allergyChecked: old ? old.allergyChecked : true, /* 마법사와 같은 모양 */
+  const rec = Object.assign({}, (old||{}), {id: view.form.id || newId("res"), date:f.date, time:f.time, name:(f.name||"").trim(), phone:phoneNorm(f.phone), people: Math.max(1, f.people||1), infants: f.infants||0, babies: Math.min(f.infants||0, f.babies||0), chairs: f.chairs||0, mobility: !!f.mobility, roomId: f.roomId || null, extraIds: f.roomId ? (f.extraIds || []) : [], seatPref: f.roomId ? null : (f.seatPref || (old ? old.seatPref : "room-any")), tentativeRoomId: f.roomId ? null : (old ? old.tentativeRoomId : null), tentativeExtra: f.roomId ? [] : (old ? (old.tentativeExtra || []) : []), tentativeSplit: f.roomId ? false : (old ? !!old.tentativeSplit : false), source:f.source || "전화 예약", sourceDetail:f.source==="기타"?(f.sourceDetail||"").trim():"", request:(f.request||"").trim(), allergy:(f.allergy||"").trim(), memo:(f.memo||"").trim(), allergyChecked: old ? old.allergyChecked : true, /* 마법사와 같은 모양 */
     menuType: f.menuType || "해당 없음", /* 코스가 아니면 구성은 비워 둡니다 — '해당 없음'인데 코스 인원이 남는 일을 막습니다 */
     courses: f.menuType==="코스" ? Object.assign({}, f.courses||{}) : {}, courseUndecided: f.menuType==="코스" ? !!f.courseUndecided : false, status:f.status, createdAt: old ? old.createdAt : new Date().toISOString()});
   /* 창을 연 동안 다른 기기가 이 예약을 바꿨으면(10초 갱신으로 들어옴), 내가 안 건드린 칸은 그쪽 값을 씀 —
      전엔 열 때의 값으로 통째로 덮어, 폰에서 '방문' 으로 바꾼 것이 태블릿의 메모 저장에 되돌려졌음(10-09 점검) */
   if(old && f.__orig && canon(old) !== canon(f.__orig)){
     const o0 = f.__orig, same = function(k){ return canon(f[k]) === canon(o0[k]); }, took = [];
-    ["date","time","name","phone","people","infants","chairs","source","sourceDetail","request","allergy","memo","menuType","courses","courseUndecided","status"].forEach(function(k){ if(same(k) && canon(old[k]) !== canon(o0[k])){ rec[k] = deepClone(old[k]); took.push(k); } });
+    ["date","time","name","phone","people","infants","babies","chairs","mobility","source","sourceDetail","request","allergy","memo","menuType","courses","courseUndecided","status"].forEach(function(k){ if(same(k) && canon(old[k]) !== canon(o0[k])){ rec[k] = deepClone(old[k]); took.push(k); } });
     if(same("roomId") && same("extraIds") && (canon(old.roomId) !== canon(o0.roomId) || canon(old.extraIds) !== canon(o0.extraIds))){
       ["roomId","extraIds","seatPref","tentativeRoomId","tentativeExtra","tentativeSplit"].forEach(function(k){ rec[k] = deepClone(old[k]); }); took.push("좌석");
     }
@@ -13156,12 +13316,19 @@ function sheetMark(){
       ${custStat(r).black ? `<div class="mi-s rust"><b>블랙리스트</b>${custStat(r).blackNote ? ` · ${esc(custStat(r).blackNote)}` : ""}</div>` : ""}
       ${custStat(r).total > 1 ? `<div class="mi-s">방문 ${custStat(r).visit}회${custStat(r).noshow ? ` · <span class="rust">노쇼 ${custStat(r).noshow}회</span>` : ""}</div>` : ""}
       <div class="mi-s">${pplText(r)} · ${esc(seat)}</div>
+      ${r.chairs || r.mobility || canEditRes() ? `<div class="mi-s sp-line">${r.chairs?`<span class="sp-ic">${ICON.babychair}아기의자 ${r.chairs}개</span>`:""}${r.mobility?`<span class="sp-ic mob">${ICON.wheel}거동불편 손님</span>`:""}${canEditRes()?`<button class="linkbtn" onclick="mobilitySet('${r.id}', ${r.mobility?"false":"true"})">${r.mobility?"거동불편 끄기":"거동불편 손님 표시"}</button>`:""}</div>` : ""}
       ${r.phone?`<div class="mi-s">${esc(phoneShow(r.phone))}</div>`:(r.phoneTail?`<div class="mi-s">***-****-${esc(r.phoneTail)} <small class="muted">(네이버 예약 — 번호는 네이버에서)</small></div>`:"")}
       ${custOf(r.phone)&&custOf(r.phone).memo?`<div class="mi-s"><b>손님 메모</b> · ${esc(custOf(r.phone).memo)}</div>`:""}
       <div class="mi-s">식사 · <b>${esc(r.menuType||"해당 없음")}</b>${
         r.courseUndecided?" (구성 미정)":(r.courses&&Object.keys(r.courses).length?` (${esc(courseSummary(r.courses))})`:"")}</div>
       ${r.assignedLater?`<div class="mi-s">좌석 미정으로 접수 → ${esc(resSeatLabel(r))} 배정 완료</div>`:""}
-      ${resWarn(r).length?`<div class="mi-s warn-txt">경고 · ${esc(resWarn(r).join(", "))}</div>`:""}
+      ${(()=>{
+        /* 10-17 누님: 경고 사유를 보고 해제(사장·매니저). 해제한 사유는 회색으로 남기고 '해제 취소' 로 되돌림 */
+        const all = resWarnAll(r), live = resWarn(r), acked = all.filter(w=>live.indexOf(w)<0);
+        if(!all.length) return warnAckOn(r) && canEditRes() ? `<div class="mi-s muted">경고 해제 기록 있음 <button class="linkbtn" onclick="warnAckSet('${r.id}', false)">지우기</button></div>` : "";
+        return (live.length ? `<div class="mi-s warn-txt">경고 · ${esc(live.join(", "))}${canEditRes()?` <button class="linkbtn" onclick="warnAckSet('${r.id}', true)">경고 해제</button>`:""}</div>` : "") +
+          (acked.length ? `<div class="mi-s muted">경고 해제됨 · ${esc(acked.join(", "))}${r.warnAck&&r.warnAck.at?` <small>(${esc(fmtWhen(r.warnAck.at))}${r.warnAck.by?" · "+esc(r.warnAck.by):""})</small>`:""}${canEditRes()?` <button class="linkbtn" onclick="warnAckSet('${r.id}', false)">해제 취소</button>`:""}</div>` : "");
+      })()}
       ${r.allergy?`<div class="mi-s warn-txt">알러지: ${esc(r.allergy)}</div>`:""}
       ${r.request?`<div class="mi-s">요청: ${esc(r.request)}</div>`:""}
       ${r.memo?`<div class="mi-s memo-line">메모: ${esc(r.memo)}</div>`:""}
@@ -13199,6 +13366,16 @@ function sheetMark(){
       <button class="btn primary" onclick="openRes('${r.id}')">예약 내용 수정</button>` : `
       <button class="btn primary" onclick="closeSheet()">닫기</button>`}
     </div>`;
+}
+/* 거동불편 표시(10-17 누님) — 예약 상세에서 사장·매니저가 켜고 끔. 1층이 아니면 경고(resWarnAll) */
+function mobilitySet(id, on){
+  if(readonlyBlock()) return;
+  if(!canEditRes()) return;
+  const r = store().reservations.find(function(x){ return x.id === id; }); if(!r) return;
+  addChange(r, "변경", [{n:"거동불편", a:r.mobility?"있음":"없음", b:on?"있음":"없음"}]);
+  r.mobility = !!on;
+  logEvent(on ? "거동불편 표시" : "거동불편 끔", `${r.date} ${r.time} ${r.name}`);
+  saveData(); render();
 }
 async function markRes(id, status){
   if(readonlyBlock()) return;
@@ -14828,7 +15005,7 @@ function openWizard(date){
     /* 8차-Y(재아): 등록 버튼으로 열면 날짜가 안 골라진 채 시작합니다 — 보고 있던 날짜가 슬쩍 들어가면 헷갈립니다. 달력은 보던 달로 */
     calMonth:(date||view.date).slice(0,7),
     date:date||null, time:null,
-    people:null, infants:0, chairs:0, customPeople:false, phoneNone:false,
+    people:null, infants:0, babies:0, chairs:0, mobility:false, customPeople:false, phoneNone:false,   /* infants = 어린이+영유아, babies = 그중 영유아(10-17) */
     menuType:null, courses:{}, courseOpen:false,
     seat:null, seatExtra:[], seatKind:null, seatDetail:false, tableAdv:false,   /* 좌석 id | 'room-any' | 'table-any'. seatExtra = 합친 나머지 좌석 */
     name:"", phone:"", allergy:"", request:"", memo:"",
@@ -15082,7 +15259,7 @@ function wzSummary(){
   const p=[];
   if(WZ.source) p.push(WZ.source==="기타" && WZ.sourceDetail ? WZ.sourceDetail : WZ.source);
   if(WZ.date && WZ.time) p.push(`${(+WZ.date.slice(5,7))}/${(+WZ.date.slice(8))} ${hm(WZ.time)}`);
-  if(WZ.people) p.push(`${WZ.people}명${WZ.infants?`(어린이${WZ.infants})`:""}`);
+  if(WZ.people) p.push(pplText({people:WZ.people, infants:WZ.infants, babies:WZ.babies}));
   if(WZ.seat) p.push(WZ.seatExtra && WZ.seatExtra.length ? seatLabelIds([WZ.seat].concat(WZ.seatExtra)) : seatLabel(WZ.seat));
   return p.map(x=>`<span>${esc(x)}</span>`).join("");
 }
@@ -15425,18 +15602,24 @@ function wzStepPeople(){
         <div class="v"><span>${WZ.people||8}</span><small>명</small></div>
         <button onclick="wzAdj('people',1)" aria-label="총 인원 한 명 늘리기" ${WZ.customPeople?'':'tabindex="-1"'}>＋</button>
       </div>
-    <div class="infant ${WZ.infants>=(WZ.people||99)&&WZ.people?'bad':''}">
-      <div><div class="t">어린이</div>
-        <div class="s">${WZ.infants>=(WZ.people||99)&&WZ.people
-          ? "성인이 없습니다"
-          : "총 인원에 포함"}</div></div>
+    ${wzKidRow("kids", "어린이", kidsOf(WZ))}
+    ${wzKidRow("babies", "영유아", babiesOf(WZ))}
+    <div class="ptotal">${cur ? `총 <b>${cur}명</b>${pplDetail({people:cur, infants:WZ.infants, babies:WZ.babies})}` : ""}</div>`;
+}
+/* 아기의자 수 — 손대기 전에는 영유아 수를 따라감(10-17 재아: 기본 = 영유아 수, 요청사항 단계에서 고침) */
+function wzChairs(){ return WZ.chairsSet ? (WZ.chairs || 0) : babiesOf(WZ); }
+/* 어린이·영유아·아기의자 한 줄(10-17 누님) — 어린이·영유아는 총 인원에 포함. 성인이 없으면 빨갛게(막지 않음) */
+function wzKidRow(k, label, v, unit){
+  const bad = k !== "chairs" && WZ.people && WZ.infants >= WZ.people;
+  return `<div class="infant ${bad?'bad':''}">
+      <div><div class="t">${label}</div>
+        ${k === "chairs" ? "" : `<div class="s">${bad ? "성인이 없습니다" : "총 인원에 포함"}</div>`}</div>
       <div class="bigstep sm">
-        <button onclick="wzAdj('infants',-1)" aria-label="어린이 한 명 줄이기">−</button>
-        <div class="v"><span>${WZ.infants}</span><small>명</small></div>
-        <button onclick="wzAdj('infants',1)" aria-label="어린이 한 명 늘리기">＋</button>
+        <button onclick="wzAdj('${k}',-1)" aria-label="${label} 하나 줄이기">−</button>
+        <div class="v"><span>${v}</span><small>${unit||"명"}</small></div>
+        <button onclick="wzAdj('${k}',1)" aria-label="${label} 하나 늘리기">＋</button>
       </div>
-    </div>
-    <div class="ptotal">${cur ? `총 <b>${cur}명</b>${WZ.infants?` (어린이 ${WZ.infants}명 포함)`:""}` : ""}</div>`;
+    </div>`;
 }
 function wzPeople(n){
   WZ.people=n; WZ.customPeople=false;
@@ -15445,7 +15628,14 @@ function wzPeople(n){
 function wzCustom(){ WZ.customPeople=true; if(!WZ.people || WZ.people < 8) WZ.people=8; render(); }   /* 7명을 눌러 뒀어도 8부터 — 2~7명은 단추(09-25 재아) */
 function wzAdj(k,d){
   /* 막지 않습니다 — 이상한 값은 빨갛게 보여 주고 사장이 판단합니다 */
-  if(k==="infants"){
+  if(k==="kids"){
+    WZ.infants = babiesOf(WZ) + Math.max(0, kidsOf(WZ)+d);
+  }else if(k==="babies"){
+    const b = Math.max(0, babiesOf(WZ)+d);
+    WZ.infants = kidsOf(WZ) + b; WZ.babies = b;
+  }else if(k==="chairs"){
+    WZ.chairs = Math.max(0, wzChairs()+d); WZ.chairsSet = true;
+  }else if(k==="infants"){
     WZ.infants = Math.max(0,(WZ.infants||0)+d);
   }else{
     WZ.people = Math.max(1,(WZ.people||0)+d);
@@ -15676,7 +15866,7 @@ function wzStepGuest(){
       <div class="inrow">
         <input id="wz-phone" type="tel" inputmode="tel"
                value="${esc(WZ.phone)}"
-               onfocus="wzPhoneNone(false)">
+               onfocus="wzPhoneNone(false); phonePre(this)" onblur="phoneBlur(this)">
         <button class="nonebtn sm warn ${WZ.phoneNone?'on':''}" onclick="wzPhoneNone()">번호 없음</button>
       </div>
       <div class="ns-slot">${noshowHint()}</div>
@@ -15695,15 +15885,17 @@ function wzPhoneNone(v){
    09-20(재아): 알러지 칸을 없애고 요청사항에 적는 것으로 통합(유아의자와 같은 방식). 예약 객체의 allergy 는 빈 값으로 그대로 둠(옛 예약 표시용) */
 function wzStepExtra(){
   return `
+    ${babiesOf(WZ) || wzChairs() ? wzKidRow("chairs", "아기의자", wzChairs(), "개") : ""}
     <label class="f big"><div class="lb">요청사항 <span class="lbl-note">선택</span></div>
       <input id="wz-request" value="${esc(WZ.request)}">
+      <label class="chk-line"><input type="checkbox" ${WZ.mobility?"checked":""} onchange="WZ.mobility=this.checked"> 거동이 불편한 손님이 있습니다</label>
     </label>
     <label class="f big"><div class="lb">메모 <span class="lbl-note">선택</span></div>
       <input id="wz-memo" value="${esc(WZ.memo||"")}">
     </label>
     <div class="wz-review">
       <div class="rv"><span>일시</span><b>${WZ.date?dateLabel(WZ.date):"-"} ${WZ.time?hm(WZ.time):""}</b></div>
-      <div class="rv"><span>인원</span><b>총 ${WZ.people||0}명${WZ.infants?` (어린이 ${WZ.infants}명 포함)`:""} ${groupTag({people:WZ.people||0})}</b></div>
+      <div class="rv"><span>인원</span><b>${pplText({people:WZ.people||0, infants:WZ.infants, babies:WZ.babies})}${wzChairs()?` · 아기의자 ${wzChairs()}개`:""}</b></div>
       <div class="rv"><span>좌석</span><b>${WZ.seat?esc(WZ.seatExtra&&WZ.seatExtra.length?seatLabelIds([WZ.seat].concat(WZ.seatExtra)):seatLabel(WZ.seat)):"-"}</b></div>
       <div class="rv"><span>예약자</span><b>${esc(WZ.name)||"-"}${tierTag({phone:WZ.phone})}${WZ.phone?` · ${esc(WZ.phone)}`:""}</b></div>
       <div class="rv"><span>식사</span><b>${esc(WZ.menuType==="코스"?"코스·세트":(WZ.menuType||"-"))}${WZ.menuType==="코스"&&courseCount()?` · ${esc(courseSummary(WZ.courses))}`:""}</b></div>
@@ -15764,7 +15956,7 @@ async function wzSubmit(){
   const rec = {
     id:(WZ.reqId ? "res_" + String(WZ.reqId).replace(/^rq_/, "") : newId("res")), date:WZ.date, time:WZ.time,
     name:WZ.name.trim(), phone:phoneNorm(WZ.phone),
-    people:WZ.people, infants:WZ.infants, chairs:0,   /* 유아의자 기능은 뺐음(재아 09-17) — 칸은 0 으로 유지(객체 모양 안 바꿈) */
+    people:WZ.people, infants:WZ.infants, babies:babiesOf(WZ), chairs:wzChairs(), mobility:!!WZ.mobility,   /* 아기의자 되살림·영유아·거동불편(10-17 누님) */
     roomId: fixed ? WZ.seat : null,
     extraIds: fixed ? (WZ.seatExtra || []) : [],
     seatPref: fixed ? null : WZ.seat,     /* 미배정일 때 희망 좌석 종류를 기억 */
@@ -16147,8 +16339,31 @@ function resTentLabel(r){
 /* ※ 예전에는 "값에 - 가 하나라도 있으면 손대지 않음" 이었는데, 시스템이 넣은 - 도 그 조건에 걸려
       010-1234 까지 만든 뒤로는 다시 정리하지 않아 010-12345678 이 됐습니다.
       이제 '사용자가 - 를 직접 쳤는지'(phoneManual)만 보고, 아니면 숫자만으로 매번 다시 만듭니다 */
+/* 연락처 칸에 010 을 미리 넣음(10-17 누님). 010 휴대폰 가운데 자리는 2~9 로만 시작하므로,
+   010 만 있는 상태에서 0·1 을 치면 지역번호(02·031…)·대표번호(1588…)로 보고 010 을 지우고 그 숫자부터.
+   붙여 넣은 번호가 0·1·+ 로 시작해도 010 을 버림. 010 만 남은 채 나가면 빈칸으로 */
+function phonePre(el){ if(el && !el.value){ el.value = "010-"; el.dataset.prev = "010-"; try{ el.setSelectionRange(4, 4); }catch(e){} } }
+function phoneBlur(el){ if(el && el.value.replace(/\D/g, "") === "010"){ el.value = ""; el.dataset.prev = ""; } }
+function phonePrefixFix(el, ev){
+  const prev = (el.dataset.prev != null ? el.dataset.prev : el.defaultValue || "").replace(/\D/g, "");
+  let raw = el.value;
+  if(prev === "010" && ev){
+    if(ev.inputType === "insertText" && /^[01]$/.test(ev.data || "")) raw = ev.data;
+    else if(/^insertFromPaste/.test(ev.inputType || "") && /^010-?/.test(raw)){ const rest = raw.replace(/^010-?/, ""); if(/^\s*[+01]/.test(rest)) raw = rest; }
+  }
+  return raw;
+}
+/* 수정 화면의 전화 칸 — 010 규칙 + 하이픈(마법사 fmtPhone 과 같은 모양) */
+function phoneTyped(el, ev){
+  let raw = phonePrefixFix(el, ev), out;
+  if(/^\s*\+/.test(raw)) out = "+" + raw.replace(/[^\d\s-]/g, "").replace(/^[\s-]+/, "").slice(0, 20);
+  else{ const d = raw.replace(/\D/g, ""); out = phoneFmt(d.slice(0, phoneMax(d))); }
+  if(el.value !== out) el.value = out;
+  el.dataset.prev = out;
+}
 function fmtPhone(el, ev){
-  const raw = el.value;
+  const raw = phonePrefixFix(el, ev);
+  if(raw !== el.value) el.value = raw;
   if(ev && ev.inputType==="insertText" && ev.data==="-") WZ.phoneManual = true;
   if(!raw.replace(/\D/g,"")) WZ.phoneManual = false;        /* 다 지우면 다시 자동으로 */
   if(WZ.phoneManual){ WZ.phone = raw; return; }
@@ -16157,7 +16372,8 @@ function fmtPhone(el, ev){
   const d = raw.replace(/\D/g,"");
   const out = phoneFmt(d.slice(0, phoneMax(d)));
   if(el.value !== out) el.value = out;
-  WZ.phone = out;
+  el.dataset.prev = out;
+  WZ.phone = d === "010" ? "" : out;   /* 미리 넣은 010 만 있으면 아직 안 친 것 */
 }
 /* 번호 종류별 최대 자릿수 — 050x 안심번호는 12자리, 서울(02)은 10자리, 1588 류는 8자리, 나머지 11자리 */
 function phoneMax(d){ return /^050/.test(d) ? 12 : /^02/.test(d) ? 10 : /^1[5-9]/.test(d) ? 8 : 11; }
@@ -16166,6 +16382,7 @@ function phoneMax(d){ return /^050/.test(d) ? 12 : /^02/.test(d) ? 10 : /^1[5-9]
 /* 입력한 번호를 저장용 모양으로 — 숫자만 남기고 phoneFmt. 서버 왕복 뒤 모양이 달라져 충돌로 오인하던 것을 막습니다(점검 D10) */
 function phoneNorm(v){
   const s = String(v || "").trim();
+  if(s.replace(/\D/g, "") === "010") return "";   /* 미리 넣은 010 만 남은 칸(10-17) */
   if(/^\+/.test(s)){
     const dd = s.replace(/\D/g, "");
     if(/^82/.test(dd)) return phoneFmt("0" + dd.slice(2).replace(/^0/, ""));   /* +82 10-… → 010-… (국내 번호로) */
@@ -16717,7 +16934,7 @@ function renderTvGrid(){
     const items = rows.map(r => {
       const past = isBlockPast(r, toMin(r.time), today, nowM);
       return `<li class="${past?'past':''}"><span class="t">${esc(r.time)}</span>` +
-        `<span class="n">${tvName(r.name)} 님${r.tier ? tierTagOf(r.tier) : ""}${pplOf(r) >= (s.settings.groupSize || 8) ? '<span class="tier grp">단체</span>' : ""}</span>` +
+        `<span class="n">${tvName(r.name)} 님${r.tier ? tierTagOf(r.tier) : ""}</span>`   /* '단체' 딱지는 10-17 누님 요청으로 뗌 */ +
         `<span class="p">${pplOf(r)}명</span></li>`;
     }).join("");
     const cols = hall && rows.length > 8 ? 3 : 2;
