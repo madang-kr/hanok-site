@@ -798,7 +798,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     open();
     const d = new Date(Date.now() + 3*864e5);
     Object.assign(S, {date:ymd(d), time:"12:30", adults:5, kids:1, seat:"room", course:"course:촉 코스", courseLabel:"촉 코스",
-                      name:"홍길동", phone:"010-1234-5678", sent:SMS_VERIFY, verified:SMS_VERIFY});
+                      name:"홍길동", phone:"010-0000-1234", sent:SMS_VERIFY, verified:SMS_VERIFY});
     step = Number(m[1]);
     if(step === 1){ S.adults = 1; S.kids = 0; }
     if(step > 3) startTimer();
