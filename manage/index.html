@@ -10311,21 +10311,37 @@ function hrWeekLabel(w){ var th = new Date(shiftDate(w, 3) + "T00:00:00"); retur
 function hrMonthEnd(m){ var d = new Date(m + "-01T00:00:00"); d.setMonth(d.getMonth() + 1); d.setDate(0); return m + "-" + pad(d.getDate()); }
 function hrMonthDays(m){ var n = Number(hrMonthEnd(m).slice(8)), out = []; for(var i = 1; i <= n; i++) out.push(m + "-" + pad(i)); return out; }
 function hrCfg(){ var c = (HR && HR.cfg) || {}; return { over5: c.over5 !== false, over5Mode: c.over5Mode || "auto", inclusive: !!c.inclusive, rates: hrRatesOf(c), pensionBase: Object.assign({}, HR_DEF.pensionBase, c.pensionBase || {}), night: c.night || HR_DEF.night, taxRate: c.taxRate != null ? c.taxRate : HR_DEF.taxRate, weeklyPay: c.weeklyPay !== false, payday: Object.assign({}, HR_DEF.payday, c.payday || {}), paydayOver: c.paydayOver || {} }; }
+/* 10-23 재아(59차): 금액이 매니저·직원에게 가지 않게 — 직원·근무·워크시프트 설정 표는 사장(사장 PIN · 2차 PIN 계정 · 개발자)만 바로 읽고 씀.
+   매니저 PIN 은 서버 함수로만: hanok_mgr_hr(금액 뺀 근무표) · hanok_mgr_att_put/del(근무 기록 — 금액은 서버가 편성 금액으로).
+   매니저 기기에서 사장님이 2차 PIN 을 넣었으면 그 토큰(OWNER_TOK)으로 표를 바로 */
+function hrTok(){ return typeof accountRole === "function" && accountRole() !== "owner" && typeof OWNER_TOK !== "undefined" && OWNER_TOK && OWNER_TOK_EXP > Date.now() ? OWNER_TOK : undefined; }
+function hrViaMgr(){ return supaOn() && !DEV_EMBED && typeof accountRole === "function" && accountRole() === "manager" && !hrTok(); }
+function hrSb(path, opt){ opt = opt || {}; var t = hrTok(); if(t && !opt.token) opt.token = t; return sb(path, opt); }
+async function hrMgrLoad(from, to){
+  var d = await sb("/rest/v1/rpc/hanok_mgr_hr", { method:"POST", body:{ p_from:from, p_to:to } }) || {};
+  HR.staff = (d.staff || []).filter(okRowId); HR.cfg = d.cfg || {};
+  (d.att || []).forEach(function(a){ HR.att[a.staff_id + "|" + a.date] = a; });
+}
+async function hrAttPut(row){ if(hrViaMgr()) return sb("/rest/v1/rpc/hanok_mgr_att_put", { method:"POST", body:{ p_row:row } }); return hrSb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" }); }
+async function hrAttDel(id){ if(hrViaMgr()) return sb("/rest/v1/rpc/hanok_mgr_att_del", { method:"POST", body:{ p_id:id } }); return hrSb("/rest/v1/attendance?id=eq." + encodeURIComponent(id), { method:"DELETE", prefer:"return=minimal" }); }
 async function hrLoad(){
   var key = view.storeKey || "hanok";
   try{
-    HR.staff = ((await sb("/rest/v1/staff?store=eq." + key + "&select=*&order=sort,name")) || []).filter(okRowId);   /* id 가 단추 코드에 들어감(10-09 점검) */
-    var cs = await sb("/rest/v1/hr_settings?store=eq." + key + "&select=data"); HR.cfg = cs[0] ? cs[0].data : {};
+    if(hrViaMgr()){ await hrMgrLoad(shiftDate(HR.week, -7), shiftDate(HR.week, 13)); HR.err = null; HR.loading = false; await hrLoadRange(); return; }
+    HR.staff = ((await hrSb("/rest/v1/staff?store=eq." + key + "&select=*&order=sort,name")) || []).filter(okRowId);   /* id 가 단추 코드에 들어감(10-09 점검) */
+    var cs = await hrSb("/rest/v1/hr_settings?store=eq." + key + "&select=data"); HR.cfg = cs[0] ? cs[0].data : {};
     if(typeof pinUsersLoad === "function") await pinUsersLoad();   /* 직원마다 PIN 이 있는지(30차) */
     HR.err = null; hrCondSync();
   }catch(e){ HR.err = e.message || String(e); }
   await hrLoadRange();
   HR.loading = false;
+  try{ await hrPlanPayBackfill(); }catch(e){}   /* 옛 편성에 금액 채우기(사장만 · 조용히) */
 }
 async function hrLoadMonth(m){
   if(HR.loaded[m]) return;
   var key = view.storeKey || "hanok", from = m + "-01", to = shiftDate(hrMonthEnd(m), 1);
-  var rows = await sb("/rest/v1/attendance?store=eq." + key + "&date=gte." + from + "&date=lt." + to + "&select=*");
+  if(hrViaMgr()){ await hrMgrLoad(from, hrMonthEnd(m)); HR.loaded[m] = true; return; }
+  var rows = await hrSb("/rest/v1/attendance?store=eq." + key + "&date=gte." + from + "&date=lt." + to + "&select=*");
   rows.forEach(function(a){ HR.att[a.staff_id + "|" + a.date] = a; });
   HR.loaded[m] = true;
 }
@@ -10573,7 +10589,7 @@ async function hrPopSave(){
               start:spans[0] ? spans[0].start : "", end:spans[0] ? spans[0].end : "", break_min:spans[0] ? Number(spans[0].break || 0) : 0, spans:spans,
               rate:Number(p.rate || 1), memo:(p.memo || "").trim(), by:sessionBy() };
   try{
-    await sb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
+    await hrAttPut(row);
     HR.att[row.staff_id + "|" + row.date] = row; HR.pop = null; render();
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
@@ -10581,7 +10597,7 @@ async function hrPopDel(){
   var p = HR.pop; if(!p) return;
   if(p._new){ HR.pop = null; render(); return; }
   try{
-    await sb("/rest/v1/attendance?id=eq." + encodeURIComponent(p.id), { method:"DELETE", prefer:"return=minimal" });
+    await hrAttDel(p.id);
     delete HR.att[p.staff_id + "|" + p.date]; HR.pop = null; render();
   }catch(e){ await uiAlert("지우지 못했습니다", e.message || String(e), "warn"); }
 }
@@ -10811,7 +10827,7 @@ async function hrStaffSave(opt){
     if(!await staleAsk("staff", e.id, e.updated_at, "직원 정보")) return false;
   }
   try{
-    await sb("/rest/v1/staff?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
+    await hrSb("/rest/v1/staff?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
     logEvent(e._new ? "직원 추가" : "직원 수정", row.nick || row.name);   /* 퇴사·재직·이름이 바뀌면 서버 트리거가 PIN 도 맞춤(30차) */
     HR.edit = null; HR.loading = true; render(); await hrLoad(); render();
     return true;
@@ -10828,7 +10844,7 @@ async function hrStaffRetire(){
      저장이 끝난 뒤에만 화면을 바꿈 */
   var body = { active:goOn, end_date: goOn ? null : (e.end_date || todayStr()) };
   try{
-    await sb("/rest/v1/staff?id=eq." + encodeURIComponent(e.id), { method:"PATCH", body:body, prefer:"return=minimal" });
+    await hrSb("/rest/v1/staff?id=eq." + encodeURIComponent(e.id), { method:"PATCH", body:body, prefer:"return=minimal" });
   }catch(err){ await uiAlert("저장 실패", err.message || String(err), "warn"); return; }
   logEvent(goOn ? "퇴사 취소" : "퇴사 처리", hrLabel(e));   /* 서버 트리거가 PIN 잠금·해제(30차) */
   HR.edit = null; HR.loading = true; render(); await hrLoad(); render();
@@ -10854,7 +10870,7 @@ function hrSetupOpen(){ HR.setup = deepClone(Object.assign({}, HR_DEF, HR.cfg ||
 async function hrSetupSave(){
   var d = HR.setup; if(!d) return;
   try{
-    await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:d }, prefer:"resolution=merge-duplicates,return=minimal" });
+    await hrSb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:d }, prefer:"resolution=merge-duplicates,return=minimal" });
     HR.cfg = d; HR.setup = null; logEvent("워크시프트 설정", (d.mode === "pro" ? "전문가 모드 · " + (d.over5 ? "5인 이상" : "5인 미만") : "기본 모드")); render();
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
@@ -11286,7 +11302,7 @@ async function hrAdjSave(){
   var cfg = deepClone(HR.cfg || {}); cfg.adj = cfg.adj || {}; cfg.adj[a.month] = cfg.adj[a.month] || {};
   if(rows.length) cfg.adj[a.month][a.id] = rows; else delete cfg.adj[a.month][a.id];
   try{
-    await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:cfg }, prefer:"resolution=merge-duplicates,return=minimal" });
+    await hrSb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:cfg }, prefer:"resolution=merge-duplicates,return=minimal" });
     HR.cfg = cfg; HR.adj = null; logEvent("급여 조정", a.month + " " + a.id + " " + rows.length + "건"); render(); showToast("저장했습니다");
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
@@ -11296,7 +11312,7 @@ async function hrAdjSave(){
 async function hrPaydayPick(m){
   var v = await uiDate(Number(m.slice(5)) + "월 급여 지급일", hrPayday(m), {}); if(!v) return;
   var cfg = deepClone(HR.cfg || {}); cfg.paydayOver = cfg.paydayOver || {}; cfg.paydayOver[m] = v;
-  try{ await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:cfg }, prefer:"resolution=merge-duplicates,return=minimal" }); HR.cfg = cfg; logEvent("급여 지급일", m + " → " + v); render(); showToast("지급일을 바꿨습니다 · " + pkShort(v)); }
+  try{ await hrSb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:view.storeKey || "hanok", data:cfg }, prefer:"resolution=merge-duplicates,return=minimal" }); HR.cfg = cfg; logEvent("급여 지급일", m + " → " + v); render(); showToast("지급일을 바꿨습니다 · " + pkShort(v)); }
   catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); }
 }
 /* 수습 켤 때 조건 안내(09-25 재아: 사장님이 고르되 조건은 알려 주기) */
@@ -11315,7 +11331,7 @@ async function hrLeaveLoad(){
   HR.leaveLoading = true; HR.leaveErr = null; render();
   try{
     var ids = HR.staff.map(function(s){ return s.id; }), from = shiftDate(todayStr(), -760);
-    HR.leaveRows = ids.length ? await sb("/rest/v1/attendance?staff_id=in.(" + ids.join(",") + ")&status=in.(%EC%97%B0%EC%B0%A8,%EA%B2%B0%EA%B7%BC)&date=gte." + from + "&select=staff_id,date,status&order=date") : [];
+    HR.leaveRows = ids.length ? await hrSb("/rest/v1/attendance?staff_id=in.(" + ids.join(",") + ")&status=in.(%EC%97%B0%EC%B0%A8,%EA%B2%B0%EA%B7%BC)&date=gte." + from + "&select=staff_id,date,status&order=date") : [];
   }catch(e){ HR.leaveRows = []; HR.leaveErr = e.message || String(e); }
   HR.leaveLoading = false; render();
 }
@@ -11459,7 +11475,7 @@ async function hrCondSync(){
     var s = HR.staff[i], x = (s.sched && s.sched.ext) || {}; if(!Array.isArray(x.hist) || x.hist.length < 2) continue;
     var c = hrCond(s); if(x.kind === c.kind && (x.payBasis || "monthly") === c.payBasis && (x.offUnit || "month") === c.offUnit && Number(x.offN || 0) === c.offN && (x.altBase || "") === (c.altBase || "")) continue;
     var sched = deepClone(s.sched); sched.ext = Object.assign({}, x, { kind:c.kind, payBasis:c.payBasis, offUnit:c.offUnit, offN:c.offN, altBase:c.altBase });
-    try{ await sb("/rest/v1/staff?id=eq." + s.id, { method:"PATCH", body:{ sched:sched }, prefer:"return=minimal" }); s.sched = sched; }catch(e){}
+    try{ await hrSb("/rest/v1/staff?id=eq." + s.id, { method:"PATCH", body:{ sched:sched }, prefer:"return=minimal" }); s.sched = sched; }catch(e){}
   }
 }
 function hrIsOwner(){ return typeof myRole !== "function" || myRole() === "owner"; }
@@ -11660,7 +11676,8 @@ async function hrPlanSave(){
   });
   if(!Object.keys(r).length && !await uiConfirm("편성이 비어 있습니다", "이대로 저장하면 이 주는 '편성 전' 이 됩니다.", {ok:"저장", cancel:"계속 편성"})) return;
   /* 금액은 편성이 남은 파트·일용 칸만(비운 칸의 금액은 버림) */
-  var pay = {}; Object.keys(r).forEach(function(k){ var pr = (P.pay || {})[k]; if(!pr) return; var o = r[k].map(function(v, i){ return v && pr[i] ? pr[i] : null; }); if(o.some(Boolean)) pay[k] = o; });
+  /* 파트 A·B·풀 칸은 금액을 고치지 않았어도 일당표 값을 적어 둠(10-23 · 59차) — 매니저가 넣는 근무는 서버가 이 값으로 금액을 채우고, 내 근무 예정 금액도 이것만 봄(일당표는 직원에게 안 줌) */
+  var pay = {}; Object.keys(r).forEach(function(k){ var pr = (P.pay || {})[k] || []; var o = r[k].map(function(v, i){ if(!v) return null; if(pr[i]) return pr[i]; var df = hrPlanPayDef(typeof v === "object" ? v.c : v, days[i]); return df ? { pay:df, hour:false, rate:0 } : null; }); if(o.some(Boolean)) pay[k] = o; });
   var ok = await hrCfgPatch(function(d){
     d.plans = d.plans || {}; if(Object.keys(r).length) d.plans[P.week] = { at:new Date().toISOString(), by:sessionBy() || "", r:r }; else delete d.plans[P.week];
     d.planPay = d.planPay || {}; if(Object.keys(pay).length) d.planPay[P.week] = pay; else delete d.planPay[P.week];
@@ -11671,6 +11688,32 @@ async function hrPlanSave(){
     var n = await hrPlanPayApply(P.week);
     showToast("근무 편성을 저장했습니다" + (n.upd ? " · 근무 " + n.upd + "일 금액 고침" : "") + (n.paid ? " · 지급 완료 " + n.paid + "일은 그대로" : ""));
   }
+}
+/* 편성 금액 채우기(10-23 · 59차) — 금액 없이 저장된 옛 편성(이번 변경 전)의 파트 A·B·풀 칸에 일당표 값을 적어 둠.
+   매니저가 넣는 근무는 서버가 편성 금액으로 금액을 채우므로(공휴일 표는 화면에만 있어 서버가 못 셈) 사장 화면이 열릴 때 한 번.
+   5주 전 주부터 앞으로의 편성만 · 채운 주는 이미 넣은 근무 금액도 편성대로(지급 완료 날 빼고) */
+async function hrPlanPayBackfill(){
+  if(!hrIsOwner() || hrViaMgr() || !HR.cfg || !HR.cfg.plans) return;
+  var from = shiftDate(hrWeekStart(todayStr()), -35), weeks = [];
+  var fill = function(d){
+    var ch = [];
+    Object.keys(d.plans || {}).forEach(function(w){
+      if(w < from) return; var r = (d.plans[w] && d.plans[w].r) || {}, days = hrWeekDays(w), changed = false;
+      Object.keys(r).forEach(function(id){
+        var s = HR.staff.find(function(x){ return x.id === id; }); if(!s) return;
+        (r[id] || []).forEach(function(v, i){
+          var code = v && typeof v === "object" ? v.c : v; if(!HR_PLAN_SHIFT2[code] || hrKind(s, days[i]) === "regular") return;
+          var cur = d.planPay && d.planPay[w] && d.planPay[w][id] && d.planPay[w][id][i]; if(cur) return;
+          d.planPay = d.planPay || {}; d.planPay[w] = d.planPay[w] || {}; d.planPay[w][id] = d.planPay[w][id] || [null, null, null, null, null, null, null];
+          d.planPay[w][id][i] = { pay:hrPlanPayDef(code, days[i]), hour:false, rate:0 }; changed = true;
+        });
+      });
+      if(changed) ch.push(w);
+    });
+    return ch;
+  };
+  if(!fill(deepClone(HR.cfg)).length) return;   /* 채울 것이 없으면 서버에 안 씀 */
+  if(await hrCfgPatch(function(d){ weeks = fill(d); }, "")){ for(var k = 0; k < weeks.length; k++) await hrPlanPayApply(weeks[k]); }
 }
 /* 편성 금액을 그 주에 이미 넣은 근무 기록에 — 일당은 편성 금액, 시급은 기록의 실제 시간 × 편성 시급 */
 async function hrPlanPayApply(week){
@@ -11685,7 +11728,7 @@ async function hrPlanPayApply(week){
       if(hrDayPaid(s, d)){ out.paid++; continue; }
       var sp = Object.assign({}, m, { pay:np }); if(pp.hour){ sp.basis = "hour"; sp.rate = pp.rate; } else { delete sp.basis; delete sp.rate; }
       var row = Object.assign({}, a, { spans:[sp].concat((a.spans || []).slice(1)) });
-      try{ await sb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" }); HR.att[s.id + "|" + d] = row; out.upd++; }catch(e){}
+      try{ await hrSb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" }); HR.att[s.id + "|" + d] = row; out.upd++; }catch(e){}
     }
   }
   if(out.upd) render();
@@ -11834,9 +11877,9 @@ function hrAmtOf(id, from){ var a = HR.cfg && HR.cfg.amt && HR.cfg.amt[id]; retu
 async function hrCfgPatch(fn, what){
   var key = view.storeKey || "hanok";
   try{
-    var cs = await sb("/rest/v1/hr_settings?store=eq." + key + "&select=data"), d = (cs[0] && cs[0].data) || {};
+    var cs = await hrSb("/rest/v1/hr_settings?store=eq." + key + "&select=data"), d = (cs[0] && cs[0].data) || {};
     fn(d);
-    await sb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:key, data:d }, prefer:"resolution=merge-duplicates,return=minimal" });
+    await hrSb("/rest/v1/hr_settings?on_conflict=store", { method:"POST", body:{ store:key, data:d }, prefer:"resolution=merge-duplicates,return=minimal" });
     HR.cfg = d; if(what) logEvent("워크시프트", what); render(); return true;
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); return false; }
 }
@@ -12083,7 +12126,8 @@ async function hrShiftSave(){
   var row = { id:p.id, store:view.storeKey || "hanok", staff_id:p.staff_id, date:p.date, status:"변형", start:c.st, end:c.en, break_min:c.brk,
               spans:[sp], rate:1, memo:(p.memo || "").trim(), by:sessionBy() };
   try{
-    await sb("/rest/v1/attendance?on_conflict=id", { method:"POST", body:row, prefer:"resolution=merge-duplicates,return=minimal" });
+    await hrAttPut(row);
+    if(hrViaMgr() && row.spans && row.spans[0]){ delete row.spans[0].pay; delete row.spans[0].rate; delete row.spans[0].basis; }   /* 매니저 화면엔 금액을 안 둠(서버가 채움) */
     HR.att[row.staff_id + "|" + row.date] = row; HR.pop = null; render();
   }catch(e){ await uiAlert("저장 실패", e.message || String(e), "warn"); return; }
   /* 지급 상태는 대표만 — 근무가 저장된 뒤 따로(hr_settings) */
@@ -14271,17 +14315,13 @@ async function mwLoad(){
 function mwPlanCell(id, d){ var w = hrWeekStart(d), pl = (MW.data.plans || {})[w], r = pl && pl.r && pl.r[id]; if(!r) return ""; return r[(new Date(d + "T00:00:00").getDay() + 6) % 7] || ""; }
 function mwPlanCode(id, d){ var v = mwPlanCell(id, d); return v && typeof v === "object" ? (v.c || "c") : v; }   /* {c:"w"} 정직원 근무시간(10-18 6차) */   /* 직접 입력 편성 {c:"c", s, e}(10-18 4차) */
 function mwPlanPay(c, d){
-  var r = Object.assign({}, HR_PART_DEF, MW.data.rates || {}), w = new Date(d + "T00:00:00").getDay(), h = w === 0 || w === 6 || mwHol(d), sh = { p:"part", b:"partB", f:"full" }[c], hr = Number((MW.data.me || {}).hourly) || 0;
-  /* 10-23: 사장님이 편성에서 정한 본인 금액(서버 57차가 본인 것만) — 있으면 그것(시급이면 편성 시간으로 예상) */
+  /* 예정 금액 = 사장님이 편성에서 정한 본인 금액(서버가 본인 것만 — 57·59차)뿐. 일당표는 직원에게 안 줌(10-23 재아) → 편성 금액이 없는 날은 '—' */
+  var r = HR_PART_DEF, w = new Date(d + "T00:00:00").getDay(), h = w === 0 || w === 6 || mwHol(d), sh = { p:"part", b:"partB", f:"full" }[c];
   var pw = (MW.data.planPay || {})[hrWeekStart(d)], pv = pw && pw[(w + 6) % 7];
-  if(pv && (Number(pv.pay) || pv.hour)){
-    if(!pv.hour) return Number(pv.pay);
-    var cell = mwPlanCell((MW.data.me || {}).id, d), t = sh ? (r[sh] || HR_PART_DEF[sh]) : cell && typeof cell === "object" ? [cell.s, cell.e] : null;
-    return t ? hrHourPay(t[0], t[1], sh === "full" ? (h ? 60 : 120) : 30, Number(pv.rate) || 0) : null;
-  }
-  if(!sh) return null;
-  if(hr){ var t = r[sh] || HR_PART_DEF[sh]; return hrHourPay(t[0], t[1], sh === "full" ? (h ? 60 : 120) : 30, hr); }   /* 시급인 파트(10-22) — 편성 시간 기준 예상 */
-  return c === "f" ? (h ? r.hdFull : r.wkFull) : (h ? r.hdPart : r.wkPart);   /* 파트 B 일당 = 파트(누님 질문 Q3) */
+  if(!pv || !(Number(pv.pay) || pv.hour)) return null;
+  if(!pv.hour) return Number(pv.pay);
+  var cell = mwPlanCell((MW.data.me || {}).id, d), t = sh ? r[sh] : cell && typeof cell === "object" ? [cell.s, cell.e] : null;   /* 시급이면 편성 시간으로 예상(시간표는 돈이 아님) */
+  return t ? hrHourPay(t[0], t[1], sh === "full" ? (h ? 60 : 120) : 30, Number(pv.rate) || 0) : null;
 }
 function mwWeekPlanned(w, M){ if((MW.data.plans || {})[w]) return true; var me = MW.data.me || {}; return hrWeekDays(w).some(function(d){ return !!M[me.id + "|" + d]; }); }
 function mwHol(d){ try{ return hrIsHol(d); }catch(e){ return false; } }   /* 잠금 화면엔 가게 설정이 없을 수 있음(10-19 검토) */
