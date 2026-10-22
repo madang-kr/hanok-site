@@ -81,6 +81,11 @@ textarea.grow{overflow:hidden; resize:none}   /* 글이 길어지면 칸이 같�
 .reply{margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
 .reply .done{background:var(--pine-bg); border-radius:10px; padding:10px 14px; white-space:pre-wrap; font-size:14px}
 .reply .done b{display:block; font-size:12px; color:var(--pine); margin-bottom:2px}
+/* 이어진 말(58차, 10-23) — 내 추가 답변 = 보낸 답 색, 가게 가게 추가 답변 = 회색 */
+.reply .msg{margin-top:8px; border-radius:10px; padding:10px 14px; white-space:pre-wrap; font-size:14px}
+.reply .msg.dev{background:var(--pine-bg)} .reply .msg.store{background:var(--amber-bg)}
+.reply .msg b{display:block; font-size:12px; margin-bottom:2px} .reply .msg.dev b{color:var(--pine)} .reply .msg.store b{color:var(--amber)}
+.reply .msg + textarea, .reply .done + textarea{margin-top:10px}
 .row-btns{display:flex; gap:8px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap}
 .tag{display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:6px; font-size:12px; font-weight:700; white-space:nowrap}
 .tag.red{background:var(--rust-bg); color:var(--rust)} .tag.green{background:var(--pine-bg); color:var(--pine)} .tag.amber{background:var(--amber-bg); color:var(--amber)} .tag.gray{background:var(--surface-2); color:var(--text-2)}
@@ -269,6 +274,9 @@ function toast(msg){ const t = document.createElement("div"); t.className = "toa
 async function loadReqs(){
   try{ S.reqs = await api("/rest/v1/dev_requests?select=*&order=created_at.desc&limit=300"); }
   catch(e){ S.reqs = []; toast(e.message); }
+  /* 이어진 말(58차, 10-23) — 표가 없는 서버(58차 전)면 빈 것으로 */
+  try{ const ms = await api("/rest/v1/dev_request_msgs?select=*&order=created_at.asc&limit=3000"), by = {}; (ms || []).forEach(m => (by[m.req_id] = by[m.req_id] || []).push(m)); S.msgs = by; S.msgsOk = true; }
+  catch(e){ S.msgs = {}; S.msgsOk = false; }
   render();
 }
 const isDone = r => r.status === "답변 완료" || r.status === "끝";
@@ -302,17 +310,21 @@ function reqHtml(r){
   /* 우리 Storage 에 올린 사진 주소만(10-14 보안 점검) — 직원 토큰으로 images 에 javascript: 나 바깥 주소를 넣으면
      개발자가 누를 때 스크립트가 돌거나, 사진을 여는 것만으로 개발자 IP 가 바깥으로 새던 것 */
   const imgs = (r.images || []).filter(u => typeof u === "string" && u.indexOf(CFG.url + "/storage/v1/object/") === 0);
+  /* 이어서 묻고 답하기(58차, 10-23 재아) — 첫 답(reply) 아래로 가게 가게 추가 답변 · 내 추가 답변이 쌓임. 첫 답이 있으면 아래 칸은 '추가 답변' */
+  const ms = (S.msgs || {})[r.id] || [], lastStore = ms.length && ms[ms.length - 1].who === "store", editing = S.editReq === r.id;
+  const thread = ms.map(m => `<div class="msg ${m.who === "dev" ? "dev" : "store"}"><b>${m.who === "dev" ? "내 답변" : (m.by === "admin" ? "사장님" : "직원") + " 추가 답변"} · ${esc(kst(m.created_at))}</b>${esc(m.body)}</div>`).join("");
   return `<div class="card req${r.urgent && !isDone(r) ? " urgent" : ""}">
     <div class="req-h"><div style="flex:1"><h3>${esc(r.title)}</h3>
       <div class="req-m">${r.store === "anjip" ? "안집" : "한옥반점"} · ${r.by === "admin" ? "사장님" : "직원"} · ${esc(kst(r.created_at))} (${esc(ago(r.created_at))})</div></div>
-      ${r.urgent ? '<span class="tag red">긴급</span>' : ''}${isDone(r) ? '<span class="tag green">답변 완료</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
+      ${r.urgent ? '<span class="tag red">긴급</span>' : ''}${!isDone(r) && lastStore ? '<span class="tag amber">추가 답변 옴</span>' : ''}${isDone(r) ? '<span class="tag green">답변 완료</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
     ${r.body ? `<p class="req-b">${esc(r.body)}</p>` : ""}
     ${imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : ""}
     <div class="reply">
-      ${isDone(r) && r.reply ? `<div class="done"><b>보낸 답 · ${esc(kst(r.replied_at))}</b>${esc(r.reply)}</div>` : ""}
-      ${isDone(r) ? `<div class="row-btns"><button class="btn sm" onclick="reqEdit('${jsq(r.id)}')">답 고치기</button><button class="btn sm" onclick="reqReopen('${jsq(r.id)}')">미답으로 되돌리기</button><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button></div>`
-        : `<textarea class="grow" id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea>
-           <div class="row-btns"><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button><button class="btn sm primary" onclick="reqReply('${jsq(r.id)}')">답변 보내기</button></div>`}
+      ${r.reply && !editing ? `<div class="done"><b>보낸 답${ms.length ? "" : " · " + esc(kst(r.replied_at))}</b>${esc(r.reply)}</div>${thread}
+           ${S.msgsOk ? `<textarea class="grow" id="ad-${esc(r.id)}" rows="2" placeholder="${lastStore ? "가게 추가 답변에 답하기" : "덧붙일 답(가게 화면에 이어서 보입니다)"}"></textarea>` : ""}
+           <div class="row-btns"><button class="btn sm" onclick="reqEdit('${jsq(r.id)}')">첫 답 고치기</button>${isDone(r) ? `<button class="btn sm" onclick="reqReopen('${jsq(r.id)}')">미답으로 되돌리기</button>` : ""}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button>${S.msgsOk ? `<button class="btn sm primary" onclick="reqAdd('${jsq(r.id)}')">답변 보내기</button>` : ""}</div>`
+        : `${thread}<textarea class="grow" id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea>
+           <div class="row-btns">${editing ? `<button class="btn sm" onclick="S.editReq=null; render()">취소</button>` : ""}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button><button class="btn sm primary" onclick="reqReply('${jsq(r.id)}')">${editing ? "첫 답 고치기" : "답변 보내기"}</button></div>`}
     </div></div>`;
 }
 async function reqPatch(id, body, msg){
@@ -322,10 +334,21 @@ async function reqPatch(id, body, msg){
 function reqReply(id){
   const t = (document.getElementById("rp-" + id) || {}).value || "";
   if(!t.trim()){ toast("답을 적어 주세요"); return; }
-  reqPatch(id, { reply:t.trim(), status:"답변 완료", replied_at:new Date().toISOString() }, "답변을 보냈습니다");
+  const editing = S.editReq === id; S.editReq = null;
+  /* 첫 답을 고칠 때는 상태·시각을 그대로(가게 추가 답변을 기다리는 글이 '답변 완료' 로 바뀌지 않게) */
+  reqPatch(id, editing ? { reply:t.trim() } : { reply:t.trim(), status:"답변 완료", replied_at:new Date().toISOString() }, editing ? "첫 답을 고쳤습니다" : "답변을 보냈습니다");
+}
+/* 추가 답변(58차) — 서버가 그 글을 '답변 완료' 로 */
+async function reqAdd(id){
+  const el = document.getElementById("ad-" + id), t = el ? el.value.trim() : "";
+  if(!t){ toast("답을 적어 주세요"); return; }
+  if(S.adding) return; S.adding = true;
+  try{ await api("/rest/v1/dev_request_msgs", { method:"POST", body:{ id:"dm_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), req_id:id, body:t.slice(0, 4000) }, prefer:"return=minimal" }); toast("답변을 보냈습니다"); await loadReqs(); }
+  catch(e){ toast("보내지 못했습니다 — " + e.message); }
+  S.adding = false;
 }
 function reqReopen(id){ reqPatch(id, { status:"접수" }, "미답으로 되돌렸습니다"); }
-function reqEdit(id){ const r = S.reqs.find(x => x.id === id); if(r){ r.status = "접수"; render(); const el = document.getElementById("rp-" + id); if(el) el.focus(); } }
+function reqEdit(id){ S.editReq = id; render(); const el = document.getElementById("rp-" + id); if(el) el.focus(); }   /* 10-23: 상태를 몰래 바꾸지 않고 고치는 중 표시만 */
 async function reqDel(id){
   if(!confirm("이 글을 지울까요? 가게 화면에서도 사라집니다.")) return;
   try{ await api("/rest/v1/dev_requests?id=eq." + encodeURIComponent(id), { method:"DELETE", prefer:"return=minimal" }); toast("지웠습니다"); await loadReqs(); }
