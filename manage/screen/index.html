@@ -11960,7 +11960,7 @@ async function hrPayRun(id, dates, asked){
   var sum = 0; un.forEach(function(d){ var w = hrWageCalc(s, { from:d, to:d }).log[0]; if(w) sum += w.pay; });
   if(!asked && !await uiConfirm("지급 완료로 표시할까요?", hrLabel(s) + " · " + hrMD(un[0]) + (un.length > 1 ? " ~ " + hrMD(un[un.length - 1]) : "") + " · " + un.length + "일 · " + hrWon(sum), {ok:"지급 완료", cancel:"취소", tone:"ok"})) return;
   var at = todayStr(), by = sessionBy();
-  await hrCfgPatch(function(d){ un.forEach(function(x){ hrSetPath(d, "paid", id, "d:" + x, { at:at, by:by }); }); }, hrLabel(s) + " 지급 완료 " + un.length + "일 · " + hrWon(sum));
+  await hrCfgPatch(function(d){ un.forEach(function(x){ hrSetPath(d, "paid", id, "d:" + x, { at:at, by:by }); }); }, hrLabel(s) + " 지급 완료 " + un.length + "일");   /* 기록(logs)엔 금액을 쓰지 않음 — 기록 표는 직원 PIN 으로도 읽혀서(10-23) */
 }
 /* 하루 지급 상태 바꾸기 — "" 미지급 · "done" 지급 완료. 옛 기간 표시를 풀면 그 기간의 다른 날은 지급 완료로 남김 */
 async function hrPayDay(s, d, st, asked){
@@ -12321,7 +12321,7 @@ async function hrPaidTog(id, from){
   await hrCfgPatch(function(d){
     hrSetPath(d, "paid", id, from, cur ? null : Object.assign({ at:todayStr(), by:sessionBy() }, won != null ? { amount:won } : {}));
     if(won != null) hrSetPath(d, "amt", id, from, won);   /* 엑셀 '지급여'(hrAmtOf) */
-  }, hrLabel(s) + (cur ? " 미지급으로" : " 지급 완료" + (won != null ? " " + hrWon(won) : "")) + " (" + hrMD(from) + " 기간)");
+  }, hrLabel(s) + (cur ? " 미지급으로" : " 지급 완료") + " (" + hrMD(from) + " 기간)");   /* 금액은 기록에 안 씀(10-23) */
 }
 function hrAmtOpen(id, from){ if(!hrIsOwner()) return; HR.amt = { id:id, from:from, v:hrAmtOf(id, from) }; render(); }
 function hrAmtHtml(){
@@ -12334,7 +12334,7 @@ function hrAmtHtml(){
 async function hrAmtSave(del){
   var a = HR.amt; if(!a) return; var s = HR.staff.find(function(x){ return x.id === a.id; }) || {};
   var v = del || a.v === "" || a.v == null ? null : Number(a.v);
-  if(await hrCfgPatch(function(d){ hrSetPath(d, "amt", a.id, a.from, v); }, hrLabel(s) + " 지급액 " + (v == null ? "지움" : hrWon(v)) + " (" + hrMD(a.from) + " 기간)")) HR.amt = null; render();
+  if(await hrCfgPatch(function(d){ hrSetPath(d, "amt", a.id, a.from, v); }, hrLabel(s) + " 지급액 " + (v == null ? "지움" : "입력") + " (" + hrMD(a.from) + " 기간)")) HR.amt = null; render();
 }
 
 /* ---------- 기간 근무 기록 · 급여명세(영수증 모양 — hrSlipHtml·사진·인쇄가 그대로 씀) ---------- */
