@@ -2113,16 +2113,18 @@ button.sa-card:hover{border-color:var(--text-3)}
 /* 감사 문자(14g) */
 .th-top{display:flex; align-items:center; justify-content:space-between; gap:var(--s12); flex-wrap:wrap}
 .th-top .seg .cnt{display:inline-block; min-width:18px; height:18px; line-height:18px; border-radius:9px; background:var(--amber); color:#fff; font-size:11px; font-style:normal; text-align:center; margin-left:var(--s4); padding:0 5px}
-.th-ctl{display:grid; grid-template-columns:150px 1fr auto; gap:var(--s12); margin-bottom:var(--s8); align-items:end}
+.th-ctl{display:grid; grid-template-columns:170px minmax(0, 320px); gap:var(--s12); margin-bottom:var(--s8); align-items:end}   /* ▼(고급) 칸은 뺌 — 보낼 시각은 아래 선택 줄로(11-11) */
 .th-ctl.adv{grid-template-columns:260px}
 .th-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s12) var(--s16); margin-bottom:var(--s12)}
 .th-card.queued{background:var(--surface-2)}
 .th-h{display:flex; align-items:center; justify-content:space-between; gap:var(--s8)}
+.th-who{display:flex; align-items:center; gap:var(--s8); min-width:0; flex:1}
+.th-nm{display:block; min-width:0} .th-nm b{margin-right:var(--s4)} .th-nm small{margin-left:var(--s4); white-space:nowrap}
 .th-info{font-size:var(--fs-sub); color:var(--text-2); margin:var(--s4) 0 var(--s8)}
 .th-text{width:100%; font:inherit; font-size:var(--fs-body); line-height:1.6; padding:var(--s8) var(--s12); border:1px solid var(--border-strong); border-radius:var(--r-sm); resize:none; overflow:auto; max-height:360px; box-sizing:border-box}   /* 09-20: 크기 손잡이 없이 글에 맞춰 늘어나고(thSetText). 09-25: 처음 높이도 글에 맞춤(thRows), 360px 넘으면 안에서 스크롤 */
 .th-text.ro{border-color:var(--border); background:var(--surface); white-space:pre-wrap}
 .th-meta{font-size:var(--fs-label); color:var(--text-3); margin-top:var(--s4)}
-@media (max-width:767px){ .th-ctl{grid-template-columns:1fr}  }
+@media (max-width:767px){ .th-ctl{grid-template-columns:minmax(0, 1.25fr) minmax(0, 1fr)} .th-ctl input{width:100%; min-width:0} }   /* 폰도 한 줄에 둘(11-11) — 날짜가 잘리지 않게 날짜 칸을 조금 넓게 */
 .th-top ~ .th-ctl + .btn-row .btn svg, .btn.primary svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.7; vertical-align:-4px; margin-right:4px}   /* 아이콘 단추(감사 문자) — 크기 안 주면 SVG 가 단추를 삼킴 */
 /* 급여계산서 영수증(hrSlipHtml). 인쇄 창은 이 규칙들을 그대로 복사해 씀(hrPrintSlip) */
 .rc-wrap{flex:1; min-height:0; overflow:auto; background:var(--surface-2); padding:var(--s16) var(--s8); border-radius:var(--r-md)}
@@ -2180,7 +2182,15 @@ button.sa-card:hover{border-color:var(--text-3)}
 @media (max-width:640px){ .dq-top{flex-direction:column; align-items:stretch} }
 
 /* 감사 문자 09-20 개편: 키워드 알약 · 떠 있는 AI 표시 · 오른쪽 예약발송 */
-.th-actions{display:flex; align-items:center; justify-content:space-between; gap:var(--s12); margin-bottom:var(--s12); flex-wrap:wrap}
+/* 11-11 재아(폰 다듬기): 단추 줄 — AI 로 완성하기 → 선택 줄(n명 선택 · 전체 · 해제 · 예약 시각) → 맨 아래 고정 발송 줄 */
+.th-actions{display:flex; flex-direction:column; align-items:flex-start; gap:var(--s8); margin-bottom:var(--s12)}
+.th-sel{display:flex; align-items:center; gap:var(--s12); width:100%; flex-wrap:wrap; font-size:var(--fs-sub); padding:var(--s4) 0}
+.th-sel .th-cnt{font-weight:700; color:var(--text)}
+.th-sel .linkbtn{color:var(--text-2); text-decoration:none; font-weight:600; min-height:32px}
+.th-sel .th-when{margin-left:auto; color:var(--pine); white-space:nowrap}
+.th-when-f{width:100%; max-width:320px; margin:0} .th-when-f input{width:100%}
+.th-send{position:sticky; bottom:0; z-index:5; display:flex; gap:var(--s8); justify-content:flex-end; padding:var(--s12) 0; background:var(--bg)}
+.th-send .btn{min-width:150px; height:48px}
 .th-kwrow{margin-bottom:var(--s8)}
 .chips{display:flex; flex-wrap:wrap; gap:var(--s4) var(--s8); align-items:center}
 .chip{display:inline-flex; align-items:center; gap:4px; padding:3px 6px 3px 10px; border-radius:999px; background:var(--pine-soft); border:1px solid var(--border-strong); font-size:var(--fs-sub); font-weight:600; color:var(--text)}
@@ -2338,6 +2348,13 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 /* 현장 손님 등록(09-29) — 인원 − n ＋, '선택' 구분 줄 */
 .wk-num{display:flex; align-items:center; gap:12px; height:44px}
 .wk-num b{min-width:32px; text-align:center; font-size:var(--fs-title, 18px)}
+/* 현장 손님 기록(11-11 재아): 폰에서 날짜 칸이 화면 밖으로 나가던 것 — 칸이 글자 폭보다 줄어들 수 있게 */
+.wk-grid{grid-template-columns:minmax(0, 1fr) minmax(0, 1fr)} .wk-grid .f{min-width:0} .wk-grid input, .wk-grid select{width:100%; min-width:0; max-width:100%; box-sizing:border-box}
+.wk-ppl{margin-top:var(--s8)} .wk-ppl .bigstep{justify-content:flex-start; margin-top:var(--s4)}
+.bigstep.round button{border-radius:50%}
+.wk-ppl .v{display:flex; align-items:baseline; justify-content:center; gap:2px; cursor:text}
+.wk-ppl .v input{width:56px; border:none; background:none; text-align:center; font:inherit; font-weight:700; padding:0; -moz-appearance:textfield}
+.wk-ppl .v input::-webkit-outer-spin-button, .wk-ppl .v input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
 .wk-opt{margin:14px 0 8px; padding-top:12px; border-top:1px solid var(--border); font-size:var(--fs-label); font-weight:700; color:var(--text-3)}
 .cd-row .time-col small{display:block; font-size:11px; color:var(--rust); font-weight:600}
 
@@ -3575,6 +3592,27 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
   .hr-pay td.nm .hr-nm small{white-space:nowrap}
   .hr-pay td.hr-acts{white-space:nowrap}
   .hr-pay th.hr-acts-h{width:auto}
+}
+
+/* 현장 손님 기록(11-11): 좁은 폰에서는 칸을 한 줄에 하나 — 둘씩 놓으면 날짜가 잘림(320폭 '2026-11-1') */
+@media (max-width: 480px){ .wk-grid{grid-template-columns:minmax(0, 1fr)} }
+
+/* 감사 문자(11-11 재아 '버튼들 중구난방') — 폰: AI 단추 넓게, 발송 줄은 두 칸 꽉, 카드 머리 이름/번호 두 줄, 키워드 프리셋은 한 줄로 옆으로 밀기 */
+@media (max-width:640px){
+  .th-actions .th-ai{width:100%; justify-content:center; height:48px}
+  .th-sel{gap:var(--s8)}
+  .th-ctl input[type=date]{padding-left:10px; padding-right:6px}
+  .th-send{justify-content:stretch} .th-send .btn{flex:1; min-width:0}
+  .th-card{padding:var(--s12)}
+  .th-nm b{display:block; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .th-nm small{display:block; margin:0}
+  .th-hr{gap:var(--s8); flex:none}
+  .page-wrap .th-card .th-hr .th-one{min-height:32px!important; height:32px!important; width:32px; padding:0!important; justify-content:center; font-size:0!important}   /* .page-wrap .btn.sm 이 !important 로 덮어서 같은 세기로 */   /* 폰은 별 아이콘만(이름 자리를 남김) */
+  .th-card .th-hr .th-one svg{width:16px; height:16px; margin:0}
+  .th-manual{white-space:nowrap; font-size:var(--fs-label)}
+  .th-kwrow .chips.presets{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:2px}
+  .th-kwrow .chips.presets::-webkit-scrollbar{display:none}
+  .th-kwrow .chips.presets .chip{flex:none}
 }
 /* ============================================================
    12c. apple-design 2차 (2026-09-20) — 12b 뒤·13 앞. 새 화면(사장님·설정 목록·워크시프트·감사 문자)이 생긴 뒤 다시 맞춘 것.
@@ -8009,8 +8047,7 @@ function smsOutState(q){
 function smsSrvNote(){
   if(!SMS_SRV) return "";
   if(!SMS_SRV.live) return "지금은 문자 발송이 꺼져 있습니다 — 아래는 지난 기록입니다.";   /* 꺼 둔 동안 '시험 번호로만 나감' 이 떠 헷갈렸음(11-11) */
-  var n = (SMS_SRV.test_phones || []).length;
-  return SMS_SRV.test_mode ? "시험 모드 — 문자가 실제로 나가지 않습니다(업체 응답만 확인)." : n ? "시험 중 — 등록한 시험 번호 " + n + "개로 가는 문자만 실제로 나갑니다." : "";
+  return SMS_SRV.test_mode ? "시험 모드 — 문자가 실제로 나가지 않습니다(업체 응답만 확인)." : "";   /* '시험 번호로만 나감' 안내는 뺌(11-11 재아 — 이미 앎) */
 }
 
 /* 재안내 시각이 지난 예약을 훑어 '보냄'으로 바꿉니다.
@@ -13566,7 +13603,7 @@ function smsPageBlocked(){ if(smsPageOk()) return false; uiAlert("문자 서비�
 function openMessagesPage(){ if(smsPageBlocked()) return; view.form = {type:"messages", page:true, back:"owner"}; render(); window.scrollTo(0,0); }
 function sheetMessages(){
   var item = function(fn, icon, title, sub){ return '<button class="own-it" onclick="' + fn + '">' + icon + '<b>' + title + '</b><small>' + sub + '</small></button>'; };
-  return '<div class="own-section"><h2>문자 관리</h2><p class="own-lead">감사 문자 작성부터 직접 보내기와 기록 확인까지 한곳에서 관리합니다.</p>' +
+  return '<div class="own-section">' +   /* 제목·설명 줄 뺌(11-11 재아 — 맨 위 상단바에 '문자 관리' 가 있음) */
     (SMS_READY ? '' : '<div class="mockbar">지금은 문자 발송이 꺼져 있습니다 — 기록은 볼 수 있고, 감사 문자·직접 보내기는 켠 뒤에 쓸 수 있습니다.</div>') +
     '<div class="own-grid">' +
     item("openThanksPage()", ICON.spark, "감사 문자", "방문 손님 문안 작성 · 예약 발송") +
@@ -13871,24 +13908,29 @@ function cdEsc(){ if(HR && HR.pop && view.cdStaff){ HR.pop = null; render(); ret
    예약 없이 온 손님을 간단히 — 이름만 필수, 전화·날짜·메뉴·인원은 선택. 자리·시각은 안 받음(손님 관리용이라).
    예약이 아니라 walkins 표(62차)에 넣어 타임라인·TV·남은 자리에 안 끼어듦. 전화가 있으면 방문 횟수·등급에 들어감(11-04 누님 답) */
 function openWalkIn(){
-  view.wk = { name:"", phone:"", date:bizToday(), menu:"", people:"" };
+  view.wk = { name:"", phone:"", date:bizToday(), menu:"", people:0 };   /* 인원 기본 0(11-11 재아) */
   var pg = view.form && view.form.page ? view.form : null;
   view.form = { type:"walkin" }; view.under = pg; render();   /* 사장님 화면 위에 팝업 — 닫으면 그 화면으로(view.under) */
   setTimeout(function(){ var el = document.getElementById("wk-name"); if(el && !isMobile()) el.focus(); }, 50);
 }
 function wkSet(k, v){ view.wk[k] = v; }
+/* 인원 − ＋ (11-11 재아: 동그란 단추로 조정, 숫자를 누르면 직접 입력) */
+function wkPpl(d){ var w = view.wk; if(!w) return; w.people = Math.max(0, Math.min(99, (parseInt(w.people) || 0) + d)); render(); }
 function sheetWalkIn(){
   var w = view.wk || {}, seen = [];
   courseGroups(w.date || bizToday()).forEach(function(g){ (g.items || []).forEach(function(it){ var n = typeof it === "string" ? it : (it && it.name) || ""; if(n && seen.indexOf(n) < 0) seen.push(n); }); });
   return sheetHead("현장 손님 기록") +
     '<label class="f"><div class="lb">이름</div><input id="wk-name" value="' + esc(w.name) + '" oninput="wkSet(\'name\', this.value)" autocomplete="off"></label>' +
     '<div class="wk-opt">선택</div>' +
-    '<div class="grid2">' +
+    '<div class="grid2 wk-grid">' +
       '<label class="f"><div class="lb">전화번호 <span class="lbl-note">있어야 방문 횟수에 들어감</span></div><input value="' + esc(w.phone) + '" inputmode="tel" oninput="wkSet(\'phone\', this.value)" autocomplete="off"></label>' +
       '<label class="f"><div class="lb">날짜</div><input type="date" value="' + esc(w.date) + '" onchange="wkSet(\'date\', this.value)"></label>' +
       '<label class="f"><div class="lb">메뉴</div><select onchange="wkSet(\'menu\', this.value)"><option value="">선택 안 함</option>' + seen.map(function(n){ return '<option' + (w.menu === n ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("") + '<option' + (w.menu === "단품" ? " selected" : "") + '>단품</option></select></label>' +
-      '<label class="f"><div class="lb">인원</div><input type="number" min="1" value="' + esc(w.people) + '" oninput="wkSet(\'people\', this.value)"></label>' +
     '</div>' +
+    '<div class="f wk-ppl"><div class="lb">인원</div><div class="bigstep sm round">' +
+      '<button type="button" onclick="wkPpl(-1)" aria-label="인원 한 명 줄이기">−</button>' +
+      '<label class="v"><input type="number" inputmode="numeric" min="0" max="99" value="' + esc(String(w.people || 0)) + '" aria-label="인원" onfocus="this.select()" oninput="wkSet(\'people\', Math.max(0, parseInt(this.value) || 0))"><small>명</small></label>' +
+      '<button type="button" onclick="wkPpl(1)" aria-label="인원 한 명 늘리기">＋</button></div></div>' +
     '<div class="sheet-actions"><button class="btn ghost" onclick="closeSheet()">닫기</button><button class="btn primary" onclick="saveWalkIn()">기록</button></div>';
 }
 async function saveWalkIn(){
@@ -14155,16 +14197,20 @@ function thMakeHtml(){
   var list = thTargets(), cfg = thCfg(), running = thRunning();
   var open = list.filter(function(r){ return !thQueued(r.id); });
   var todo = open.filter(function(r){ var it = thItem(r); return !it.manual && !(it.text && it.made === "ai"); }).length;
+  /* 11-11 재아(폰 다듬기): 방문일·공통 키워드 한 줄 → AI 로 완성하기 → '선택 n명 · 전체/해제 · 보낼 시각' 한 줄 → 맨 아래 고정 줄(예약발송·지금 발송) */
+  var picked = open.filter(function(r){ var it = thItem(r); return it.pick && it.text; }).length;
+  var sendLbl = (function(){ var d = TH.sendAt ? TH.sendAt.slice(0, 10) : ""; return d ? pkShort(d) + " " + TH.sendAt.slice(11, 16) : "정하기"; })();   /* 24시 표기로 짧게 — 폰에서 한 줄에 들어가게 */
   var head = '<div class="th-ctl"><label class="f"><div class="lb">방문일</div><input type="date" value="' + esc(TH.date) + '" onchange="TH.date=this.value; TH.items={}; render()"></label>' +
-    '<label class="f"><div class="lb">공통 키워드</div><input type="text" value="' + esc(cfg.common) + '" onchange="thSaveCfg({thanksCommon:this.value})"></label>' +
-    '<div class="f"><div class="lb">&nbsp;</div><button class="btn sm ghost th-adv" onclick="TH.adv=!TH.adv; render()" aria-label="' + (TH.adv ? "고급 닫기" : "고급 열기") + '" aria-expanded="' + (TH.adv ? "true" : "false") + '">' + (TH.adv ? "▲" : "▼") + '</button></div></div>' +   /* '고급' 글자 대신 삼각형(09-25 재아) */
-    (TH.adv ? '<div class="th-ctl adv"><label class="f"><div class="lb">전송 시점</div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="TH.sendAt=this.value"></label></div>' : '') +
-    '<div class="th-actions"><div class="btn-row">' +
-      (todo || !open.length ? '<button class="btn primary" onclick="thMakeAll()" ' + (running || !open.length ? "disabled" : "") + '>' + ICON.spark + ' AI 로 완성하기</button>'
-        : '<button class="btn primary" onclick="thMakeAll(true)" ' + (running ? "disabled" : "") + '>' + ICON.refresh + ' AI 다시 돌리기</button>') + '</div>' +
-      '<div class="btn-row"><button class="btn sm ghost" onclick="thPickAll(true)">전체 선택</button><button class="btn sm ghost" onclick="thPickAll(false)">선택 해제</button>' +
-      '<button class="btn" onclick="thSchedule()" ' + (running ? "disabled" : "") + '>예약발송하기</button>' +
-      '<button class="btn primary" onclick="thSchedule(true)" ' + (running ? "disabled" : "") + '>지금 발송하기</button></div></div>';
+    '<label class="f"><div class="lb">공통 키워드</div><input type="text" value="' + esc(cfg.common) + '" placeholder="계절·날씨 등" onchange="thSaveCfg({thanksCommon:this.value})"></label></div>' +
+    '<div class="th-actions">' +
+      (todo || !open.length ? '<button class="btn primary th-ai" onclick="thMakeAll()" ' + (running || !open.length ? "disabled" : "") + '>' + ICON.spark + ' AI 로 완성하기</button>'
+        : '<button class="btn primary th-ai" onclick="thMakeAll(true)" ' + (running ? "disabled" : "") + '>' + ICON.refresh + ' AI 다시 돌리기</button>') +
+      '<div class="th-sel"><span class="th-cnt">보낼 문자 ' + picked + '건</span><button class="linkbtn" onclick="thPickAll(true)">전체</button><button class="linkbtn" onclick="thPickAll(false)">해제</button>' +
+        '<button class="linkbtn th-when" onclick="TH.adv=!TH.adv; render()" aria-expanded="' + (TH.adv ? "true" : "false") + '">예약 ' + esc(sendLbl) + ' ' + (TH.adv ? "▴" : "▾") + '</button></div>' +
+      (TH.adv ? '<label class="f th-when-f"><div class="lb">예약발송 시각</div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="TH.sendAt=this.value; render()"></label>' : '') +
+    '</div>';
+  var foot = '<div class="th-send"><button class="btn" onclick="thSchedule()" ' + (running || !picked ? "disabled" : "") + '>예약발송하기</button>' +
+    '<button class="btn primary" onclick="thSchedule(true)" ' + (running || !picked ? "disabled" : "") + '>지금 발송하기</button></div>';
   if(!list.length) return head + '<div class="empty">' + dateLabel(TH.date) + ' 에 \'방문\' 으로 확인된 예약이 없습니다.</div>';
   var rows = list.map(function(r){
     var it = thItem(r), q = thQueued(r.id), c = custStat(r);
@@ -14176,7 +14222,7 @@ function thMakeHtml(){
     var tags = it.kws.map(function(k, i){ return '<span class="kwtag">#' + esc(k) + '<button class="x" onclick="thDelKw(\'' + r.id + '\', ' + i + ')" aria-label="빼기">×</button></span>'; }).join("");
     var presets = cfg.kwPresets.filter(function(k){ return it.kws.indexOf(k) < 0; }).map(function(k){ return '<button class="chip preset" onclick="thAddKw(\'' + r.id + '\', thCfg().kwPresets[' + cfg.kwPresets.indexOf(k) + '])">+ ' + esc(k) + '</button>'; }).join("");
     var showText = !!(it.text || it.manual);
-    return '<div class="th-card"><div class="th-h"><label class="chk" style="margin:0"><input type="checkbox" ' + (it.pick ? "checked" : "") + ' onchange="thItem(store().reservations.find(function(x){return x.id===\'' + r.id + '\';})).pick=this.checked"> <b>' + esc(r.name) + '</b>' + tierTag(r) + ' <small class="muted">' + esc(phoneNorm(r.phone)) + '</small></label>' +
+    return '<div class="th-card"><div class="th-h"><label class="chk th-who" style="margin:0"><input type="checkbox" ' + (it.pick ? "checked" : "") + ' onchange="thItem(store().reservations.find(function(x){return x.id===\'' + r.id + '\';})).pick=this.checked; render()"> <span class="th-nm"><b>' + esc(r.name) + '</b>' + tierTag(r) + '<small class="muted">' + esc(phoneNorm(r.phone)) + '</small></span></label>' +
       '<span class="th-hr">' + (it.manual ? '' : '<button class="btn sm ghost th-one" onclick="thMake(\'' + r.id + '\')" ' + (thRunning() ? "disabled" : "") + ' title="이 손님 것만 AI 로">' + ICON.spark + (it.text && it.made === "ai" ? ' 다시' : ' AI') + '</button>') +
       '<label class="chk th-manual"><input type="checkbox" ' + (it.manual ? "checked" : "") + ' onchange="thSetManual(\'' + r.id + '\', this.checked)"> 직접 입력</label></span></div>' +
       '<div class="th-info">' + info + (tags ? ' <span class="kwtags">' + tags + '</span>' : '') + (extra ? '<div class="th-extra">' + extra + '</div>' : '') + '</div>' +
@@ -14188,7 +14234,7 @@ function thMakeHtml(){
         (it.manual ? '<label class="chk th-tpl"><input type="checkbox" ' + (it.made === "template" ? "checked" : "") + ' onchange="thToggleTemplate(\'' + r.id + '\', this.checked)"> 기본양식 적용하기</label>' : '') + '</div>' +
       '</div>';
   }).join("");
-  return head + rows;   /* 아래 설명 글은 뺌(09-25 재아) */
+  return head + rows + foot;   /* 아래 설명 글은 뺌(09-25 재아) · foot = 맨 아래 고정 발송 줄(11-11) */
 }
 function thLockedTap(id, status){ showToast(status === "대기" || status === "오류" || status === "실패" ? "발송 대기 중입니다 — '발송 대기' 에서 취소해야 다시 열 수 있습니다" : "이미 " + thStatusLabel(status) + " 된 문자입니다 — '발송 완료' 에서 보세요"); }
 /* 글 칸 줄 수 — 한 줄 약 36자로 어림. 4~12줄 */
