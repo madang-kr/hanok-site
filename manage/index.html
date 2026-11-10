@@ -2524,6 +2524,11 @@ textarea.gs-memo{width:100%; min-height:84px; resize:vertical}
 .hr-more-b svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.7}
 .hr-more-b.on{background:var(--text); border-color:var(--text); color:#fff}
 .hr-more .more-menu{color:var(--text)}
+/* 개발자 공지 새 글(11-11 재아) — 올라온 지 24시간: 제목 앞 작은 NEW 딱지 + 줄 바탕을 살짝 따뜻하게. 공지 카드에도 딱지 */
+.dq-new{display:inline-block; margin-right:6px; padding:1px 7px; border-radius:999px; background:var(--rust); color:#fff; font-size:11px; font-weight:800; letter-spacing:.04em; line-height:18px; vertical-align:2px}
+.dq-row.new{background:var(--amber-bg, #fbf3e4)}
+.dq-sec.new{border-color:var(--rust)}
+.dq-sec .dq-new{margin:0 0 0 6px}
 /* ---------- 메뉴판(09-25 재아, 14i-menu.js) ----------
    페이지(A4) 모양은 JS 의 MB_CSS 에 — 인쇄 창과 같이 쓰려고. 여기는 편집 화면만 */
 
@@ -14399,6 +14404,8 @@ function dqStatusTag(s){ var c = (s === "답변 완료" || s === "끝") ? "pine"
 /* 10-06 재아: 첫 화면은 단추 셋(개발자 공지 · 답변 대기 중 · 답변 완료) — 누르면 그 목록으로. '글 쓰기' 는 어느 화면에서나 같은 자리.
    개발자 공지 = 개발자 페이지에서 올리는 업데이트 소식 등. 따로 표를 만들지 않고 dev_requests 에 by = "dev-notice" 로 넣음(서버 변경 없음) */
 function dqIsNotice(r){ return r.by === "dev-notice"; }
+/* 올라온 지 24시간 안의 공지 = 새 글(11-11 재아: 'NEW' 로 살짝 강조) */
+function dqIsNew(r){ return dqIsNotice(r) && r.created_at && Date.now() - new Date(r.created_at).getTime() < 24 * 3600e3; }
 function dqLists(){
   var real = DQ.list.filter(function(r){ return !dqIsNotice(r); });
   return {
@@ -14415,8 +14422,8 @@ function sheetDevReq(){
   var row = function(r){
     /* 09-25 재아: 글끼리 구분이 잘 안 됐음 → 한 글 = 한 칸(제목 굵게 · 첫 줄 미리보기 · 오른쪽에 날짜와 상태). 긴급은 왼쪽 빨간 띠 + 날짜·제목 빨강 */
     var nt = dqIsNotice(r);
-    return '<button class="dq-row' + (r.urgent ? ' urgent' : '') + '" onclick="DQ.open=\'' + jsq(r.id) + '\'; render()">' +
-      '<span class="dq-l"><b class="dq-t">' + esc(r.title) + '</b>' +
+    return '<button class="dq-row' + (r.urgent ? ' urgent' : '') + (dqIsNew(r) ? ' new' : '') + '" onclick="DQ.open=\'' + jsq(r.id) + '\'; render()">' +
+      '<span class="dq-l"><b class="dq-t">' + (dqIsNew(r) ? '<span class="dq-new">NEW</span>' : '') + esc(r.title) + '</b>' +
       '<span class="dq-p">' + (function(){ var ms = nt ? [] : dqMsgs(r.id), last = ms[ms.length - 1];   /* 이어진 말이 있으면 마지막 말(10-23) */
         if(last) return '<i>' + (last.who === "dev" ? "개발자 답변" : "추가 답변") + '</i> ' + esc(String(last.body).slice(0, 90));
         return !nt && r.reply ? '<i>답변</i> ' + esc(String(r.reply).slice(0, 90)) : esc(r.body || "").split("\n")[0].slice(0, 90); })() + '</span></span>' +
@@ -14429,7 +14436,7 @@ function sheetDevReq(){
   var body;
   if(!sec){
     /* 10-09 재아: 카드 아래 설명 글은 뺌 — 이름과 건수만 */
-    var card = function(k){ return '<button class="dq-sec" onclick="DQ.sec=\'' + k + '\'; render()"><b>' + DQ_SECS[k] + '</b><span class="dq-n">' + L[k].length + '<small>건</small></span></button>'; };
+    var card = function(k){ var nw = k === "notice" && L[k].some(dqIsNew); return '<button class="dq-sec' + (nw ? ' new' : '') + '" onclick="DQ.sec=\'' + k + '\'; render()"><b>' + DQ_SECS[k] + (nw ? '<span class="dq-new">NEW</span>' : '') + '</b><span class="dq-n">' + L[k].length + '<small>건</small></span></button>'; };
     body = '<div class="dq-secs">' + card("notice") + card("open") + card("done") + '</div>';
   } else {
     var list = L[sec];
