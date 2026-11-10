@@ -21,9 +21,10 @@ window.SITE_DEFAULT = {
   /* 영업시간 — 예약 시스템 설정과 같게 */
   hours: [
     { day: "월 – 토", open: "11:00 – 22:00" },
-    { day: "일 · 공휴일", open: "11:00 – 20:30" }
+    { day: "일", open: "11:00 – 20:30" }
   ],
-  hoursNote: ["브레이크 평일 15:30 – 17:00", "라스트오더 평일·토 20:40 · 일·공휴일 19:40"],   /* 10-14: '영업종료 1시간 20분 전' 은 일·공휴일(19:40)과 안 맞아 시각으로 — 예약 시스템 운영시간과 같게 */
+  /* 11-10: 10-31 미팅 — 평일 하루 공휴일은 토요일 시간표, 이어지는 연휴는 마지막 날만 일요일 시간표(예약 시스템 hoursFor 와 같게). 전엔 '일·공휴일' 로 묶어 틀렸음 */
+  hoursNote: ["브레이크 평일 15:30 – 17:00", "라스트오더 월 – 토 20:40 · 일 19:40", "공휴일은 토요일과 같고, 연휴 마지막 날은 일요일과 같습니다"],   /* 10-14: '영업종료 1시간 20분 전' 은 일·공휴일(19:40)과 안 맞아 시각으로 — 예약 시스템 운영시간과 같게 */
   closed: [],          /* 홈페이지 예약을 안 받는 날 "YYYY-MM-DD" (추석 등) — 예약 창에 시각이 안 나옴. 전화는 그대로 */
 
   /* 홈페이지 예약 접수 규칙 — 관리 화면 '홈페이지 예약' 묶음에서 바꿉니다.
@@ -32,7 +33,7 @@ window.SITE_DEFAULT = {
     enabled: true,
     offTitle: "지금은 온라인 예약을 받지 않습니다",
     offMsg: "예약은 전화로 부탁드립니다. 영업시간 중 언제든 받습니다.",
-    maxDays: 30,          /* 며칠 앞까지 */
+    maxDays: 60,          /* 며칠 앞까지(10-31 미팅: 60일) */
     minAdults: 2,         /* 성인 몇 명부터 */
     maxPeople: 12,        /* 총 몇 명까지 (넘으면 전화 안내) */
     roomMinAdults: 5,     /* 룸 최소 인원 — 평일(성인) */
@@ -80,14 +81,14 @@ window.SITE_DEFAULT = {
      — 10-06 고화질 원본으로 바꿈(img/room-*.webp · hall-*.webp, 옛 bg1~7.jpg 는 어둡게 줄인 저화질이라 지움).
      초선·주유·공명, 장비·관우는 같은 방 모양이라 사진 한 장을 같이 씀. 전엔 사진과 방 이름이 엇갈려 있었음 */
   rooms: [
-    { name: "조조", cap: "4인 (최대 6인)", img: "room-jojo.webp", floor: "1층" },
-    { name: "유비", cap: "8인 (최대 9인)", img: "room-yubi.webp", floor: "1층" },
-    { name: "장비", cap: "6인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "관우와 합쳐 12 ~ 14인" },
-    { name: "관우", cap: "6인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "장비와 합쳐 12 ~ 14인" },
-    { name: "공명", cap: "6인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층", join: "주유·초선과 합쳐 18 ~ 21인" },
-    { name: "주유", cap: "6인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층" },
-    { name: "초선", cap: "6인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층" },
-    { name: "동탁", cap: "12인 (최대 14인)", img: "room-dongtak.webp", floor: "저층" }
+    { name: "조조", cap: "4인 (최대 7인)", img: "room-jojo.webp", floor: "1층" },
+    { name: "유비", cap: "6인 (최대 9인)", img: "room-yubi.webp", floor: "1층" },
+    { name: "장비", cap: "4인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "관우와 합쳐 12 ~ 14인" },
+    { name: "관우", cap: "4인 (최대 7인)", img: "room-jangbi-gwanu.webp", floor: "1층", join: "장비와 합쳐 12 ~ 14인" },
+    { name: "공명", cap: "4인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층", join: "주유·초선과 합쳐 18 ~ 21인" },
+    { name: "주유", cap: "4인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층" },
+    { name: "초선", cap: "4인 (최대 7인)", img: "room-chosun-juyu-gongmyeong.webp", floor: "저층" },
+    { name: "동탁", cap: "10인 (최대 14인)", img: "room-dongtak.webp", floor: "저층" }
   ],
   halls: [
     { name: "1층 홀", cap: "테이블 6 · 18석", img: "hall-1f.webp" },
@@ -113,7 +114,7 @@ window.SITE_DEFAULT = {
     menuSec: { title: "차림", lead: "우리 가족이 먹는다는 생각으로, 신선한 재료를 매일 직접 준비합니다", img: "home-menu-table.webp", imgAlt: "한옥반점의 요리", more: "차림 전체" },
     spaceSec: { title: "공간", lead: "나무와 창호가 만드는 조용한 자리. 문을 닫으면 방 하나가 온전히 손님의 것이 됩니다", more: "공간 전체",
       tiles: [ { img: "hall-low.webp", alt: "저층 홀", wide: true }, { img: "room-yubi.webp", alt: "유비 룸" }, { img: "room-jojo.webp", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ] },
-    infoSec: { visitMore: "오시는 길 전체", telNote: "예약과 문의는 언제든 편하게 전화 주세요" },
+    infoSec: { visitMore: "오시는 길 전체", telNote: "예약과 문의는 영업시간 중 언제든 연락 주세요" },
     band: { img: "room-chosun-juyu-gongmyeong.webp", title: "예약", lines: ["원하시는 날짜와 인원을 선택해 예약해 주세요."], button: "예약하기" }
   },
 
@@ -140,8 +141,8 @@ window.SITE_DEFAULT = {
       paras: [
         "나무로 기둥과 보를 짜고 그 위에 기와를 올렸습니다. 벽은 회를 발라 마감하고, 창과 문에는 창호를 넣었습니다. 한옥은 못을 적게 쓰고 나무끼리 물려 세우는 집이라 짓는 데 시간이 걸립니다. 그 시간을 들일 만하다고 생각했습니다.",
         "한옥은 빛이 부드럽습니다. 창호를 통과한 빛은 한 번 걸러져 들어오고, 처마가 여름 볕을 막아 줍니다. 나무와 흙벽은 소리를 머금어 실내가 웅웅거리지 않습니다. 옆자리 이야기가 넘어오지 않으니 목소리를 높이지 않아도 됩니다.",
-        "방은 여덟 곳입니다. 중문을 떼면 두 방이 하나가 되어 스무 명 남짓한 모임도 한 자리에서 나눌 수 있습니다. 상을 물리고 자리를 넓히는 일이 한옥에서는 어렵지 않습니다.",
-        "주방만은 중식에 맞췄습니다. 센 불을 쓰는 화구를 들이고 배기를 따로 냈습니다. 사천의 매운 향과 광둥의 담백함을 함께 냅니다. 옆집 안집과는 한 가족이 함께 운영합니다."
+        "방은 여덟 곳입니다. 중문을 떼면 장비·관우는 두 방을 합쳐 열네 명까지, 공명·주유·초선은 세 방을 합쳐 스물한 명까지 한 자리에서 모일 수 있습니다. 상을 물리고 자리를 넓히는 일이 한옥에서는 어렵지 않습니다.",
+        "주방만은 중식에 맞췄습니다. 센 불을 쓰는 화구를 들이고 배기를 따로 냈습니다. 사천의 매운 향과 광둥의 담백함을 함께 냅니다."
       ],
       pics: [ { img: "room-jojo.webp", alt: "조조 룸" }, { img: "room-jangbi-gwanu.webp", alt: "장비·관우 룸" } ]
     }
@@ -168,7 +169,7 @@ window.SITE_DEFAULT = {
     hoursTitle: "영업시간", mapCaption: "약도는 실제 축척과 다를 수 있습니다.",
     parkingTitle: "주차",
     parking: [
-      "주차장은 맞은편 음식점 '안집'과 함께 사용하고 있습니다.",
+      "주차장은 골목 맞은편에 있습니다.",
       "골목 초입이라 혼잡한 구간이므로 주차 관리요원의 안내에 따라 주세요.",
       "주차비는 발렛 포함 한 대당 1,000원입니다."   /* 10-14 재아: 발렛 포함 1,000원으로 통일 */
     ],

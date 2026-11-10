@@ -266,6 +266,7 @@ body.rv-open{overflow:hidden}
 .rv-steps i{display:flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; border:1px solid var(--line-2); font-style:normal; font-size:11px; font-variant-numeric:tabular-nums}
 .rv-steps .on{color:#8A402D; font-weight:600} .rv-steps .on i{background:#A84E35; color:#fff; border-color:#A84E35}
 .rv-steps .done{color:#71665B}.rv-steps .done i{background:#C6B49E; border-color:#C6B49E; color:#fff}
+.rv-steps button{display:flex; align-items:center; gap:6px; min-height:32px; padding:0; border:0; background:none; color:inherit; font:inherit; letter-spacing:inherit; cursor:pointer}
 /* 몸 */
 .rv-b{padding:8px 32px 32px; overflow:auto; flex:1}
 .rv-sec{padding:24px 0; border-bottom:1px solid var(--line)}
@@ -306,6 +307,8 @@ body.rv-open{overflow:hidden}
 .rv-days button:hover{background:var(--soft)}
 .rv-days .sun{color:#B23E28} .rv-days .sat{color:#3F6C9E}
 .rv-days button:disabled{color:#CFC9C1; pointer-events:none}
+.rv-days button[data-out]{color:#CFC9C1}   /* 기간 밖 — 흐리지만 눌러서 안내를 봄 */
+.rv-range{margin-top:12px}
 .rv-days button.on{background:var(--ink); color:#fff; font-weight:600}
 /* 시간 */
 .rv-tgroup + .rv-tgroup{margin-top:20px}
@@ -314,6 +317,9 @@ body.rv-open{overflow:hidden}
 .rv-times button{height:46px; border:1px solid var(--line); background:transparent; color:var(--ink); font:400 14.5px var(--sans); letter-spacing:0; cursor:pointer; font-variant-numeric:tabular-nums; transition:border-color .15s, background .15s}
 .rv-times button:hover{border-color:var(--ink)}
 .rv-times button.on{background:var(--ink); color:#fff; border-color:var(--ink); font-weight:600}
+.rv-times button:disabled{color:#CFC9C1; border-color:var(--line); background:var(--soft); cursor:default}
+.rv-tnote{margin-top:16px}
+.rv-note{margin:16px 0 0; padding:14px 18px; background:#FBF3E4; border-left:2px solid #A9782A; font-size:14.5px; color:var(--ink)}
 /* 고르는 칸(자리·코스) */
 .rv-pick{display:grid; gap:8px}
 .rv-pick.two{grid-template-columns:1fr 1fr}

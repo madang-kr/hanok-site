@@ -16,6 +16,8 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
   const $ = (s, r) => (r||document).querySelector(s);
   const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   /* 전화 링크엔 숫자·+·- 만(10-09 점검: 서버 값의 따옴표가 링크를 끊고 코드가 될 수 있었음) */
+  /* 음주 칸(10-15 누님) — 11-10 재아: 손님 보기에 적나라해 우선 숨김. 다시 쓰려면 true(코드·data/site.js 목록은 그대로 둠) */
+  const DRINKS_ON = false;
   const telHref = t => String(t == null ? "" : t).replace(/[^0-9+\-]/g, "");
   const pad = n => String(n).padStart(2,"0");
   const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
@@ -28,9 +30,9 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
   const WD = ["일","월","화","수","목","금","토"];
   const dateText = s => { const d = new Date(s+"T00:00:00"); return (d.getMonth()+1)+"월 "+d.getDate()+"일 ("+WD[d.getDay()]+")"; };
   /* 접수 규칙은 SITE.online(관리 화면에서 바꿈). 값이 없으면 아래 기본값. 서버 정책(성인 2~12·룸 성인 5·내일부터)이 최종이라 그 밖으로 넓힐 수는 없습니다 */
-  const R = () => Object.assign({enabled:true, maxDays:30, minAdults:2, maxPeople:12, roomMinAdults:5, limitMin:5, sameDay:false, sameDayLeadH:2,
+  const R = () => Object.assign({enabled:true, maxDays:60, minAdults:2, maxPeople:12, roomMinAdults:5, limitMin:5, sameDay:false, sameDayLeadH:2,
                                  offTitle:"지금은 온라인 예약을 받지 않습니다", offMsg:"예약은 전화로 부탁드립니다."}, (window.SITE && SITE.online) || {});
-  const MAX_SEAT = 40, LUNCH_END = 15*60+30, CODE_SEC = 120, RESEND_WAIT_SEC = 60;
+  const MAX_SEAT = 40, LUNCH_END = 15*60+30, CODE_SEC = 180, RESEND_WAIT_SEC = 60;   /* 인증번호 3분(서버 66차와 같게) */
   /* 점심 끝(분) — 예약 시스템이 남은 자리 표에 날짜마다 실어 보냄(_d.le = 그 날의 점심 경계, 하루 한 세션이면 0). 없으면 15:30(09-25 재아) */
   const LE = {};
   const lunchEnd = date => (date in LE) ? LE[date] : LUNCH_END;
@@ -53,10 +55,10 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     slots: async (date, people, seat) => {
       if((window.CLOSED||[]).indexOf(date) >= 0) return [];
       const out = []; const add = (a, b) => { for(let x = a; x <= b; x += 30) out.push(pad(Math.floor(x/60))+":"+pad(x%60)); };
-      /* 접수 시각 = 예약 시스템 세션과 같은 값: 평일 점심 11:00–14:00 · 저녁 17:00–19:30, 토 11:00–19:30, 일·공휴일 11:00–18:00 */
-      if(isHoliday(date)) add(11*60, 18*60);
+      /* 접수 시각 = 예약 시스템 세션과 같은 값: 평일 점심 11:00–14:30 · 저녁 17:00–19:30, 토 11:00–19:30, 일·공휴일 11:00–18:30 */
+      if(isHoliday(date)) add(11*60, 18*60+30);
       else if(isWeekend(date)) add(11*60, 19*60+30);
-      else { add(11*60, 14*60); add(17*60, 19*60+30); }
+      else { add(11*60, 14*60+30); add(17*60, 19*60+30); }
       return leadCut(date, out.filter(t => seat === "any" || !stubFull(date, t, seat)));
     },
     /* 기본 구현은 slots 를 날마다 불러 셉니다. 실제로는 한 번에 받아오게 바꾸세요 */
@@ -67,6 +69,11 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       return out;
     },
     submit: async payload => { await new Promise(r => setTimeout(r, 600)); return {ok:true}; },
+    day: async date => null,   /* 그날 전체 시각표·세션(_d) — 예약 시스템이 올린 자료에만 있음 */
+    /* 휴대폰 인증(66차) — 서버가 켜 둔 때만. 서버가 없으면 꺼짐 */
+    otpOn: async () => false,
+    otpSend: async phone => ({ok:false, code:"OFF"}),
+    otpCheck: async (phone, code) => ({ok:false, code:"EXPIRED"}),
     /* 그 시각에 이 좌석 종류로 받을 수 있나 — 시간표는 '룸이든 테이블이든' 되는 시각을 보여 주므로 좌석 단계에서 한 번 더 봅니다 */
     seatOk: async (date, time, people, seat) => !stubFull(date, time, seat)
   };
@@ -102,6 +109,16 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       const d = await dayData(date); if(!d) return [];
       return leadCut(date, Object.keys(d).sort().filter(t => okAt(d[t], people, seat)));
     };
+    RES_API.day = async date => { const d = await dayData(date); return (d && d._d) || null; };
+    /* 휴대폰 인증(66차): 켜짐 여부·보내기·확인. 함수가 없는 서버(66차 전)나 연결 실패는 '꺼짐' — 인증 때문에 접수가 막히지 않게 */
+    const rpc = async (fn, body) => {
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+      try{ const r = await fetch(SUPA.url + "/rest/v1/rpc/" + fn, {method:"POST", headers:H, body:JSON.stringify(body || {}), signal:ctl.signal}); if(!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
+      finally{ clearTimeout(t); }
+    };
+    RES_API.otpOn = async () => { try{ return (await rpc("hanok_otp_on")) === true; }catch(e){ return false; } };
+    RES_API.otpSend = async phone => { try{ return (await rpc("hanok_otp_send", {p_phone:phone})) || {ok:false, code:"ERR"}; }catch(e){ return {ok:false, code:"ERR"}; } };
+    RES_API.otpCheck = async (phone, code) => { try{ return (await rpc("hanok_otp_check", {p_phone:phone, p_code:code})) || {ok:false, code:"ERR"}; }catch(e){ return {ok:false, code:"ERR"}; } };
     RES_API.seatOk = async (date, time, people, seat, loose) => { const d = await dayData(date); return !!(d && okAt(d[time], people, seat, loose)); };
     RES_API.month = async (ym, people, seat) => {
       const rows = await get(`/rest/v1/public_avail?store=eq.${SUPA.store}&date=like.${ym}%25&select=date,data`);
@@ -130,14 +147,15 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       if(/RATE_PHONE/.test(msg)) return {ok:false, msg:"이 번호로 최근 24시간 동안 접수한 예약이 이미 5건입니다. 전화로 문의해 주세요."};
       /* 43차(10-09): 손님 관리에서 블랙리스트인 번호 — 온라인 접수 대신 유선으로(손님에게 이유는 말하지 않음) */
       if(/PHONE_ONLY/.test(msg)) return {ok:false, msg:"온라인으로 접수하기 어려운 예약입니다. 유선으로 예약 도와드리겠습니다. (" + INFO.tel + ")"};
+      if(/NEED_VERIFY/.test(msg)) return {ok:false, needVerify:true, msg:"휴대폰 인증이 필요합니다. 예약자 단계에서 인증번호를 받아 주세요."};
       if(/RATE_ALL/.test(msg)) return {ok:false, msg:"지금 접수가 몰려 있습니다. 잠시 뒤 다시 시도해 주세요."};
       return {ok:false, msg:"접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."};
     };
   }
 
-  /* 휴대폰 인증 — 문자 발송을 실제로 붙이기 전까지 끔(09-25 전수검토: 문자가 안 나가는데 손님이 인증번호를 기다리다 포기할 수 있었고,
-     반대로 아무 6자리나 통과해 인증 의미도 없었음). 문자 업체를 붙이면 true 로 */
-  const SMS_VERIFY = false;
+  /* 휴대폰 인증 — 서버가 켜 둔 때만(66차 sms_config.otp · 문자가 실제로 나갈 때). 예약 창을 열 때마다 물어봄(reset).
+     09-25 전수검토 때는 문자가 안 나가 꺼 두었음 — 손님이 인증번호를 기다리다 포기할 수 있었고, 아무 6자리나 통과해 의미도 없었음 */
+  let SMS_VERIFY = false;
   /* ---------- 상태 ---------- */
   let S, step, timer, left, ov, monthCache, extended, submitting = false;   /* extended: 5분 연장을 한 번 썼는지 · submitting: 접수 답을 기다리는 중(10-09) */
   const total = () => S.adults + S.kids;
@@ -147,6 +165,8 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
          sent:false, resendUsed:false, verified:false, req:"", allergy:"", drinks:[], agree:{rule:false, priv:false, age:false}};
     step = 1; monthCache = {};
     clearInterval(timer); timer = null; left = LIMIT_SEC(); extended = false;
+    /* 예약자 단계(6)까지 가는 동안 답이 옴 — 늦게 와서 이미 6단계면 다시 그림(11-11 검토: 인증 단추가 숨은 채 '다음' 만 막혀 손님이 못 넘어가던 것) */
+    RES_API.otpOn().then(v => { const was = SMS_VERIFY; SMS_VERIFY = !!v; if(was !== SMS_VERIFY && ov && step === 6 && !S.verified) render(); }, () => {});
   }
 
   /* ---------- 창 ---------- */
@@ -281,7 +301,9 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       return;
     }
     steps.hidden = step > STEPS.length;
-    steps.innerHTML = STEPS.map((t,i) => `<li class="${i+1===step?'on':(i+1<step?'done':'')}"${i+1===step?' aria-current="step"':''}><i>${i+1}</i>${t}</li>`).join("");
+    /* 지나온 단계는 눌러서 바로 돌아감(10-31 미팅). 앞으로 뛰기는 단계마다 확인이 있어 '다음' 으로만 */
+    steps.innerHTML = STEPS.map((t,i) => `<li class="${i+1===step?'on':(i+1<step?'done':'')}"${i+1===step?' aria-current="step"':''}>${i+1<step ? `<button type="button" data-step="${i+1}"><i>${i+1}</i>${t}</button>` : `<i>${i+1}</i>${t}`}</li>`).join("");
+    steps.querySelectorAll("[data-step]").forEach(el => el.addEventListener("click", () => { if(submitting) return; step = Number(el.dataset.step); render(); }));
     const b = $(".rv-b", ov), f = $(".rv-f", ov);
     b.scrollTop = 0;
     b.innerHTML = msg ? `<div class="rv-msg" role="alert" tabindex="-1">${esc(msg)}</div>` : "";
@@ -370,6 +392,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     sync();
   }
 
+  const rangeMsg = () => `홈페이지에서는 ${R().sameDay ? "오늘" : "내일"}부터 ${R().maxDays}일 이내의 날짜로 예약하실 수 있습니다. ${R().sameDay ? "" : "당일 예약이나 "}해당 기간 이후의 예약은 매장으로 전화 문의 부탁드립니다. 예약 가능 여부를 안내해 드리겠습니다.`;
   /* ---------- ② 날짜 ---------- */
   function sDate(b, f){
     const {min, max} = dayRange();
@@ -399,15 +422,17 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       for(let i = 0; i < first.getDay(); i++) cells.push(`<span class="pad"></span>`);
       for(let d = 1; d <= lastDay; d++){
         const key = ym+"-"+pad(d), wd = new Date(key+"T00:00:00").getDay();
-        const out = key < min || key > max || !!lockedOf(key);
-        cells.push(`<button type="button" data-day="${key}" aria-label="${view.getFullYear()}년 ${view.getMonth()+1}월 ${d}일${out?' 예약 불가':''}" class="${wd===0||isHoliday(key)?'sun':(wd===6?'sat':'')}${key===S.date?' on':''}" aria-pressed="${key===S.date}"${out?" disabled":""}>${d}</button>`);
+        const range = key < min || key > max, out = range || !!lockedOf(key);
+        cells.push(`<button type="button" data-day="${key}" aria-label="${view.getFullYear()}년 ${view.getMonth()+1}월 ${d}일${out?' 예약 불가':''}" class="${wd===0||isHoliday(key)?'sun':(wd===6?'sat':'')}${key===S.date?' on':''}" aria-pressed="${key===S.date}"${range?' data-out="1" aria-disabled="true"':(out?" disabled":"")}>${d}</button>`);
       }
       days.innerHTML = cells.join("");
       /* 이 달에 잠근 특별 기간이 있으면 달력 아래 한 줄 */
       const locks = (R().special || []).filter(sp => sp && sp.from && sp.to && !spOpenNow(sp) && sp.from.slice(0,7) <= ym && sp.to.slice(0,7) >= ym);
+      if(!b.querySelector(".rv-range")) days.insertAdjacentHTML("afterend", `<p class="rv-fld-hint rv-range">${esc(rangeMsg())}</p>`);
       let ln = b.querySelector(".rv-lock"); if(!ln){ ln = document.createElement("p"); ln.className = "rv-fld-hint rv-lock"; days.after(ln); }
       ln.innerHTML = locks.length ? locks.map(sp => `${esc(sp.title || "특별 기간")} (${esc(sp.from.slice(5).replace("-", "/"))} ~ ${esc(sp.to.slice(5).replace("-", "/"))}) 예약은 준비 중입니다. 전화로 문의해 주세요. <a href="tel:${esc(INFO.tel)}" class="num">${esc(INFO.tel)}</a>`).join("<br>") : "";
       days.querySelectorAll("[data-day]").forEach(el => el.addEventListener("click", () => {
+        if(el.dataset.out){ notice("예약 가능 기간 안내", esc(rangeMsg())); return; }   /* 흐린 날짜도 누르면 왜 안 되는지 알려 줌(11-04 누님 요청) */
         S.date = el.dataset.day; S.time = "";
         days.querySelectorAll("[data-day]").forEach(x => { x.classList.toggle("on", x === el); x.setAttribute("aria-pressed", x === el); });
         foot(f, true, next, "다음", false);
@@ -429,7 +454,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       }
       const m = monthCache[ym];
       days.querySelectorAll("[data-day]").forEach(el => {
-        if(!el.disabled && m[el.dataset.day] === 0){
+        if(!el.disabled && !el.dataset.out && m[el.dataset.day] === 0){
           el.disabled = true;
           el.setAttribute("aria-label", el.getAttribute("aria-label") + " 예약 불가");
         }
@@ -449,8 +474,8 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     async function load(){
       const want = S.date;
       times.innerHTML = `<p class="rv-quiet">불러오는 중…</p>`;
-      let list;
-      try{ list = await RES_API.slots(S.date, total(), S.seat || "any"); }
+      let list, day = null;
+      try{ list = await RES_API.slots(S.date, total(), S.seat || "any"); day = await RES_API.day(S.date); }
       catch(e){
         /* 10-03: 전엔 조회가 실패하면 '불러오는 중…' 에서 영영 멈췄음 → 안내 + 다시 시도 + 전화 */
         if(!ov || want !== S.date) return;
@@ -460,10 +485,14 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       }
       if(!ov || want !== S.date) return;
       if(!list.length){ times.innerHTML = `<p class="rv-quiet">이 날은 예약 가능한 시간이 없습니다. 다른 날짜를 고르시거나 유선으로 문의해 주세요. <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></p>`; return; }
-      const le = lunchEnd(S.date), lunch = list.filter(t => mins(t) < le), dinner = list.filter(t => mins(t) >= le);
+      /* 받지 않는 시각도 지우지 않고 흐리게(재아: 있지만 안 되는 게 보여야 매장으로 문의가 옴). 시각표는 예약 시스템이 올린 _d.g, 옛 자료면 되는 시각만 */
+      const all = day && day.g ? day.g.concat(list.filter(t => day.g.indexOf(t) < 0)).sort() : list;
+      const le = lunchEnd(S.date), lunch = all.filter(t => mins(t) < le), dinner = all.filter(t => mins(t) >= le);
       const grid = (label, arr) => arr.length ? `<div class="rv-tgroup"><span>${label}</span><div class="rv-times">${
-        arr.map(t => `<button type="button" data-t="${t}" class="${t===S.time?'on':''}" aria-pressed="${t===S.time}">${hm(t)}</button>`).join("")}</div></div>` : "";
-      times.innerHTML = grid("점심", lunch) + grid("저녁", dinner);
+        arr.map(t => list.indexOf(t) < 0 ? `<button type="button" disabled aria-label="${hm(t)} 예약 불가">${hm(t)}</button>`
+          : `<button type="button" data-t="${t}" class="${t===S.time?'on':''}" aria-pressed="${t===S.time}">${hm(t)}</button>`).join("")}</div></div>` : "";
+      times.innerHTML = grid("점심", lunch) + grid("저녁", dinner) +
+        `<p class="rv-fld-hint rv-tnote">위 시간 외에 방문을 원하시면 매장으로 전화 문의 부탁드립니다.<br>예약 가능 여부를 안내해 드리겠습니다. <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></p>`;   /* 11-10 재아: '이 날 예약 가능 시간은 …' 문장 뺌 — 시간 칸에 이미 보임 */
       times.querySelectorAll("[data-t]").forEach(el => el.addEventListener("click", () => {
         if(S.time !== el.dataset.t){ S.course = ""; S.courseLabel = ""; }
         S.time = el.dataset.t;
@@ -632,7 +661,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
         </div>
         <div class="rv-fld"><label for="rv-req">요청사항 <em>선택</em></label>
           <textarea id="rv-req" rows="3" maxlength="300" placeholder="알레르기, 유아용 의자, 기념일 등 요청하실 내용이 있다면 적어 주세요.">${esc(S.req)}</textarea></div>
-        ${(R().drinks || []).length ? `<div class="rv-fld"><span class="rv-lbl">음주 <em>선택 · 여럿 고를 수 있어요</em></span>
+        ${DRINKS_ON && (R().drinks || []).length ? `<div class="rv-fld"><span class="rv-lbl">음주 <em>선택 · 여럿 고를 수 있어요</em></span>
           <div class="rv-pick rv-drinks" id="rv-drinks">${R().drinks.map(d => `<button type="button" data-d="${esc(d)}" class="${S.drinks.indexOf(d) >= 0 ? 'on' : ''}" aria-pressed="${S.drinks.indexOf(d) >= 0}"><b>${esc(d)}</b></button>`).join("")}</div></div>` : ""}
       </section>`);
     /* 음주(10-15 누님) — 여럿 고름, '음주 안 함' 은 다른 것과 같이 못 고름 */
@@ -649,10 +678,14 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       S.sent = false; S.resendUsed = false; phone.disabled = false; edit.hidden = true; codebox.hidden = true; send.disabled = false; send.textContent = "인증번호 요청";
       clearInterval(codeTimer); codeTimer = null; hint.textContent = ""; hint.classList.remove("bad"); phone.focus();
     });
-    let codeTimer = null, codeLeft = 0, resendLeft = 0;
+    let codeTimer = null, codeLeft = 0, resendLeft = 0, codeErr = "";   /* codeErr: 틀렸을 때 안내 — 1초마다 다시 쓰는 줄에 같이 실어 지워지지 않게 */
     const codeTick = () => {
-      if(codeLeft <= 0){ clearInterval(codeTimer); codeTimer = null; verify.disabled = true; hint.textContent = "인증번호가 만료되었습니다. 다시 요청해 주세요."; hint.classList.add("bad"); return; }
-      hint.textContent = `문자로 보낸 인증번호를 입력해 주세요. (${pad(Math.floor(codeLeft/60))}:${pad(codeLeft%60)})`; codeLeft--;
+      if(codeLeft <= 0){
+        /* 만료되면 처음부터 다시 요청할 수 있게 풂('다시 요청' 을 이미 쓴 뒤에도) — 횟수는 서버가 셈 */
+        clearInterval(codeTimer); codeTimer = null; verify.disabled = true; hint.textContent = "인증번호가 만료되었습니다. 다시 요청해 주세요."; hint.classList.add("bad");
+        S.sent = false; S.resendUsed = false; send.disabled = false; send.textContent = "인증번호 요청"; return;
+      }
+      hint.textContent = (codeErr || "문자로 보낸 인증번호를 입력해 주세요.") + ` (${pad(Math.floor(codeLeft/60))}:${pad(codeLeft%60)})`; codeLeft--;
       /* 재요청은 성급한 중복 발송을 막되, 한 번은 받을 수 있게 1분 뒤에만 엽니다 */
       if(S.sent && !S.resendUsed && resendLeft > 0){ send.disabled = true; send.textContent = `다시 요청 (${resendLeft}초)`; resendLeft--; }
       else if(S.sent && !S.resendUsed){ send.disabled = false; send.textContent = "다시 요청"; }
@@ -669,24 +702,49 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       S.phone = phone.value;
       if(!SMS_VERIFY) refoot();
     });
-    send.addEventListener("click", () => {
+    /* 서버가 거절한 까닭을 손님 말로 */
+    const otpMsg = r => r.code === "WAIT" ? `조금 전에 보냈습니다. ${r.wait || 60}초 뒤에 다시 요청해 주세요.`
+      : r.code === "LIMIT" ? "인증번호를 연달아 요청하셨습니다. 5분 뒤에 다시 시도해 주세요."
+      : r.code === "DAILY" ? `이 번호로 오늘 요청할 수 있는 횟수를 넘었습니다. 전화로 예약 도와드리겠습니다. (${INFO.tel})`
+      : r.code === "PHONE" ? "휴대폰 번호를 확인해 주세요."
+      : `지금은 인증 문자를 보낼 수 없습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요. (${INFO.tel})`;
+    let busy = false;
+    send.addEventListener("click", async () => {
       const d = S.phone.replace(/\D/g, "");
       if(!/^01\d{8,9}$/.test(d)){ hint.textContent = "휴대폰 번호를 확인해 주세요."; hint.classList.add("bad"); return; }
-      /* 실제로는 여기서 문자를 보냅니다. 보낸 뒤에는 번호를 못 바꾸게 잠급니다(바꾸려면 '번호 수정') — 인증한 번호와 적힌 번호가 달라지는 것을 막음(재아) */
+      /* 보낸 뒤에는 번호를 못 바꾸게 잠급니다(바꾸려면 '번호 수정') — 인증한 번호와 적힌 번호가 달라지는 것을 막음(재아) */
       const resend = S.sent;
-      if(resend){
-        if(S.resendUsed || resendLeft > 0) return;
-        S.resendUsed = true; codeLeft += 60; send.disabled = true; send.textContent = "다시 요청 완료";
-      }else{
-        S.sent = true; codeLeft = CODE_SEC; resendLeft = RESEND_WAIT_SEC; send.disabled = true;
-      }
+      if(busy || (resend && (S.resendUsed || resendLeft > 0))) return;
+      busy = true; send.disabled = true; hint.classList.remove("bad"); hint.textContent = "인증번호를 보내는 중입니다…";
+      const r = await RES_API.otpSend(d);
+      busy = false;
+      if(!document.body.contains(send)) return;   /* 기다리는 사이 다른 단계로 넘어감 */
+      if(r && r.code === "OFF"){ SMS_VERIFY = false; send.hidden = true; hint.textContent = ""; phone.disabled = false; refoot(); return; }   /* 그사이 매장이 인증을 껐음 — 인증 없이 넘어가게(11-11 검토) */
+      if(!r || !r.ok){ hint.textContent = otpMsg(r || {}); hint.classList.add("bad"); if(!(resend && S.resendUsed)) send.disabled = false; return; }
+      if(resend){ S.resendUsed = true; send.textContent = "다시 요청 완료"; }
+      else { S.sent = true; resendLeft = RESEND_WAIT_SEC; }
+      codeLeft = r.ttl || CODE_SEC; codeErr = "";   /* 다시 보내면 새 번호 — 시간도 새로 */
       codebox.hidden = false; verify.disabled = false; code.value = "";
       phone.disabled = true; edit.hidden = false;
-      hint.classList.remove("bad"); clearInterval(codeTimer); codeTick(); codeTimer = setInterval(codeTick, 1000);
+      clearInterval(codeTimer); codeTick(); codeTimer = setInterval(codeTick, 1000);
       code.focus();
     });
-    verify.addEventListener("click", () => {
+    verify.addEventListener("click", async () => {
       if(!/^\d{6}$/.test(code.value)){ hint.textContent = "6자리 숫자를 입력해 주세요."; hint.classList.add("bad"); return; }
+      if(busy) return;
+      busy = true; verify.disabled = true;
+      const r = await RES_API.otpCheck(S.phone.replace(/\D/g, ""), code.value);
+      busy = false;
+      if(!document.body.contains(verify)) return;
+      if(!r || !r.ok){
+        const gone = r && (r.code === "EXPIRED" || r.code === "LOCKED");
+        if(gone){ clearInterval(codeTimer); codeTimer = null; S.sent = false; S.resendUsed = false; send.disabled = false; send.textContent = "인증번호 요청"; }
+        codeErr = r && r.code === "WRONG" ? `인증번호가 맞지 않습니다. 남은 횟수 ${r.left}번.` : "";
+        hint.textContent = r && r.code === "WRONG" ? `인증번호가 맞지 않습니다. (남은 횟수 ${r.left}번)` : r && r.code === "LOCKED" ? "여러 번 틀려 이 인증번호는 쓸 수 없습니다. 다시 요청해 주세요."
+          : r && r.code === "EXPIRED" ? "인증번호가 만료되었습니다. 다시 요청해 주세요." : "확인하지 못했습니다. 잠시 뒤 다시 눌러 주세요.";
+        hint.classList.add("bad"); verify.disabled = gone; code.value = ""; code.focus();
+        return;
+      }
       clearInterval(codeTimer); codeTimer = null;
       S.verified = true; codebox.hidden = true; phone.disabled = true; send.disabled = true; send.textContent = "인증 완료"; edit.hidden = true;
       hint.classList.remove("bad"); hint.textContent = "인증되었습니다."; refoot();
@@ -717,6 +775,7 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     b.insertAdjacentHTML("beforeend", `<section class="rv-sec">
         <h3>예약 확인</h3>
         <dl class="rv-check">${rows.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+        ${S.seat === "room" && isWeekend(S.date) && mins(S.time) < lunchEnd(S.date) ? `<p class="rv-note">주말·공휴일 점심 룸 이용시간은 예약 시각부터 1시간 50분입니다. 식사 시간이 더 필요하신 경우, 예약 전 매장으로 전화 문의 부탁드립니다. <a href="tel:${telHref(INFO.tel)}">${esc(INFO.tel)}</a></p>` : ""}
       </section>
       <section class="rv-sec">
         ${box("rule", "매장 이용규정에 동의합니다", `<ul>
@@ -758,6 +817,8 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
       if(!ov) return;   /* 그사이 창이 닫혔으면(다른 길) 화면을 다시 그리지 않음 */
       if(r && r.id){ S.rid = r.id; S.ridSig = sig; }   /* 다시 보낼 때 같은 번호 */
       if(r && r.ok){ S.reqId = r.id || ""; clearInterval(timer); timer = null; step = 8; render(); }
+      else if(r && r.needVerify){   /* 서버는 인증을 켰는데 화면이 몰랐음(답이 늦거나 실패) — 인증 칸을 보이며 예약자 단계로(11-11 검토) */
+        if(!timer) startTimer(); SMS_VERIFY = true; S.verified = false; step = 6; render(r.msg); }
       else { if(!timer) startTimer(); btn.disabled = false; btn.textContent = "접수하기"; render((r && r.msg) || "접수가 되지 않았습니다. 잠시 뒤 다시 시도하시거나 전화로 문의해 주세요."); }   /* 실패하면 남은 시간도 다시(전엔 멈춘 채) */
     }
     refoot();
@@ -798,7 +859,8 @@ if(!window.safeHref) window.safeHref = function(u){ return /^https?:\/\//i.test(
     open();
     const d = new Date(Date.now() + 3*864e5);
     Object.assign(S, {date:ymd(d), time:"12:30", adults:5, kids:1, seat:"room", course:"course:촉 코스", courseLabel:"촉 코스",
-                      name:"홍길동", phone:"010-0000-1234", sent:SMS_VERIFY, verified:SMS_VERIFY});
+                      name:"홍길동", phone:"010-0000-1234", sent:false, verified:false});
+    if(/[?&]otp=1/.test(location.search)) SMS_VERIFY = true;   /* 인증 칸 모양 확인용(이 PC 에서만 — 위 m 조건) */
     step = Number(m[1]);
     if(step === 1){ S.adults = 1; S.kids = 0; }
     if(step > 3) startTimer();
