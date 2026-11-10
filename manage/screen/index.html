@@ -7879,10 +7879,14 @@ function smsFill(tpl, map){
 /* ---------- 발송 (흉내) ----------
    실제로 붙일 때는 이 함수 안에서 발송 업체 API 를 부르면 됩니다.
    나머지 코드는 손댈 필요가 없습니다. */
+/* 문자를 켜기 전에 만든 예약인가(75차 sms_from, 11-11 재아: "앞으로 생기는 예약에만 — 대표님도 마음의 준비가 필요") — 확정·재안내·변경·취소를 안 보냄.
+   서버(hanok_sms_enqueue)도 같은 규칙으로 막지만, 화면에서 먼저 걸러야 '보낼까요?' 를 묻지 않음. 등록 시각을 모르는 옛 예약은 '전' 으로 봄 */
+function smsOldRes(r){ var f = SMS_SRV && SMS_SRV.sms_from; if(!f || !r) return false; var at = r.createdAt ? Date.parse(r.createdAt) : NaN; return isNaN(at) || at < Date.parse(f); }
 function smsSend(r, kind, offset, resent, st, textFrom){   /* textFrom: 글만 다른 값으로(취소 문자 = 취소 전 일시) — 기록은 r 에 붙음 */
   var c = smsCfg(st);
   if(!r) return null;
   if(typeof SMS_READY !== "undefined" && !SMS_READY) return null;   /* 연결 전엔 예약에 '보냄' 기록을 안 붙임(10-13) */
+  if(/^(접수|재안내|변경|취소)$/.test(kind) && smsOldRes(r)) return null;   /* 문자를 켜기 전 예약(75차) */
   var rec = {
     kind: kind,
     at: new Date().toISOString(),
@@ -7930,6 +7934,7 @@ function smsDropNote(t){ var c = smsClean(t); return c.dropped ? "이모지·그
 async function smsAfterEdit(old, rec){
   try{
     if(!old || !rec || typeof SMS_READY === "undefined" || !SMS_READY) return;
+    if(smsOldRes(rec)) return;   /* 문자를 켜기 전 예약은 묻지도 않음(75차) */
     var c = smsCfg(); if(!c.on || old.status !== "확정") return;
     if(!/^01[0-9]{8,9}$/.test(String(rec.phone || "").replace(/\D/g, ""))) return;
     if(/네이버/.test(rec.source || "") && c.skipNaver !== false) return;
@@ -7959,7 +7964,7 @@ var SMS_SRV = null, SMS_OUT = [];
 async function smsSrvLoad(){
   if(!supaOn() || !SESSION) return;
   var c = null;
-  try{ var rows = await sb("/rest/v1/sms_config?store=eq." + (view.storeKey || "hanok") + "&select=live,test_mode,test_phones,worker_seen"); c = (rows && rows[0]) || null; }
+  try{ var rows = await sb("/rest/v1/sms_config?store=eq." + (view.storeKey || "hanok") + "&select=*"); c = (rows && rows[0]) || null; }   /* * — 75차 sms_from 이 없는 서버에서도 400 이 안 나게 */
   catch(e){ if(e && (e.network || !e.status || e.status >= 500 || e.status === 401)) return; c = null; }   /* 잠깐 끊김·서버 오류는 전 상태 그대로 — 전엔 끊길 때마다 그 기기에서 문자가 꺼져 확정 문자가 빠질 수 있었음(11-11 검토). 표가 없을 때(404·400)만 '없음' */
   var hadSrv = !!SMS_SRV; SMS_SRV = c;
   var was = SMS_READY; SMS_READY = !!(c && c.live);
@@ -14076,13 +14081,18 @@ function thDelKw(resId, i){ var it = TH.items[resId]; if(!it) return; it.kws.spl
 function thKwKey(ev, resId){ if(ev.key === "Enter" && !ev.isComposing){ ev.preventDefault(); thAddKw(resId, ev.target.value); ev.target.value = ""; } }
 function thPickAll(on){ thTargets().forEach(function(r){ if(!thQueued(r.id)) thItem(r).pick = on; }); render(); }
 /* 예약 발송: 고른 건들을 thanks_sms 에 넣음(같은 예약은 한 번만 — unique) */
-async function thSchedule(){
+/* now: '지금 발송하기'(11-11 재아 — 감사 문자는 대표가 글을 보고 '발송하기' 또는 '발송 예약' 을 눌러야만 나감. 자동 발송 없음) */
+async function thSchedule(now){
   var list = thTargets().filter(function(r){ var it = thItem(r); return it.pick && it.text && !thQueued(r.id); });
   if(!list.length){ await uiAlert("보낼 문자가 없습니다", "글이 만들어진 건을 체크하세요.", "warn"); return; }
+  if(now === true){
+    if(!await uiConfirm(list.length + "건 지금 발송", "체크한 손님께 지금 감사 문자가 나갑니다.", {ok:"지금 발송", cancel:"취소", tone:"ok"})) return;
+    var t0 = new Date(Date.now() - 30000); TH.sendAt = t0.getFullYear() + "-" + pad(t0.getMonth() + 1) + "-" + pad(t0.getDate()) + "T" + pad(t0.getHours()) + ":" + pad(t0.getMinutes());
+  }
   var at = new Date(TH.sendAt); if(isNaN(at)){ await uiAlert("보낼 시각을 정해 주세요", "", "warn"); return; }
-  if(at.getTime() < Date.now() - 60000 && !await uiConfirm("보낼 시각이 이미 지났습니다", dateLabel(TH.sendAt.slice(0, 10)) + " " + hm(TH.sendAt.slice(11, 16)) + " — 예약하면 바로 나갑니다.", {ok:"바로 보내기", cancel:"시각 고치기"})) return;
-  if((at.getHours() >= 21 || at.getHours() < 9) && !await uiConfirm("밤 시간에 나갑니다", hm(TH.sendAt.slice(11, 16)) + " 에 손님께 문자가 갑니다. 괜찮을까요?", {ok:"그대로", cancel:"시각 고치기"})) return;
-  if(!await uiConfirm(list.length + "건 예약 발송", dateLabel(TH.sendAt.slice(0, 10)) + " " + hm(TH.sendAt.slice(11, 16)) + " 에 나갑니다. 그 전에는 '대기' 목록에서 취소할 수 있습니다.", {ok:"예약 발송", cancel:"취소", tone:"ok"})) return;
+  if(now !== true && at.getTime() < Date.now() - 60000 && !await uiConfirm("보낼 시각이 이미 지났습니다", dateLabel(TH.sendAt.slice(0, 10)) + " " + hm(TH.sendAt.slice(11, 16)) + " — 예약하면 바로 나갑니다.", {ok:"바로 보내기", cancel:"시각 고치기"})) return;
+  if(now !== true && (at.getHours() >= 21 || at.getHours() < 9) && !await uiConfirm("밤 시간에 나갑니다", hm(TH.sendAt.slice(11, 16)) + " 에 손님께 문자가 갑니다. 괜찮을까요?", {ok:"그대로", cancel:"시각 고치기"})) return;
+  if(now !== true && !await uiConfirm(list.length + "건 예약 발송", dateLabel(TH.sendAt.slice(0, 10)) + " " + hm(TH.sendAt.slice(11, 16)) + " 에 나갑니다. 그 전에는 '대기' 목록에서 취소할 수 있습니다.", {ok:"예약 발송", cancel:"취소", tone:"ok"})) return;
   var rows = list.map(function(r){ var it = thItem(r); return { id:"th_" + r.id, store:view.storeKey || "hanok", res_id:r.id, phone:r.phone.replace(/\D/g, ""), name:r.name, text:it.text, send_at:at.toISOString(), status:"대기", made_by:it.made || "manual", by:sessionBy() }; });   /* kw 칸은 서버 표에 없어 늘 실패했음(09-25 전수검토) — 키워드는 글에 이미 녹아 있음 */
   try{
     await sb("/rest/v1/thanks_sms?on_conflict=store,res_id", { method:"POST", body:rows, prefer:"resolution=merge-duplicates,return=minimal" });
@@ -14153,7 +14163,8 @@ function thMakeHtml(){
       (todo || !open.length ? '<button class="btn primary" onclick="thMakeAll()" ' + (running || !open.length ? "disabled" : "") + '>' + ICON.spark + ' AI 로 완성하기</button>'
         : '<button class="btn primary" onclick="thMakeAll(true)" ' + (running ? "disabled" : "") + '>' + ICON.refresh + ' AI 다시 돌리기</button>') + '</div>' +
       '<div class="btn-row"><button class="btn sm ghost" onclick="thPickAll(true)">전체 선택</button><button class="btn sm ghost" onclick="thPickAll(false)">선택 해제</button>' +
-      '<button class="btn" onclick="thSchedule()" ' + (running ? "disabled" : "") + '>예약발송하기</button></div></div>';
+      '<button class="btn" onclick="thSchedule()" ' + (running ? "disabled" : "") + '>예약발송하기</button>' +
+      '<button class="btn primary" onclick="thSchedule(true)" ' + (running ? "disabled" : "") + '>지금 발송하기</button></div></div>';
   if(!list.length) return head + '<div class="empty">' + dateLabel(TH.date) + ' 에 \'방문\' 으로 확인된 예약이 없습니다.</div>';
   var rows = list.map(function(r){
     var it = thItem(r), q = thQueued(r.id), c = custStat(r);
@@ -15834,6 +15845,7 @@ function smsBox(r){
   if(rqs) b = {cls:rqs.cls, txt:`${rqs.txt} · ${stamp({at:rq.sent_at || rq.created_at})}`};
   /* 문자 서비스가 아직 연결 전(SMS_READY=false) — 흉내 기록만 있어 '전송 완료·예정' 이 실제처럼 보이던 것(10-09 점검) */
   if(typeof SMS_READY !== "undefined" && !SMS_READY){ a = {cls:"skip", txt:"문자 서비스 비활성화 상태 · 보내지 않음"}; b = a; }
+  else if(typeof smsOldRes === "function" && smsOldRes(r)){ a = {cls:"skip", txt:"문자를 켜기 전에 받은 예약 · 보내지 않음"}; b = a; }
   return `
     <div class="sms-box">
       ${row("확정 문자", `<span class="sm-${a.cls}">${esc(a.txt)}</span>`)}
