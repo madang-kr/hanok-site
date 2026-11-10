@@ -2187,10 +2187,13 @@ button.sa-card:hover{border-color:var(--text-3)}
 .th-sel{display:flex; align-items:center; gap:var(--s12); width:100%; flex-wrap:wrap; font-size:var(--fs-sub); padding:var(--s4) 0}
 .th-sel .th-cnt{font-weight:700; color:var(--text)}
 .th-sel .linkbtn{color:var(--text-2); text-decoration:none; font-weight:600; min-height:32px}
-.th-sel .th-when{margin-left:auto; color:var(--pine); white-space:nowrap}
+.th-whenrow{display:flex; align-items:center; gap:var(--s8) var(--s12); flex-wrap:wrap; margin:var(--s4) 0 var(--s12)}
+.th-whenrow .lb{font-size:var(--fs-label); font-weight:700; color:var(--text-2)}
+.th-whenseg{margin:0} .th-whenseg button{white-space:nowrap}
+.th-whenrow .th-when{color:var(--pine); white-space:nowrap; text-decoration:none; font-weight:600; min-height:32px}
 .th-when-f{width:100%; max-width:320px; margin:0} .th-when-f input{width:100%}
 .th-send{position:sticky; bottom:0; z-index:5; display:flex; gap:var(--s8); justify-content:flex-end; padding:var(--s12) 0; background:var(--bg)}
-.th-send .btn{min-width:150px; height:48px}
+.th-send .btn{min-width:220px; height:48px}
 .th-kwrow{margin-bottom:var(--s8)}
 .chips{display:flex; flex-wrap:wrap; gap:var(--s4) var(--s8); align-items:center}
 .chip{display:inline-flex; align-items:center; gap:4px; padding:3px 6px 3px 10px; border-radius:999px; background:var(--pine-soft); border:1px solid var(--border-strong); font-size:var(--fs-sub); font-weight:600; color:var(--text)}
@@ -3603,6 +3606,7 @@ input, select, textarea{border-color:var(--border-strong); border-radius:var(--r
   .th-sel{gap:var(--s8)}
   .th-ctl input[type=date]{padding-left:10px; padding-right:6px}
   .th-send{justify-content:stretch} .th-send .btn{flex:1; min-width:0}
+  .th-whenrow .lb{width:100%}
   .th-card{padding:var(--s12)}
   .th-nm b{display:block; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .th-nm small{display:block; margin:0}
@@ -14000,7 +14004,7 @@ async function openThanksPage(){
   var back = view.form && (view.form.type === "messages" || view.form.back === "messages") ? "messages" : ((view.form && (view.form.type === "owner" || view.form.back === "owner")) ? "owner" : "");
   view.form = {type:"thanks", page:true, back:back};
   if(!TH) TH = { date: bizToday(), items:{}, queue:[], tab:"make", busy:{}, sendAt:"", adv:false, run:null, stop:false, qf:"all" };   /* 다녀간 날 기본 = 오늘(퇴근 때 만드니까, 09-20) · 발송 내일 */
-  TH.sendAt = shiftDate(TH.date, 1) + "T" + thCfg().hour;   /* 열 때마다 다시(09-25 전수검토) */   /* 기본 내일 11시(09-20). 새벽 4시 전이면 오늘 11시(영업일 기준, 09-25) */
+  TH.when = "at"; TH.sendAt = thDefaultSend();   /* 열 때마다 다시 — 방문 다음 날 11시, 지났으면 다음 11시(11-11 재아) */
   render(); await thLoadQueue(); render();
 }
 async function thLoadQueue(){
@@ -14024,7 +14028,7 @@ function thTemplate(r, kw){
   return thCfg().template.replace(/\{이름\}/g, r.name).replace(/\{단골\}/g, again).replace(/\{키워드\}/g, extra).replace(/\{매장\}/g, store().name || "한옥반점");
 }
 function thPrompt(r, kw){
-  var sendD = (TH && TH.sendAt ? TH.sendAt.slice(0, 10) : todayStr()), gap = Math.round((new Date(sendD + "T00:00:00") - new Date(r.date + "T00:00:00")) / 86400000), holi = typeof isHoliday === "function" && isHoliday(sendD);   /* 발송일 기준(09-20 재아) */
+  var sendD = thSendDate(), gap = Math.round((new Date(sendD + "T00:00:00") - new Date(r.date + "T00:00:00")) / 86400000), holi = typeof isHoliday === "function" && isHoliday(sendD);   /* 발송일 기준(09-20 재아) */
   var c = custStat(r), cfg = thCfg(), seat = r.roomId ? (isRoom(seatById(r.roomId) || {}) ? "룸(방 이름은 쓰지 말 것)" : "홀 테이블") : "홀 테이블";
   var lines = cfg.promptLines.slice().concat([
     "길이: 80자 이상 " + cfg.maxLen + "자 이하.",
@@ -14125,6 +14129,7 @@ function thPickAll(on){ thTargets().forEach(function(r){ if(!thQueued(r.id)) thI
 /* 예약 발송: 고른 건들을 thanks_sms 에 넣음(같은 예약은 한 번만 — unique) */
 /* now: '지금 발송하기'(11-11 재아 — 감사 문자는 대표가 글을 보고 '발송하기' 또는 '발송 예약' 을 눌러야만 나감. 자동 발송 없음) */
 async function thSchedule(now){
+  if(now !== true && TH.when === "now") now = true;   /* 위에서 고른 보낼 때(11-11) */
   var list = thTargets().filter(function(r){ var it = thItem(r); return it.pick && it.text && !thQueued(r.id); });
   if(!list.length){ await uiAlert("보낼 문자가 없습니다", "글이 만들어진 건을 체크하세요.", "warn"); return; }
   if(now === true){
@@ -14193,24 +14198,49 @@ function sheetThanks(){
   var run = thRunning() ? '<div class="th-dim"></div><div class="th-orb"><canvas class="ai-wave"></canvas><div class="th-orb-t">AI 가 문자를 완성하고 있습니다' + (TH.run ? '<small>' + TH.run.done + ' / ' + TH.run.total + '</small>' : '') + '</div><button class="btn sm" onclick="thStop()">중단</button></div>' : '';
   return run + '<div class="th-top">' + tabs + (TH.aiErr ? '<span class="tag rust sm">AI 기능 오류 발생</span>' : '') + '</div>' + body;   /* 키가 서버로 옮겨 간 뒤로 cfg.key 가 늘 비어 '키 없음' 이 늘 떴음 — 실제로 AI 가 실패했을 때만(09-25 재아) */
 }
+/* 보낼 때(11-11 재아) — 기본 예약 시각 = 방문 다음 날 오전 11시(설정 thanksHour). 그 시각이 이미 지났으면 지금 다음에 오는 11시
+   (밤에 작업하면 다음 날 아침 11시). '지금' 은 AI 가 오늘을 보내는 날로 보고 씀 */
+function thDefaultSend(){
+  var hr = thCfg().hour, c = shiftDate(TH.date, 1) + "T" + hr;
+  if(new Date(c).getTime() > Date.now()) return c;
+  var t = todayStr() + "T" + hr;
+  return new Date(t).getTime() > Date.now() ? t : shiftDate(todayStr(), 1) + "T" + hr;
+}
+function thSendDate(){ return TH && TH.when === "now" ? todayStr() : (TH && TH.sendAt ? TH.sendAt.slice(0, 10) : todayStr()); }
+/* 만든 글이 있나(예약 발송된 건 빼고) — 있으면 보낼 때·방문일을 바꿀 때 글을 지움(AI 가 보내는 날 기준으로 썼기 때문) */
+function thHasText(){ return Object.keys(TH.items || {}).some(function(k){ var it = TH.items[k]; return it && it.text && !thQueued(k); }); }
+function thClearText(){ Object.keys(TH.items || {}).forEach(function(k){ var it = TH.items[k]; if(!it || thQueued(k)) return; it.text = ""; it.made = ""; it.err = ""; it.manual = false; }); }
+async function thSetWhen(mode, at){
+  var next = mode === "now" ? "now" : "at", nextAt = mode === "now" ? TH.sendAt : (at || TH.sendAt || thDefaultSend());
+  if(next === TH.when && nextAt === TH.sendAt){ render(); return; }
+  if(thHasText() && !await uiConfirm("보낼 때를 바꾸면 만든 글이 지워집니다", "AI 가 보내는 날을 기준으로 글을 썼기 때문입니다(어제·지난주 같은 말). 바꾼 뒤 다시 만들어 주세요.", {ok:"바꾸고 글 지우기", cancel:"그대로 두기"})){ render(); return; }
+  thClearText(); TH.when = next; TH.sendAt = nextAt; render();
+}
+async function thSetDate(v){
+  if(thHasText() && !await uiConfirm("방문일을 바꾸면 만든 글이 지워집니다", "", {ok:"바꾸기", cancel:"그대로 두기"})){ render(); return; }
+  TH.date = v; TH.items = {}; if(TH.when !== "now") TH.sendAt = thDefaultSend(); render();
+}
 function thMakeHtml(){
   var list = thTargets(), cfg = thCfg(), running = thRunning();
   var open = list.filter(function(r){ return !thQueued(r.id); });
   var todo = open.filter(function(r){ var it = thItem(r); return !it.manual && !(it.text && it.made === "ai"); }).length;
-  /* 11-11 재아(폰 다듬기): 방문일·공통 키워드 한 줄 → AI 로 완성하기 → '선택 n명 · 전체/해제 · 보낼 시각' 한 줄 → 맨 아래 고정 줄(예약발송·지금 발송) */
+  /* 11-11 재아: 보낼 때(지금 / 예약 시각)를 먼저 정하고 AI 는 그 날을 기준으로 씀('어제·지난주' 같은 말). 글을 만든 뒤 바꾸면 글을 지움(thSetWhen) */
   var picked = open.filter(function(r){ var it = thItem(r); return it.pick && it.text; }).length;
-  var sendLbl = (function(){ var d = TH.sendAt ? TH.sendAt.slice(0, 10) : ""; return d ? pkShort(d) + " " + TH.sendAt.slice(11, 16) : "정하기"; })();   /* 24시 표기로 짧게 — 폰에서 한 줄에 들어가게 */
-  var head = '<div class="th-ctl"><label class="f"><div class="lb">방문일</div><input type="date" value="' + esc(TH.date) + '" onchange="TH.date=this.value; TH.items={}; render()"></label>' +
+  var now = TH.when === "now";
+  var sendLbl = TH.sendAt ? pkShort(TH.sendAt.slice(0, 10)) + " " + TH.sendAt.slice(11, 16) : "정하기";   /* 24시 표기로 짧게 — 폰에서 한 줄에 */
+  var head = '<div class="th-ctl"><label class="f"><div class="lb">방문일</div><input type="date" value="' + esc(TH.date) + '" onchange="thSetDate(this.value)"></label>' +
     '<label class="f"><div class="lb">공통 키워드</div><input type="text" value="' + esc(cfg.common) + '" placeholder="계절·날씨 등" onchange="thSaveCfg({thanksCommon:this.value})"></label></div>' +
+    '<div class="th-whenrow"><div class="lb">보낼 때</div><div class="seg th-whenseg">' +
+      '<button class="' + (now ? "" : "on") + '" onclick="thSetWhen(\'at\')">예약 ' + esc(sendLbl) + '</button>' +
+      '<button class="' + (now ? "on" : "") + '" onclick="thSetWhen(\'now\')">지금</button></div>' +
+      (now ? '' : '<button class="linkbtn th-when" onclick="TH.adv=!TH.adv; render()" aria-expanded="' + (TH.adv ? "true" : "false") + '">시각 바꾸기 ' + (TH.adv ? "▴" : "▾") + '</button>') + '</div>' +
+    (!now && TH.adv ? '<label class="f th-when-f"><div class="lb">예약발송 시각</div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="thSetWhen(\'at\', this.value)"></label>' : '') +
     '<div class="th-actions">' +
       (todo || !open.length ? '<button class="btn primary th-ai" onclick="thMakeAll()" ' + (running || !open.length ? "disabled" : "") + '>' + ICON.spark + ' AI 로 완성하기</button>'
         : '<button class="btn primary th-ai" onclick="thMakeAll(true)" ' + (running ? "disabled" : "") + '>' + ICON.refresh + ' AI 다시 돌리기</button>') +
-      '<div class="th-sel"><span class="th-cnt">보낼 문자 ' + picked + '건</span><button class="linkbtn" onclick="thPickAll(true)">전체</button><button class="linkbtn" onclick="thPickAll(false)">해제</button>' +
-        '<button class="linkbtn th-when" onclick="TH.adv=!TH.adv; render()" aria-expanded="' + (TH.adv ? "true" : "false") + '">예약 ' + esc(sendLbl) + ' ' + (TH.adv ? "▴" : "▾") + '</button></div>' +
-      (TH.adv ? '<label class="f th-when-f"><div class="lb">예약발송 시각</div><input type="datetime-local" value="' + esc(TH.sendAt) + '" onchange="TH.sendAt=this.value; render()"></label>' : '') +
+      '<div class="th-sel"><span class="th-cnt">보낼 문자 ' + picked + '건</span><button class="linkbtn" onclick="thPickAll(true)">전체 선택</button><button class="linkbtn" onclick="thPickAll(false)">선택 해제</button></div>' +
     '</div>';
-  var foot = '<div class="th-send"><button class="btn" onclick="thSchedule()" ' + (running || !picked ? "disabled" : "") + '>예약발송하기</button>' +
-    '<button class="btn primary" onclick="thSchedule(true)" ' + (running || !picked ? "disabled" : "") + '>지금 발송하기</button></div>';
+  var foot = '<div class="th-send"><button class="btn primary" onclick="thSchedule()" ' + (running || !picked ? "disabled" : "") + '>' + (now ? "지금 발송하기" : esc(sendLbl) + " 예약발송") + (picked ? " · " + picked + "건" : "") + '</button></div>';
   if(!list.length) return head + '<div class="empty">' + dateLabel(TH.date) + ' 에 \'방문\' 으로 확인된 예약이 없습니다.</div>';
   var rows = list.map(function(r){
     var it = thItem(r), q = thQueued(r.id), c = custStat(r);
