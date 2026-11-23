@@ -78,6 +78,12 @@ textarea.grow{overflow:hidden; resize:none}   /* 글이 길어지면 칸이 같�
 .imgs{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
 .imgs a{display:block; width:96px; height:72px; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:var(--surface-2)}
 .imgs img{width:100%; height:100%; object-fit:cover}
+/* 새 공지에 붙인 사진(11-24) — 썸네일 + 빼기(×) */
+.nt-imgs{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+.nt-imgs:empty{display:none}
+.nt-img{position:relative; width:96px; height:72px; border-radius:8px; overflow:hidden; border:1px solid var(--border)}
+.nt-img img{width:100%; height:100%; object-fit:cover; display:block}
+.nt-img button{position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%; border:0; background:rgba(0,0,0,.6); color:#fff; font-size:14px; line-height:22px; padding:0; cursor:pointer}
 .reply{margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
 .reply .done{background:var(--pine-bg); border-radius:10px; padding:10px 14px; white-space:pre-wrap; font-size:14px}
 .reply .done b{display:block; font-size:12px; color:var(--pine); margin-bottom:2px}
@@ -288,8 +294,8 @@ async function noticeAdd(){
   const t = (document.getElementById("nt-t") || {}).value || "", b = (document.getElementById("nt-b") || {}).value || "";
   if(!t.trim()){ toast("공지 제목을 적어 주세요"); return; }
   try{
-    await api("/rest/v1/dev_requests", { method:"POST", body:{ id:"dq_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), store:"hanok", title:t.trim(), body:b.trim(), urgent:false, status:"끝", images:[], by:"dev-notice" }, prefer:"return=minimal" });
-    toast("공지를 올렸습니다"); await loadReqs();
+    await api("/rest/v1/dev_requests", { method:"POST", body:{ id:"dq_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), store:"hanok", title:t.trim(), body:b.trim(), urgent:false, status:"끝", images:(S.ntImgs || []).slice(), by:"dev-notice" }, prefer:"return=minimal" });
+    S.ntImgs = []; toast("공지를 올렸습니다"); await loadReqs();
   }catch(e){ toast("올리지 못했습니다 — " + e.message); }
 }
 /* 업데이트 노트 양식(10-15 재아) — 제목 'YYYY-MM-DD-NN 업데이트'(하루 여러 번일 수 있어 번호), 본문은 주요 / 세부(안 읽어도 됨) 두 칸.
@@ -305,7 +311,29 @@ function noticeTpl(){
 }
 function noticeHtml(r){
   return `<div class="card req"><div class="req-h"><b>${esc(r.title)}</b> <span class="tag green">공지</span> <span class="muted">${esc(kst(r.created_at))}</span></div>
-    ${r.body ? `<div class="body">${linkify(r.body)}</div>` : ""}<div class="row-btns"><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button></div></div>`;
+    ${r.body ? `<div class="body">${linkify(r.body)}</div>` : ""}${noticeImgs(r.images)}<div class="row-btns"><button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button></div></div>`;
+}
+/* 공지 사진·파일(11-24 재아) — 사진은 글 아래 썸네일(dev_requests.images · 가게 화면 dqDetailHtml 이 이미 그림),
+   파일은 글 끝에 주소 한 줄(attach · 가게 화면은 파일 이름 링크로 보임). 우리 Storage 주소만 그림(reqHtml 과 같은 이유) */
+function noticeImgs(list){
+  const imgs = (list || []).filter(u => typeof u === "string" && u.indexOf(CFG.url + "/storage/v1/object/") === 0);
+  return imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : "";
+}
+/* 새 공지에 붙인 사진 — render() 로 다시 그리면 적던 제목·본문이 지워지므로 이 칸만 다시 그림 */
+function ntImgsHtml(){ return (S.ntImgs || []).map((u, i) => `<span class="nt-img"><img src="${esc(u)}" alt=""><button type="button" onclick="S.ntImgs.splice(${i}, 1); ntImgsPaint()" aria-label="사진 빼기">×</button></span>`).join(""); }
+function ntImgsPaint(){ const box = document.getElementById("nt-imgs"); if(box) box.innerHTML = ntImgsHtml(); }
+function ntPhoto(){
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.multiple = true;
+  inp.onchange = async () => {
+    for(const f of inp.files){
+      try{
+        if(!/^image\//.test(f.type || "")) throw new Error("사진 파일이 아닙니다");
+        const u = await upFile(f, "img");
+        (S.ntImgs = S.ntImgs || []).push(u); ntImgsPaint(); toast("사진을 붙였습니다 · " + f.name);
+      }catch(e){ toast(f.name + " — " + e.message); }
+    }
+  };
+  inp.click();
 }
 function reqHtml(r){
   /* 우리 Storage 에 올린 사진 주소만(10-14 보안 점검) — 직원 토큰으로 images 에 javascript: 나 바깥 주소를 넣으면
@@ -369,7 +397,8 @@ function tabReq(){
   if(S.reqFilter === "notice") return bar + `<div class="card"><h3 style="margin:0 0 8px">새 공지</h3>
       <input id="nt-t" type="text" placeholder="제목" style="width:100%; margin-bottom:8px">
       <textarea class="grow" id="nt-b" rows="5" placeholder="바뀐 점·안내" style="width:100%"></textarea>
-      <div class="row-btns"><button class="btn sm" onclick="noticeTpl()">업데이트 노트 양식</button><button class="btn sm primary" onclick="noticeAdd()">공지 올리기</button></div></div>
+      <div id="nt-imgs" class="nt-imgs">${ntImgsHtml()}</div>
+      <div class="row-btns"><button class="btn sm" onclick="noticeTpl()">업데이트 노트 양식</button><button class="btn sm" onclick="ntPhoto()">사진 첨부</button><button class="btn sm" onclick="attach('nt-b')">파일 첨부</button><button class="btn sm primary" onclick="noticeAdd()">공지 올리기</button></div></div>
     ${notices.length ? notices.map(noticeHtml).join("") : `<p class="empty">올린 공지가 없습니다</p>`}`;
   return bar + (list.length ? list.map(reqHtml).join("") : `<p class="empty">${S.reqFilter === "open" ? "답할 글이 없습니다" : "받은 글이 없습니다"}</p>`);
 }
@@ -682,19 +711,24 @@ function attach(taId){
     const ta = document.getElementById(taId);
     for(const f of inp.files){
       try{
-        if(f.size > 50 * 1024 * 1024) throw new Error("50MB 를 넘습니다");
-        const ext = ((f.name.match(/\.([A-Za-z0-9]+)$/) || [])[1] || "bin").toLowerCase(), base = f.name.replace(/\.[^.]+$/, "").slice(0, 60) || "file";
-        const safe = "x-" + btoa(unescape(encodeURIComponent(base))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-        const path = "hanok/file/" + Date.now().toString(36) + "_" + safe + "." + ext;
-        toast("올리는 중… " + f.name);
-        const r = await fetch(CFG.url + "/storage/v1/object/site/" + path, { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token, "Content-Type":f.type || "application/octet-stream", "x-upsert":"true" }, body:f });
-        if(!r.ok) throw new Error("올리기 실패 " + r.status);
-        if(ta){ ta.value = (ta.value ? ta.value.replace(/\s+$/, "") + "\n" : "") + CFG.url + "/storage/v1/object/public/site/" + path + "\n"; growTa(ta); }
+        const u = await upFile(f, "file");
+        if(ta){ ta.value = (ta.value ? ta.value.replace(/\s+$/, "") + "\n" : "") + u + "\n"; growTa(ta); }
         toast("붙였습니다 · " + f.name);
       }catch(e){ toast(f.name + " — " + e.message); }
     }
   };
   inp.click();
+}
+/* Storage site 버킷에 올리고 공개 주소를 돌려줌 — 파일 첨부(attach)와 공지 사진(ntPhoto)이 같이 씀. 이름 규칙은 가게 화면 파일 올리기와 같음(11-24 나눔) */
+async function upFile(f, kind){
+  if(f.size > 50 * 1024 * 1024) throw new Error("50MB 를 넘습니다");
+  const ext = ((f.name.match(/\.([A-Za-z0-9]+)$/) || [])[1] || "bin").toLowerCase(), base = f.name.replace(/\.[^.]+$/, "").slice(0, 60) || "file";
+  const safe = "x-" + btoa(unescape(encodeURIComponent(base))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const path = "hanok/" + kind + "/" + Date.now().toString(36) + "_" + safe + "." + ext;
+  toast("올리는 중… " + f.name);
+  const r = await fetch(CFG.url + "/storage/v1/object/site/" + path, { method:"POST", headers:{ apikey:CFG.anonKey, Authorization:"Bearer " + S.sess.access_token, "Content-Type":f.type || "application/octet-stream", "x-upsert":"true" }, body:f });
+  if(!r.ok) throw new Error("올리기 실패 " + r.status);
+  return CFG.url + "/storage/v1/object/public/site/" + path;
 }
 function growTa(el){ el.style.height = "auto"; el.style.height = (el.scrollHeight + 2) + "px"; }
 document.addEventListener("input", e => { if(e.target && e.target.matches && e.target.matches("textarea.grow")) growTa(e.target); });

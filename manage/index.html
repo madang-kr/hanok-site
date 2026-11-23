@@ -2905,7 +2905,11 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 .tv-inner{position:absolute; top:0; right:0; bottom:0; left:0; z-index:1; display:flex; flex-direction:column; padding:calc(var(--tvu)*3.4) calc(var(--tvu)*6.4) calc(var(--tvu)*2.6)}
 /* 나가기 버튼 — 평소엔 숨기고, 우측 상단(.tv-hot)에 마우스를 올리거나 화면을 누르면(.tv-tap → .show) 나타납니다.
    위치는 그대로 두고 글자·여백만 --tvu 로 화면에 맞춰 키웁니다 */
-.tv-hot{position:absolute; top:0; right:0; z-index:4; width:calc(var(--tvu)*18); height:calc(var(--tvu)*7.5)}
+/* 11-24 재아: 매장 TV(안드로이드)에서만 이 칸 자리가 옅은 파란 사각형으로 보였음 — 안드로이드 브라우저가 이벤트가 붙은 칸에
+   눌림·포커스 강조색(기본 옅은 파랑)을 칠함. 마우스가 있는 기기(11-media 의 hover:hover)에서만 칸을 두고, 강조색·윤곽선은 끔 */
+.tv-hot{position:absolute; top:0; right:0; z-index:4; width:calc(var(--tvu)*18); height:calc(var(--tvu)*7.5); display:none}
+.tv-hot, .tv-tap, .tv-exit, .tv-swap, .eco-off{-webkit-tap-highlight-color:transparent; -webkit-tap-highlight-color:rgba(0,0,0,0)}
+.tv-hot:focus, .tv-tap:focus{outline:none}
 .tv-tap{position:absolute; top:0; right:0; bottom:0; left:0; z-index:2}
 .tv-exit{position:absolute; top:14px; right:16px; z-index:5; opacity:0; pointer-events:none; background:rgba(243,234,218,.1); border:1px solid rgba(243,234,218,.25); color:rgba(243,234,218,.75); transition:opacity .25s ease; font-size:calc(var(--tvu)*1.5); padding:calc(var(--tvu)*.95) calc(var(--tvu)*1.8); border-radius:calc(var(--tvu)*.8)}
 .tv-exit.show{opacity:1; pointer-events:auto}
@@ -2999,7 +3003,7 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 /* 비어 있어도 자리는 둡니다 — 접은 뒤에 이 줄이 나타나면 마지막 줄이 잘렸습니다(점검 T4).
    11-23: visibility 만으로는 글자 줄 높이가 안 잡혀(빈 칸 8px ↔ '외 N건' 30px) 접은 뒤 맨 아래 줄이 22px 잘렸음 — 빈 칸에 보이지 않는 한 글자를 넣어 높이를 같게 */
 .tvl-more:empty{visibility:hidden}
-.tvl-more:empty::before{content:" a0"}
+.tvl-more:empty::before{content:"\00a0"}
 
 .tvl-foot{flex:none; text-align:center; font-family:var(--serif-tv);
   font-size:calc(var(--tvu)*2); letter-spacing:.2em; text-indent:.2em; color:#B9A889;
@@ -3151,6 +3155,7 @@ body.theme-hanok .pdot.on{color:var(--pine)}
 
 /* 디스플레이 나가기 버튼 — 마우스가 있으면 우측 상단에 올렸을 때만 보임 */
 @media (hover:hover) and (pointer:fine){
+  .tv-hot{display:block}   /* 마우스가 있을 때만 우측 상단 감지 칸(10-tv.css 11-24) */
   .tv-hot:hover ~ .tv-exit,
   .tv-hot:hover ~ .tv-swap{opacity:1; pointer-events:auto}
   .tv-exit:hover, .tv-swap:hover{opacity:1; pointer-events:auto}
