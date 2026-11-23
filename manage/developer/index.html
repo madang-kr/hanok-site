@@ -317,15 +317,15 @@ function reqHtml(r){
   return `<div class="card req${r.urgent && !isDone(r) ? " urgent" : ""}">
     <div class="req-h"><div style="flex:1"><h3>${esc(r.title)}</h3>
       <div class="req-m">${r.store === "anjip" ? "안집" : "한옥반점"} · ${r.by === "admin" ? "사장님" : "직원"} · ${esc(kst(r.created_at))} (${esc(ago(r.created_at))})</div></div>
-      ${r.urgent ? '<span class="tag red">긴급</span>' : ''}${!isDone(r) && lastStore ? '<span class="tag amber">추가 답변 옴</span>' : ''}${isDone(r) ? '<span class="tag green">답변 완료</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
+      ${r.urgent ? '<span class="tag red">긴급</span>' : ''}${!isDone(r) && lastStore ? '<span class="tag amber">추가 답변 옴</span>' : ''}${isDone(r) ? '<span class="tag green">' + (r.status === "끝" ? "종결" : "답변 완료") + '</span>' : '<span class="tag amber">' + esc(r.status) + '</span>'}</div>
     ${r.body ? `<p class="req-b">${linkify(r.body)}</p>` : ""}
     ${imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : ""}
     <div class="reply">
       ${r.reply && !editing ? `<div class="done"><b>보낸 답${ms.length ? "" : " · " + esc(kst(r.replied_at))}</b>${linkify(r.reply)}</div>${thread}
            ${S.msgsOk ? `<textarea class="grow" id="ad-${esc(r.id)}" rows="2" placeholder="${lastStore ? "가게 추가 답변에 답하기" : "덧붙일 답(가게 화면에 이어서 보입니다)"}"></textarea>` : ""}
-           <div class="row-btns"><button class="btn sm" onclick="reqEdit('${jsq(r.id)}')">첫 답 고치기</button>${isDone(r) ? `<button class="btn sm" onclick="reqReopen('${jsq(r.id)}')">미답으로 되돌리기</button>` : ""}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button>${S.msgsOk ? `<button class="btn sm" onclick="attach('ad-${jsq(r.id)}')">파일 첨부</button><button class="btn sm primary" onclick="reqAdd('${jsq(r.id)}')">답변 보내기</button>` : ""}</div>`
+           <div class="row-btns"><button class="btn sm" onclick="reqEdit('${jsq(r.id)}')">첫 답 고치기</button>${!isDone(r) ? `<button class="btn sm" onclick="reqClose('${jsq(r.id)}')">종결</button>` : ""}${isDone(r) ? `<button class="btn sm" onclick="reqReopen('${jsq(r.id)}')">미답으로 되돌리기</button>` : ""}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button>${S.msgsOk ? `<button class="btn sm" onclick="attach('ad-${jsq(r.id)}')">파일 첨부</button><button class="btn sm primary" onclick="reqAdd('${jsq(r.id)}')">답변 보내기</button>` : ""}</div>`
         : `${thread}<textarea class="grow" id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea>
-           <div class="row-btns">${editing ? `<button class="btn sm" onclick="S.editReq=null; render()">취소</button>` : ""}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button><button class="btn sm" onclick="attach('rp-${jsq(r.id)}')">파일 첨부</button><button class="btn sm primary" onclick="reqReply('${jsq(r.id)}')">${editing ? "첫 답 고치기" : "답변 보내기"}</button></div>`}
+           <div class="row-btns">${editing ? `<button class="btn sm" onclick="S.editReq=null; render()">취소</button>` : `<button class="btn sm" onclick="reqClose('${jsq(r.id)}')">종결</button>`}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button><button class="btn sm" onclick="attach('rp-${jsq(r.id)}')">파일 첨부</button><button class="btn sm primary" onclick="reqReply('${jsq(r.id)}')">${editing ? "첫 답 고치기" : "답변 보내기"}</button></div>`}
     </div></div>`;
 }
 async function reqPatch(id, body, msg){
@@ -348,6 +348,9 @@ async function reqAdd(id){
   catch(e){ toast("보내지 못했습니다 — " + e.message); }
   S.adding = false;
 }
+/* 종결(11-23 재아) — 답한 뒤 가게가 '네 알겠습니다' 처럼 추가 답변을 달면 서버(58차)가 '접수' 로 되돌려 미답에 남았음.
+   더 답할 것 없이 끝낼 때 상태만 '끝'(가게 화면에는 '답변 완료' 로 보임). 다시 열려면 '미답으로 되돌리기' */
+function reqClose(id){ if(!confirm("더 답하지 않고 이 글을 종결할까요?")) return; reqPatch(id, { status:"끝" }, "종결했습니다"); }
 function reqReopen(id){ reqPatch(id, { status:"접수" }, "미답으로 되돌렸습니다"); }
 function reqEdit(id){ S.editReq = id; render(); const el = document.getElementById("rp-" + id); if(el) el.focus(); }   /* 10-23: 상태를 몰래 바꾸지 않고 고치는 중 표시만 */
 async function reqDel(id){
