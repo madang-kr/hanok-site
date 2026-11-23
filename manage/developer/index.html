@@ -368,9 +368,9 @@ function reqHtml(r){
     ${imgs.length ? `<div class="imgs">${imgs.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>` : ""}
     <div class="reply">
       ${r.reply && !editing ? `<div class="done"><b>보낸 답${ms.length ? "" : " · " + esc(kst(r.replied_at))}</b>${linkify(r.reply)}</div>${thread}
-           ${S.msgsOk ? `<textarea class="grow" id="ad-${esc(r.id)}" rows="2" placeholder="${lastStore ? "가게 추가 답변에 답하기" : "덧붙일 답(가게 화면에 이어서 보입니다)"}"></textarea>` : ""}
+           ${S.msgsOk ? `<textarea class="grow" id="ad-${esc(r.id)}" rows="2" placeholder="${lastStore ? "가게 추가 답변에 답하기" : "덧붙일 답(가게 화면에 이어서 보입니다)"}"></textarea><div id="att-ad-${esc(r.id)}" class="nt-files">${attHtml("ad-" + r.id)}</div>` : ""}
            <div class="row-btns"><button class="btn sm" onclick="reqEdit('${jsq(r.id)}')">첫 답 고치기</button>${!isDone(r) ? `<button class="btn sm" onclick="reqClose('${jsq(r.id)}')">종결</button>` : ""}${isDone(r) ? `<button class="btn sm" onclick="reqReopen('${jsq(r.id)}')">미답으로 되돌리기</button>` : ""}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button>${S.msgsOk ? `<button class="btn sm" onclick="attach('ad-${jsq(r.id)}')">파일 첨부</button><button class="btn sm primary" onclick="reqAdd('${jsq(r.id)}')">답변 보내기</button>` : ""}</div>`
-        : `${thread}<textarea class="grow" id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea>
+        : `${thread}<textarea class="grow" id="rp-${esc(r.id)}" rows="3" placeholder="답을 적으면 가게 화면 '개발자에게' 에 보입니다">${esc(r.reply || "")}</textarea><div id="att-rp-${esc(r.id)}" class="nt-files">${attHtml("rp-" + r.id)}</div>
            <div class="row-btns">${editing ? `<button class="btn sm" onclick="S.editReq=null; render()">취소</button>` : `<button class="btn sm" onclick="reqClose('${jsq(r.id)}')">종결</button>`}<button class="btn sm danger" onclick="reqDel('${jsq(r.id)}')">삭제</button><button class="btn sm" onclick="attach('rp-${jsq(r.id)}')">파일 첨부</button><button class="btn sm primary" onclick="reqReply('${jsq(r.id)}')">${editing ? "첫 답 고치기" : "답변 보내기"}</button></div>`}
     </div></div>`;
 }
@@ -379,18 +379,18 @@ async function reqPatch(id, body, msg){
   catch(e){ toast("저장하지 못했습니다 — " + e.message); }
 }
 function reqReply(id){
-  const t = (document.getElementById("rp-" + id) || {}).value || "";
+  const t = withAtt("rp-" + id, (document.getElementById("rp-" + id) || {}).value || "");   /* 붙인 파일은 글 끝에(11-24) */
   if(!t.trim()){ toast("답을 적어 주세요"); return; }
-  const editing = S.editReq === id; S.editReq = null;
+  const editing = S.editReq === id; S.editReq = null; if(S.att) delete S.att["rp-" + id];
   /* 첫 답을 고칠 때는 상태·시각을 그대로(가게 추가 답변을 기다리는 글이 '답변 완료' 로 바뀌지 않게) */
   reqPatch(id, editing ? { reply:t.trim() } : { reply:t.trim(), status:"답변 완료", replied_at:new Date().toISOString() }, editing ? "첫 답을 고쳤습니다" : "답변을 보냈습니다");
 }
 /* 추가 답변(58차) — 서버가 그 글을 '답변 완료' 로 */
 async function reqAdd(id){
-  const el = document.getElementById("ad-" + id), t = el ? el.value.trim() : "";
+  const el = document.getElementById("ad-" + id), t = withAtt("ad-" + id, el ? el.value : "");   /* 붙인 파일은 글 끝에(11-24) */
   if(!t){ toast("답을 적어 주세요"); return; }
   if(S.adding) return; S.adding = true;
-  try{ await api("/rest/v1/dev_request_msgs", { method:"POST", body:{ id:"dm_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), req_id:id, body:t.slice(0, 4000) }, prefer:"return=minimal" }); toast("답변을 보냈습니다"); await loadReqs(); }
+  try{ await api("/rest/v1/dev_request_msgs", { method:"POST", body:{ id:"dm_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), req_id:id, body:t.slice(0, 4000) }, prefer:"return=minimal" }); if(S.att) delete S.att["ad-" + id]; toast("답변을 보냈습니다"); await loadReqs(); }
   catch(e){ toast("보내지 못했습니다 — " + e.message); }
   S.adding = false;
 }
@@ -723,15 +723,23 @@ function linkify(t){
   }
   return out + esc(t.slice(last));
 }
-/* 답에 파일 붙이기 — Storage site 버킷(가게 화면의 파일 올리기와 같은 자리·같은 이름 규칙)에 올리고 주소를 답 글 끝에 한 줄로. 서버 표는 그대로 */
+/* 답에 파일 붙이기 — Storage site 버킷(가게 화면의 파일 올리기와 같은 자리·같은 이름 규칙)에 올림. 서버 표는 그대로.
+   11-24 재아: 전엔 답 글 칸에 긴 주소가 바로 들어갔음 → 쓰는 동안은 칸 아래 '📎 이름' 칩(× 빼기)으로만 두고,
+   보낼 때 withAtt 가 글 끝에 주소를 한 줄씩 붙임(가게 화면 dqText 는 파일 이름 링크로 보여 줌). 칩은 글 칸 id 별(S.att) */
+function attHtml(taId){ return ((S.att || {})[taId] || []).map((u, i) => `<span class="nt-file">📎 ${esc(fileLabel(u))}<button type="button" onclick="attDel('${jsq(taId)}', ${i})" aria-label="파일 빼기">×</button></span>`).join(""); }
+function attPaint(taId){ const box = document.getElementById("att-" + taId); if(box) box.innerHTML = attHtml(taId); }
+function attDel(taId, i){ ((S.att || {})[taId] || []).splice(i, 1); attPaint(taId); }
+function withAtt(taId, text){
+  const fs = (S.att || {})[taId] || [], t = String(text || "").trim();
+  return t + (fs.length ? (t ? "\n\n" : "") + fs.join("\n") : "");
+}
 function attach(taId){
   const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true;
   inp.onchange = async () => {
-    const ta = document.getElementById(taId);
     for(const f of inp.files){
       try{
         const u = await upFile(f, "file");
-        if(ta){ ta.value = (ta.value ? ta.value.replace(/\s+$/, "") + "\n" : "") + u + "\n"; growTa(ta); }
+        S.att = S.att || {}; (S.att[taId] = S.att[taId] || []).push(u); attPaint(taId);
         toast("붙였습니다 · " + f.name);
       }catch(e){ toast(f.name + " — " + e.message); }
     }
